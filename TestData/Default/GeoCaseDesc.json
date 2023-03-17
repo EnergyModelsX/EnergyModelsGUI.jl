@@ -1,0 +1,24 @@
+{
+	"Areas" : {
+		"Oslo" : {"Lat": 10.751, "Long": 59.921},
+		"Bergen" : {"Lat": 5.334, "Long": 60.389},
+		"Trondheim" : {"Lat": 10.398, "Long": 63.437}
+	},
+	
+	"Techs" : {
+		"Oslo" : ["Source1","Test1","Test4","Sink1"],
+		"Bergen" : ["Source1","Test1","Test4","Sink1"],
+		"Trondheim" : ["Source1","Test1","Test4","Sink1"]
+	},
+	
+	"Transmissions" : [
+	{"From": "Oslo", "To": "Bergen", "Modes": ["OverheadLine_50MW","LNG_Ship_100MW"],"Data":{ "InvestmentModels": {
+		"OverheadLine_50MW":{"Capex_trans":500,"Trans_max_inst":1000,"Trans_max_add":1000,"Trans_min_add":0, "Inv_mode":null, "Trans_start":null,"Trans_increment":null},
+		"LNG_Ship_100MW":{"Capex_trans":200,"Trans_max_inst":500,"Trans_max_add":100,"Trans_min_add":20,"Inv_mode":"IntegerInvestment","Trans_start":0,"Trans_increment":20}
+	}}},
+	{"From": "Oslo", "To": "Trondheim", "Modes": ["NG_Pipeline_35MW"]},
+	{"From": "Bergen", "To": "Trondheim", "Modes": ["OverheadLine_50MW","LNG_Ship_100MW"],"Data":{ "InvestmentModels": {
+		"LNG_Ship_100MW":{"Capex_trans":200,"Trans_max_inst":500,"Trans_max_add":100,"Trans_min_add":20,"Inv_mode":"IntegerInvestment","Trans_start":0,"Trans_increment":20}
+	}}}
+	]
+}

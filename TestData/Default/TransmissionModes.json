@@ -1,0 +1,31 @@
+{
+	"OverheadLine_50MW" : {
+	"Type" : "RefStatic" ,
+	"Name" : "Powerline_50",
+	"Resource" : "Power",
+	"Trans_Cap": 50,
+	"Trans_Loss": 0.05,
+    "Directions":2
+	},
+	
+	"LNG_Ship_100MW" : {
+	"Type" : "RefDynamic" ,
+	"Name" : "LNG_100",
+	"Resource" : "NG",
+	"Trans_Cap": 100,
+	"Trans_Loss": 0.05,
+    "Directions":1
+	},
+	
+	"NG_Pipeline_35MW" : {
+	"Type" : "PipelineMode" ,
+	"Name" : "NG_Pipeline_35MW",
+    "Inlet": "NG",
+    "Outlet": "NG",
+    "Consuming": "NG",
+    "Consumption_rate": 0.01,
+    "Trans_cap": 35,
+    "Trans_loss": 0.01,
+	"Directions": null
+	}
+}
