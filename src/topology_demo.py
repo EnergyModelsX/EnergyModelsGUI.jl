@@ -13,8 +13,8 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QGraphicsScene, QGraphics
 
 # Define the JSON files, currently I am hard coding jason file here. Later we will read the case files from a directory.
 json_files = {
-  "node1": {
-    "name": "Node 1",
+  "Oslo": {
+    "name": "Oslo",
     "description": "ELNode1",
     "x": -100,
     "y": -100

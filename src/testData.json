@@ -1,0 +1,17 @@
+{
+    "n1": {
+        "box1": {"color": "#FF0000"},
+        "box2": {"color": "#00FF00", "connected": [["n2", "box1"]]},
+        "box3": {"color": "#0000FF", "connected": [["n3", "box1"]]}
+    },
+    "n2": {
+        "box1": {"color": "#FF00FF", "connected": [["n1", "box2"]]},
+        "box2": {"color": "#FFFF00"},
+        "box3": {"color": "#00FFFF", "connected": [["n3", "box2"]]}
+    },
+    "n3": {
+        "box1": {"color": "#C0C0C0", "connected": [["n1", "box3"]]},
+        "box2": {"color": "#FFA500", "connected": [["n2", "box3"]]},
+        "box3": {"color": "#800080"}
+    }
+}
