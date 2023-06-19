@@ -4,10 +4,13 @@ from PyQt5.QtWidgets import QApplication, QGraphicsScene, QGraphicsView, QGraphi
 from PyQt5.QtCore import Qt, QRectF
 
 '''
-This classDraggableEllipseItem extends QGraphicsEllipseItem, enables dragging functionality by setting the ItemIsMovable flag 
-and handling the ItemPositionChange event. In the itemChange method of DraggableEllipseItem, we ensure that the ellipse remains within the boundaries of the scene. 
+This classDraggableEllipseItem extends QGraphicsEllipseItem. 
+This class enables dragging functionality by setting the ItemIsMovable flag and handling the ItemPositionChange event.
+In the itemChange method of DraggableEllipseItem, we ensure that the ellipse remains within the boundaries of the scene. 
 If the new position is outside the scene's boundaries, we restrict it to the nearest valid position.
 '''
+
+
 class DraggableEllipseItem(QGraphicsEllipseItem):
     def __init__(self, x, y, width, height):
         super().__init__(x, y, width, height)
