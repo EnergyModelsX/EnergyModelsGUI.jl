@@ -1,5 +1,16 @@
 # CleanExportInterface
 
+Useful links to PyQT tutorials:
+https://www.pythonguis.com/tutorials/pyqt-basic-widgets/
+https://www.pythonguis.com/tutorials/creating-your-first-pyqt-window/
+https://www.guru99.com/pyqt-tutorial.html
+
+PyQt reference guide:
+https://www.riverbankcomputing.com/static/Docs/PyQt5/
+
+Online Course:
+https://realpython.com/python-pyqt-layout/
+
 
 
 ## Getting started
