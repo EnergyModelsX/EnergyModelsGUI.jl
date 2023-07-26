@@ -676,8 +676,9 @@ function draw_label!(ax::Axis, design::EnergySystemDesign)
         yo[] = y - Δh * scale
 
     end
-
-    text!(ax, xo, yo; text = string("componentname"), align = (:center, :bottom))
+    if haskey(design.system,:node)
+        text!(ax, xo, yo; text = string(design.system[:node]), align = (:center, :bottom))
+    end
 end
 
 function box(x, y, Δh = 0.05)
