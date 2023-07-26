@@ -9,7 +9,7 @@ include("prototype.jl")
 path = joinpath(@__DIR__, "design") # folder where visualization info is saved and retrieved
 
 #4: Generate the system topology:
+design=nothing
 design = EnergySystemDesign(case, path);
-
 #5: Plot the topology:
 view(design)

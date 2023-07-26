@@ -16,7 +16,7 @@ mutable struct EnergySystemDesign
     # states::Vector{State}
 
     parent::Union{Symbol,Nothing}
-    system::Union{Dict,EnergyModelsBase.Node,EnergyModelsBase.Network}
+    system::Dict
     system_color::Symbol
     components::Vector{EnergySystemDesign}
     connectors::Vector{EnergySystemDesign}
@@ -48,7 +48,7 @@ Base.copy(x::EnergySystemDesign) = EnergySystemDesign(
 )
 
 function EnergySystemDesign(
-    system::Union{Dict,EnergyModelsBase.Node,EnergyModelsBase.Network},
+    system::Dict,
     design_path::String;
     x = 0.0,
     y = 0.0,
@@ -104,11 +104,9 @@ function EnergySystemDesign(
     )
 end
 
-#systems = case
-
 function process_children!(
     children::Vector{EnergySystemDesign},
-    systems,
+    systems::Dict,
     design_dict::Dict,
     design_path::String,
     parent::Symbol,
@@ -116,9 +114,9 @@ function process_children!(
     connectors...,
 )
     #systems = filter(x -> ModelingToolkit.isconnector(x) == is_connector, systems)
-    if !isempty(systems)
+    if !isempty(systems) && haskey(systems,:nodes)
         for (i, system) in enumerate(systems[:nodes])
-            # key = Symbol(namespace, "₊", system.name)
+            println(system)
             key = string(typeof(system))
             kwargs = if haskey(design_dict, key)
                 design_dict[key]
@@ -128,7 +126,7 @@ function process_children!(
         
             kwargs_pair = Pair[]
         
-        
+            
             push!(kwargs_pair, :parent => parent)
         
         
@@ -153,15 +151,15 @@ function process_children!(
                 push!(kwargs_pair, Symbol(key) => value)
             end
             push!(kwargs_pair, :icon => find_icon(key, design_path))
-            println(kwargs_pair)
+        
+            this_sys = Dict([(:node, system)])
+            println(this_sys)
             push!(
                 children,
-                EnergySystemDesign(Dict(), design_path; NamedTuple(kwargs_pair)...),
+                EnergySystemDesign(this_sys, design_path; NamedTuple(kwargs_pair)...),
             )
         end
-
     end
-
 end
 
 find_icon(design::EnergySystemDesign) = find_icon(design.system, get_design_path(design))
