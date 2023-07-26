@@ -150,9 +150,10 @@ function process_children!(
             for (key, value) in kwargs
                 push!(kwargs_pair, Symbol(key) => value)
             end
-            push!(kwargs_pair, :icon => find_icon(key, design_path))
-        
             this_sys = Dict([(:node, system)])
+            push!(kwargs_pair, :icon => find_icon(this_sys, design_path))
+        
+            
             println(this_sys)
             push!(
                 children,
@@ -164,7 +165,14 @@ end
 
 find_icon(design::EnergySystemDesign) = find_icon(design.system, get_design_path(design))
 
-function find_icon(system, design_path::String)
+function find_icon(system::Dict, design_path::String)
+    icon_name = "NotFound"
+    if haskey(system,:node)
+        icon_name = string(typeof(system[:node]))
+    end
+    icon = joinpath(@__DIR__, "..", "icons", "$icon_name.png")
+    println(icon)
+    isfile(icon) && return icon
     return joinpath(@__DIR__,"..", "icons", "NotFound.png")
 end
 
