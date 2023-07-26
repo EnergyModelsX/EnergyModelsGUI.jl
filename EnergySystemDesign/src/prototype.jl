@@ -16,7 +16,7 @@ mutable struct EnergySystemDesign
     # states::Vector{State}
 
     parent::Union{Symbol,Nothing}
-    system::Union{Dict}
+    system::Dict
     system_color::Symbol
     components::Vector{EnergySystemDesign}
     connectors::Vector{EnergySystemDesign}
