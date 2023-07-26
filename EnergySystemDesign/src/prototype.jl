@@ -16,7 +16,7 @@ mutable struct EnergySystemDesign
     # states::Vector{State}
 
     parent::Union{Symbol,Nothing}
-    system::Dict
+    system::Union{Dict,EnergyModelsBase.Node,EnergyModelsBase.Network}
     system_color::Symbol
     components::Vector{EnergySystemDesign}
     connectors::Vector{EnergySystemDesign}
@@ -48,7 +48,7 @@ Base.copy(x::EnergySystemDesign) = EnergySystemDesign(
 )
 
 function EnergySystemDesign(
-    system::Dict,
+    system::Union{Dict,EnergyModelsBase.Node,EnergyModelsBase.Network},
     design_path::String;
     x = 0.0,
     y = 0.0,
