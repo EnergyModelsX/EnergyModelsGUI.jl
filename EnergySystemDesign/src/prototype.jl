@@ -70,6 +70,13 @@ function EnergySystemDesign(
     components = EnergySystemDesign[]
     connectors = EnergySystemDesign[]
     connections = Tuple{EnergySystemDesign,EnergySystemDesign}[]
+    if haskey(system,:areas)
+        parent_arg = Symbol("Toplevel")
+    elseif haskey(system,:node)
+        parent_arg = Symbol(system[:node])
+    else
+        parent_arg = Symbol("ParentNotFound")
+    end
 
     if !isempty(system)
 
@@ -78,7 +85,7 @@ function EnergySystemDesign(
             system,
             design_dict,
             design_path,
-            Symbol("systemName"),
+            parent_arg,
             false;
             kwargs...,
         )
