@@ -84,8 +84,6 @@ function EnergySystemDesign(
         )
     end
 
-
-
     xy = Observable((x, y))
     color = :black
 
@@ -114,7 +112,7 @@ function process_children!(
     connectors...,
 )
     #systems = filter(x -> ModelingToolkit.isconnector(x) == is_connector, systems)
-    if !isempty(systems) && haskey(systems,:nodes)
+    if !isempty(systems) && haskey(systems,:nodes) && !haskey(systems,:areas)
         for (i, system) in enumerate(systems[:nodes])
             println(system)
             key = string(typeof(system))
