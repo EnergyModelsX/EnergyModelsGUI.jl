@@ -144,14 +144,14 @@ function process_children!(
 )
 
     if haskey(systems,:areas)
-        iterator = enumerate(systems[:areas])
+        system_iterator = enumerate(systems[:areas])
     elseif haskey(systems,:nodes)
-        iterator = enumerate(systems[:nodes])
+        system_iterator = enumerate(systems[:nodes])
     end
     #systems = filter(x -> ModelingToolkit.isconnector(x) == is_connector, systems)
-    if !isempty(systems) && haskey(systems,:nodes)# && !haskey(systems,:areas)
-        for (i, system) in iterator
-            println(system)
+    if !isempty(systems) && haskey(systems,:nodes)
+        for (i, system) in system_iterator
+            #println(system)
             key = string(typeof(system))
             kwargs = if haskey(design_dict, key)
                 design_dict[key]
@@ -186,14 +186,16 @@ function process_children!(
                 push!(kwargs_pair, Symbol(key) => value)
             end
             if haskey(systems,:areas)
-                this_sys = Dict([(:node, system),(:nodes,systems[:nodes])])
+                system_An = systems[:areas][i].An
+                system_links = filter(item->getfield(item,:from) == system_An || getfield(item,:to) == system_An,systems[:links]) 
+                this_sys = Dict([(:node, system),(:links,system_links),(:nodes,systems[:nodes])])
             else
                 this_sys = Dict([(:node, system)])
             end
             push!(kwargs_pair, :icon => find_icon(this_sys, design_path))
         
             
-            println(this_sys)
+            #println(this_sys)
             push!(
                 children,
                 EnergySystemDesign(this_sys, design_path; NamedTuple(kwargs_pair)...),
@@ -217,7 +219,7 @@ function find_icon(system::Dict, design_path::String)
         icon_name = string(typeof(system[:node]))
     end
     icon = joinpath(@__DIR__, "..", "icons", "$icon_name.png")
-    println(icon)
+    #println(icon)
     isfile(icon) && return icon
     return joinpath(@__DIR__,"..", "icons", "NotFound.png")
 end
