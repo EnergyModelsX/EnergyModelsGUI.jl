@@ -57,8 +57,7 @@ function EnergySystemDesign(
     parent = nothing,
     kwargs...,
 )
-
-    file = joinpath(path, "test.toml")
+    file = design_file(system, design_path)
     design_dict = if isfile(file)
         TOML.parsefile(file)
     else
@@ -107,6 +106,31 @@ function EnergySystemDesign(
         Observable(wall),
         file,
     )
+end
+
+
+function design_file(system::Dict, path::String)
+    #@assert !isnothing(system.gui_metadata) "ODESystem must use @component: $(system.name)"
+
+    # path = joinpath(@__DIR__, "designs")
+    if !isdir(path)
+        mkdir(path)
+    end
+    if !haskey(system,:node)
+        systemName = "TopLevel"
+    else
+        systemName = string(system[:node])
+    end
+    #parts = split(string(system.gui_metadata.type), '.')
+    #for part in parts[1:end-1]
+    #    path = joinpath(path, part)
+    #    if !isdir(path)
+    #        mkdir(path)
+    #    end
+    #end
+    file = joinpath(path, "$(systemName).toml")
+
+    return file
 end
 
 function process_children!(
@@ -820,9 +844,9 @@ function save_design(design::EnergySystemDesign)
     save_design(design_dict, design.file)
 
     connection_file = replace(design.file, ".toml" => ".jl")
-    open(connection_file, "w") do io
+#    open(connection_file, "w") do io
 #        connection_code(io, design)
-    end
+#    end
 end
 
 function save_design(design_dict::Dict, file::String)
