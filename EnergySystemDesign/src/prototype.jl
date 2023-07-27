@@ -241,14 +241,14 @@ function view(design::EnergySystemDesign, interactive = true)
     )
 
     if interactive
-        connect_button = Button(fig[12, 1]; label = "connect", fontsize = 12)
+        #connect_button = Button(fig[12, 1]; label = "connect", fontsize = 12)
         clear_selection_button =
             Button(fig[12, 2]; label = "clear selection", fontsize = 12)
         next_wall_button = Button(fig[12, 3]; label = "move node", fontsize = 12)
         align_horrizontal_button = Button(fig[12, 4]; label = "align horz.", fontsize = 12)
         align_vertical_button = Button(fig[12, 5]; label = "align vert.", fontsize = 12)
         open_button = Button(fig[12, 6]; label = "open", fontsize = 12)
-        mode_toggle = Toggle(fig[12, 7])
+        #mode_toggle = Toggle(fig[12, 7])
 
         save_button = Button(fig[12, 10]; label = "save", fontsize = 12)
 
@@ -415,9 +415,9 @@ function view(design::EnergySystemDesign, interactive = true)
             end
         end
 
-        on(connect_button.clicks) do clicks
-            connect!(ax, design)
-        end
+        #on(connect_button.clicks) do clicks
+        #    connect!(ax, design)
+        #end
 
         on(clear_selection_button.clicks) do clicks
             clear_selection(design)
@@ -536,15 +536,62 @@ function view(design::EnergySystemDesign, interactive = true)
             save_design(design)
         end
 
-        on(mode_toggle.active) do val
-            toggle_pass_thrus(design, val)
-        end
+        #on(mode_toggle.active) do val
+        #    toggle_pass_thrus(design, val)
+        #end
     end
 
     #toggle_pass_thrus(design, !interactive)
 
     return fig
 end
+
+
+
+function align(design::EnergySystemDesign, type)
+    xs = Float64[]
+    ys = Float64[]
+    for sub_design in [design.components; design.connectors]
+        if sub_design.color[] == :pink
+            x, y = sub_design.xy[]
+            push!(xs, x)
+            push!(ys, y)
+        end
+    end
+
+    ym = sum(ys) / length(ys)
+    xm = sum(xs) / length(xs)
+
+    for sub_design in [design.components; design.connectors]
+        if sub_design.color[] == :pink
+
+            x, y = sub_design.xy[]
+
+            if type == :horrizontal
+                sub_design.xy[] = (x, ym)
+            elseif type == :vertical
+                sub_design.xy[] = (xm, y)
+            end
+
+
+        end
+    end
+end
+
+
+function clear_selection(design::EnergySystemDesign)
+    for component in design.components
+        for connector in component.connectors
+            connector.color[] = connector.system_color
+        end
+        component.color[] = :black
+    end
+    for connector in design.connectors
+        connector.color[] = connector.system_color
+    end
+end
+
+
 
 function add_component!(ax::Axis, design::EnergySystemDesign)
 
@@ -727,4 +774,63 @@ function box(x, y, Δh = 0.05)
     ys = [y + Δh, y + Δh, y - Δh, y - Δh, y + Δh]
 
     return xs, ys
+end
+
+
+function save_design(design::EnergySystemDesign)
+
+
+    design_dict = Dict()
+
+    for component in design.components
+
+        x, y = component.xy[]
+
+        pairs = Pair{Symbol,Any}[
+            :x => round(x; digits = 2)
+            :y => round(y; digits = 2)
+        ]
+
+        if component.wall[] != :E
+            push!(pairs, 
+                :r => string(component.wall[])
+            )
+        end
+
+        for connector in component.connectors
+            if connector.wall[] != :E  #don't use get_wall() here, need to preserve E1, E2, etc
+                push!(pairs, safe_connector_name(connector.system.name) => string(connector.wall[]))
+            end
+        end
+
+        design_dict[string(component.system[:node])] = Dict(pairs)
+    end
+
+    for connector in design.connectors
+        x, y = connector.xy[]
+
+        pairs = Pair{Symbol,Any}[
+            :x => round(x; digits = 2)
+            :y => round(y; digits = 2)
+        ]
+
+        design_dict[connector.system.name] = Dict(pairs)
+    end
+
+    save_design(design_dict, design.file)
+
+    connection_file = replace(design.file, ".toml" => ".jl")
+    open(connection_file, "w") do io
+#        connection_code(io, design)
+    end
+end
+
+function save_design(design_dict::Dict, file::String)
+    open(file, "w") do io
+        TOML.print(io, design_dict; sorted = true) do val
+            if val isa Symbol
+                return string(val)
+            end
+        end
+    end
 end
