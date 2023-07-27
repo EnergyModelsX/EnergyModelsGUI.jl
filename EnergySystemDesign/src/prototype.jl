@@ -8,7 +8,7 @@ using FileIO
 using TOML
 
 const Δh = 0.05
-
+const dragging = Ref(false)
 
 
 mutable struct EnergySystemDesign
@@ -178,6 +178,13 @@ function process_children!(
     end
 end
 
+function get_design_path(design::EnergySystemDesign)
+    type = string(typeof(design.system[:node]))
+    parts = split(type, '.')
+    path = joinpath(parts[1:end-1]..., "$(parts[end]).toml")
+    return replace(design.file, path => "")
+end
+
 find_icon(design::EnergySystemDesign) = find_icon(design.system, get_design_path(design))
 
 function find_icon(system::Dict, design_path::String)
@@ -191,7 +198,16 @@ function find_icon(system::Dict, design_path::String)
     return joinpath(@__DIR__,"..", "icons", "NotFound.png")
 end
 
-function view(design::EnergySystemDesign, interactive = false)
+
+function is_tuple_approx(a::Tuple{Float64,Float64}, b::Tuple{Float64,Float64}; atol)
+
+    r1 = isapprox(a[1], b[1]; atol)
+    r2 = isapprox(a[2], b[2]; atol)
+
+    return all([r1, r2])
+end
+
+function view(design::EnergySystemDesign, interactive = true)
 
     if interactive
         GLMakie.activate!(inline=false)
@@ -204,10 +220,9 @@ function view(design::EnergySystemDesign, interactive = false)
     fig = Figure()
 
     title = if isnothing(design.parent)
-        "test"
-        #"$(design.system.name) [$(design.file)]"
+        "TopLevel [$(design.file)]"
     else
-        "$(design.parent).$(design.system.name) [$(design.file)]"
+        "$(design.parent).$(string(design.system[:node])) [$(design.file)]"
     end
 
     ax = Axis(
@@ -506,8 +521,10 @@ function view(design::EnergySystemDesign, interactive = false)
             for component in design.components
                 if component.color[] == :pink
                     view_design =
-                        ODESystemDesign(component.system, get_design_path(component))
-                    view_design.parent = design.system.name
+                        EnergySystemDesign(component.system, get_design_path(component))
+                    view_design.parent = if haskey(design.system,:name) design.system[:name]
+                    else Symbol("TopLevel")
+                    end
                     fig_ = view(view_design)
                     display(GLMakie.Screen(), fig_)
                     break
