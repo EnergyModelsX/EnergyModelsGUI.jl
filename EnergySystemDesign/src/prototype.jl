@@ -118,9 +118,15 @@ function process_children!(
     is_connector = false;
     connectors...,
 )
+
+    if haskey(systems,:areas)
+        iterator = enumerate(systems[:areas])
+    elseif haskey(systems,:nodes)
+        iterator = enumerate(systems[:nodes])
+    end
     #systems = filter(x -> ModelingToolkit.isconnector(x) == is_connector, systems)
-    if !isempty(systems) && haskey(systems,:nodes) && !haskey(systems,:areas)
-        for (i, system) in enumerate(systems[:nodes])
+    if !isempty(systems) && haskey(systems,:nodes)# && !haskey(systems,:areas)
+        for (i, system) in iterator
             println(system)
             key = string(typeof(system))
             kwargs = if haskey(design_dict, key)
@@ -155,7 +161,11 @@ function process_children!(
             for (key, value) in kwargs
                 push!(kwargs_pair, Symbol(key) => value)
             end
-            this_sys = Dict([(:node, system)])
+            if haskey(systems,:areas)
+                this_sys = Dict([(:node, system),(:nodes,systems[:nodes])])
+            else
+                this_sys = Dict([(:node, system)])
+            end
             push!(kwargs_pair, :icon => find_icon(this_sys, design_path))
         
             
