@@ -1,8 +1,8 @@
+#Module for visualization of Clean export models
 #Based on ModelingToolkitDesigner source code.
 
 using GLMakie
 using CairoMakie
-#using ModelingToolkit
 using FilterHelpers
 using FileIO
 using TOML
