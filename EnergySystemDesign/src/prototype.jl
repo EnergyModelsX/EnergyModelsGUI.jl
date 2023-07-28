@@ -186,9 +186,10 @@ function process_children!(
                 push!(kwargs_pair, Symbol(key) => value)
             end
             if haskey(systems,:areas)
-                system_An = systems[:areas][i].An
-                system_links = filter(item->getfield(item,:from) == system_An || getfield(item,:to) == system_An,systems[:links]) 
-                this_sys = Dict([(:node, system),(:links,system_links),(:nodes,systems[:nodes])])
+                area_An = systems[:areas][i].An
+                area_links = filter(item->getfield(item,:from) == system_An || getfield(item,:to) == area_An,systems[:links]) 
+                area_nodes = filter(item -> any(link -> link.from == item || link.to == item, system_links),systems[:nodes])
+                this_sys = Dict([(:node, system),(:links,area_links),(:nodes,area_nodes)])
             else
                 this_sys = Dict([(:node, system)])
             end
@@ -203,6 +204,7 @@ function process_children!(
         end
     end
 end
+
 
 function get_design_path(design::EnergySystemDesign)
     type = string(typeof(design.system[:node]))
