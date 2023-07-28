@@ -187,8 +187,8 @@ function process_children!(
             end
             if haskey(systems,:areas)
                 area_An = systems[:areas][i].An
-                area_links = filter(item->getfield(item,:from) == system_An || getfield(item,:to) == area_An,systems[:links]) 
-                area_nodes = filter(item -> any(link -> link.from == item || link.to == item, system_links),systems[:nodes])
+                area_links = filter(item->getfield(item,:from) == area_An || getfield(item,:to) == area_An,systems[:links]) 
+                area_nodes = filter(item -> any(link -> link.from == item || link.to == item, area_links),systems[:nodes])
                 this_sys = Dict([(:node, system),(:links,area_links),(:nodes,area_nodes)])
             else
                 this_sys = Dict([(:node, system)])
