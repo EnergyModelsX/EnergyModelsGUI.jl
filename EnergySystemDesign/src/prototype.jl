@@ -792,9 +792,10 @@ function draw_label!(ax::Axis, design::EnergySystemDesign)
 
     end
     if haskey(design.system,:node)
-        text!(ax, xo, yo; text = string(design.system[:node]), align = (:center, :bottom))
+        text!(ax, xo, yo; text = "$(string(design.system[:node]))\n($(typeof(design.system[:node])))", align = (:center, :bottom))
     end
 end
+
 
 function box(x, y, Δh = 0.05)
 
