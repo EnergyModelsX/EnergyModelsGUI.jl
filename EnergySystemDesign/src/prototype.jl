@@ -88,7 +88,32 @@ function EnergySystemDesign(
             false;
             kwargs...,
         )
+        process_children!(
+            connectors,
+            system,
+            design_dict,
+            design_path,
+            parent_arg,
+            true;
+            kwargs...,
+        )
     end
+    for wall in [:E, :W, :N, :S]
+        connectors_on_wall = filter(x -> get_wall(x) == wall, connectors)
+        n = length(connectors_on_wall)
+        if n > 1
+            i = 0
+            for conn in connectors_on_wall
+                order = get_wall_order(conn)
+                i = max(i, order) + 1
+                if order == 0
+                   conn.wall[] = Symbol(wall, i) 
+                end
+            end
+        end
+    end
+
+    
 
     xy = Observable((x, y))
     color = :black
@@ -106,6 +131,37 @@ function EnergySystemDesign(
         Observable(wall),
         file,
     )
+end
+get_wall(design::EnergySystemDesign) =  Symbol(string(design.wall[])[1])
+
+
+function get_wall_order(design::EnergySystemDesign)
+
+    wall = string(design.wall[])
+    if length(wall) > 1
+        order = tryparse(Int, wall[2:end])
+
+        if isnothing(order)
+            order = 1
+        end
+
+        return order
+    else
+
+
+        return 0
+
+    end
+
+
+end
+
+is_pass_thru(design::EnergySystemDesign) = is_pass_thru(design.system)
+function is_pass_thru(system::Dict)
+    if haskey(system,:type)
+        return startswith(system[:type], "PassThru")
+    end
+    return false
 end
 
 
@@ -142,16 +198,17 @@ function process_children!(
     is_connector = false;
     connectors...,
 )
-
-    if haskey(systems,:areas)
+    system_iterator = nothing
+    if haskey(systems,:areas) && !is_connector
         system_iterator = enumerate(systems[:areas])
-    elseif haskey(systems,:nodes)
+    elseif haskey(systems,:nodes) && !is_connector
         system_iterator = enumerate(systems[:nodes])
+    elseif haskey(systems,:node) && is_connector
+        system_iterator = enumerate([systems[:node]])
     end
-    #systems = filter(x -> ModelingToolkit.isconnector(x) == is_connector, systems)
-    if !isempty(systems) && haskey(systems,:nodes)
+
+    if !isempty(systems) && !isnothing(system_iterator)
         for (i, system) in system_iterator
-            #println(system)
             key = string(typeof(system))
             kwargs = if haskey(design_dict, key)
                 design_dict[key]
@@ -176,27 +233,36 @@ function process_children!(
                 if haskey(kwargs, "r")
                     push!(kwargs_pair, :wall => kwargs["r"])
                 end
-            else
-                if haskey(connectors, safe_connector_name(system.name))
-                    push!(kwargs_pair, :wall => connectors[safe_connector_name(system.name)])
+            elseif is_connector
+                if hasproperty(system,:An)
+                    if haskey(connectors, safe_connector_name(Symbol(system.An)))
+                        push!(kwargs_pair, :wall => connectors[safe_connector_name(Symbol(system.An))])
+                    end
+                else
+                    if haskey(connectors, safe_connector_name(Symbol(system)))
+                        push!(kwargs_pair, :wall => connectors[safe_connector_name(Symbol(system))])
+                    end
                 end
             end
         
             for (key, value) in kwargs
                 push!(kwargs_pair, Symbol(key) => value)
             end
-            if haskey(systems,:areas)
+            if haskey(systems,:areas) && !is_connector
                 area_An = systems[:areas][i].An
                 area_links = filter(item->getfield(item,:from) == area_An || getfield(item,:to) == area_An,systems[:links]) 
                 area_nodes = filter(item -> any(link -> link.from == item || link.to == item, area_links),systems[:nodes])
                 this_sys = Dict([(:node, system),(:links,area_links),(:nodes,area_nodes)])
-            else
+            elseif !is_connector
                 this_sys = Dict([(:node, system)])
+            elseif is_connector && hasproperty(system,:An)
+                this_sys = Dict([(:connector, system.An)])
+            elseif is_connector
+                this_sys = Dict([(:connector, system)])
             end
             push!(kwargs_pair, :icon => find_icon(this_sys, design_path))
         
             
-            #println(this_sys)
             push!(
                 children,
                 EnergySystemDesign(this_sys, design_path; NamedTuple(kwargs_pair)...),
@@ -205,7 +271,7 @@ function process_children!(
     end
 end
 
-
+safe_connector_name(name::Symbol) = Symbol("_$name")
 function get_design_path(design::EnergySystemDesign)
     type = string(typeof(design.system[:node]))
     parts = split(type, '.')
@@ -221,7 +287,6 @@ function find_icon(system::Dict, design_path::String)
         icon_name = string(typeof(system[:node]))
     end
     icon = joinpath(@__DIR__, "..", "icons", "$icon_name.png")
-    #println(icon)
     isfile(icon) && return icon
     return joinpath(@__DIR__,"..", "icons", "NotFound.png")
 end
@@ -619,22 +684,42 @@ function clear_selection(design::EnergySystemDesign)
     end
 end
 
+get_node_position(w::Symbol, delta, i) = get_node_position(Val(w), delta, i)
+get_node_label_position(w::Symbol, x, y) = get_node_label_position(Val(w), x, y)
+
+get_node_position(::Val{:N}, delta, i) = (delta * i - Δh, +Δh)
+get_node_label_position(::Val{:N}, x, y) = (x + Δh / 10, y + Δh / 5)
+
+get_node_position(::Val{:S}, delta, i) = (delta * i - Δh, -Δh)
+get_node_label_position(::Val{:S}, x, y) = (x + Δh / 10, y - Δh / 5)
+
+get_node_position(::Val{:E}, delta, i) = (+Δh, delta * i - Δh)
+get_node_label_position(::Val{:E}, x, y) = (x + Δh / 5, y)
+
+get_node_position(::Val{:W}, delta, i) = (-Δh, delta * i - Δh)
+get_node_label_position(::Val{:W}, x, y) = (x - Δh / 5, y)
+
 
 
 function add_component!(ax::Axis, design::EnergySystemDesign)
 
     draw_box!(ax, design)
     draw_nodes!(ax, design)
-    draw_icon!(ax, design)
-    draw_label!(ax, design)
-    #if is_pass_thru(design)
-    #    draw_passthru!(ax, design)
-    #else
-    #    draw_icon!(ax, design)
-    #    draw_label!(ax, design)
-    #end
+
+    if is_pass_thru(design)
+        #draw_passthru!(ax, design)
+    else
+        draw_icon!(ax, design)
+        draw_label!(ax, design)
+    end
 
 end
+
+get_text_alignment(wall::Symbol) = get_text_alignment(Val(wall))
+get_text_alignment(::Val{:E}) = (:left, :top)
+get_text_alignment(::Val{:W}) = (:right, :top)
+get_text_alignment(::Val{:S}) = (:left, :top)
+get_text_alignment(::Val{:N}) = (:left, :bottom)
 
 function draw_box!(ax::Axis, design::EnergySystemDesign)
 
@@ -727,6 +812,55 @@ function draw_nodes!(ax::Axis, design::EnergySystemDesign)
 
 end
 
+function draw_node!(ax::Axis, connector::EnergySystemDesign)
+    xo = Observable(0.0)
+    yo = Observable(0.0)
+
+    on(connector.xy) do val
+
+        x = val[1]
+        y = val[2]
+
+        xo[] = x
+        yo[] = y
+
+    end
+
+    scatter!(ax, xo, yo; marker = :rect, color = connector.color, markersize = 15)
+end
+
+
+function draw_node_label!(ax::Axis, connector::EnergySystemDesign)
+    xo = Observable(0.0)
+    yo = Observable(0.0)
+    alignment = Observable((:left, :top))
+
+    on(connector.xy) do val
+
+        x = val[1]
+        y = val[2]
+
+        xt, yt = get_node_label_position(get_wall(connector), x, y)
+
+        xo[] = xt
+        yo[] = yt
+
+        alignment[] = get_text_alignment(get_wall(connector))
+    end
+
+    scene = GLMakie.Makie.parent_scene(ax)
+    current_font_size = theme(scene, :fontsize)
+
+    text!(
+        ax,
+        xo,
+        yo;
+        text = string(connector.system[:connector]),
+        color = connector.color,
+        align = alignment,
+        fontsize = current_font_size[] * 0.625,
+    )
+end
 
 
 function draw_icon!(ax::Axis, design::EnergySystemDesign)
@@ -734,11 +868,11 @@ function draw_icon!(ax::Axis, design::EnergySystemDesign)
     xo = Observable(zeros(2))
     yo = Observable(zeros(2))
 
-    scale = 0.8 #if ModelingToolkit.isconnector(design.system)
-    #    0.5 * 0.8
-    #else
-    #    0.8
-    #end
+    scale = if haskey(design.system,:connector)
+        0.5 * 0.8
+    else
+        0.8
+    end
 
     on(design.xy) do val
 
@@ -776,11 +910,11 @@ function draw_label!(ax::Axis, design::EnergySystemDesign)
     xo = Observable(0.0)
     yo = Observable(0.0)
 
-    scale = 0.925 #if ModelingToolkit.isconnector(design.system)
-    #    1 + 0.75 * 0.5
-    #else
-    #    0.925
-    #end
+    scale = if haskey(design.system,:connector)
+        1 + 0.75 * 0.5
+    else
+        0.925
+    end
 
     on(design.xy) do val
 
