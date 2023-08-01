@@ -174,8 +174,10 @@ function EnergySystemDesign(
         end
         
     end
-
+    println(x)
+    println(y)
     xy = Observable((x, y))
+    println(xy)
     color = :black
 
     return EnergySystemDesign(
@@ -268,7 +270,9 @@ function process_children!(
     end
 
     if !isempty(systems) && !isnothing(system_iterator)
+        current_node = 1
         for (i, system) in system_iterator
+            
             key = string(typeof(system))
             kwargs = if haskey(design_dict, key)
                 design_dict[key]
@@ -288,6 +292,17 @@ function process_children!(
                         push!(kwargs_pair, :x => system.Lon)
                         push!(kwargs_pair, :y => system.Lat)
                     end
+                elseif !haskey(kwargs, "x") & !haskey(kwargs, "y") & haskey(systems,:nodes)
+                    nodes_count = length(systems[:nodes])
+                    if key == "GeoAvailability"
+                        x=0
+                        y=0
+                    else
+                        x,y = place_nodes_in_circle(nodes_count-1,current_node,2)
+                        current_node +=1
+                    end
+                    push!(kwargs_pair, :x => x)
+                    push!(kwargs_pair, :y => y)
                 elseif !haskey(kwargs, "x") & !haskey(kwargs, "y")
                     push!(kwargs_pair, :x => i * 3 * Δh)
                     push!(kwargs_pair, :y => i * Δh)
@@ -333,6 +348,13 @@ function process_children!(
             )
         end
     end
+end
+
+function place_nodes_in_circle(total_nodes::Int, current_node::Int, distance::T) where T<:Number
+    angle = 2π * current_node / total_nodes
+    x = distance * cos(angle)
+    y = distance * sin(angle)
+    return x, y
 end
 
 safe_connector_name(name::Symbol) = Symbol("_$name")
@@ -824,7 +846,6 @@ function add_component!(ax::Axis, design::EnergySystemDesign)
 
     draw_box!(ax, design)
     draw_nodes!(ax, design)
-    println(design)
     if is_pass_thru(design)
         #draw_passthru!(ax, design)
     #if is_parent_connector(design)
