@@ -143,6 +143,36 @@ function EnergySystemDesign(
 
             
         end
+    elseif haskey(system,:nodes) && haskey(system,:links)
+        connection_iterator =enumerate(system[:links])
+        for (i, connection) in connection_iterator
+            child_design_from = filtersingle(
+                            x -> x.system[:node] == system[:links][i].from,
+                            components,
+                        )
+            if !isnothing(child_design_from)
+                connector_design_from = filtersingle(
+                    x -> x.system[:connector] == system[:links][i].from,
+                    child_design_from.connectors,
+                )
+            end
+            child_design_to = filtersingle(
+                    x -> x.system[:node] == system[:links][i].to,
+                    components,
+                )
+            if !isnothing(child_design_to)
+                connector_design_to = filtersingle(
+                    x -> x.system[:connector] == system[:links][i].to,
+                    child_design_to.connectors,
+                )
+            end
+            if !isnothing(connector_design_from) && !isnothing(connector_design_to)
+                push!(connections, (connector_design_from, connector_design_to))
+            end
+
+            
+        end
+        
     end
 
     xy = Observable((x, y))
