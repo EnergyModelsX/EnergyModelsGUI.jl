@@ -427,11 +427,6 @@ function view(design::EnergySystemDesign, interactive = true)
         notify(component.xy)
     end
 
-    for connector in design.connectors
-        add_component!(ax, connector)
-        notify(connector.xy)
-    end
-
     for connection in design.connections
         connect!(ax, connection)
     end
@@ -829,9 +824,11 @@ function add_component!(ax::Axis, design::EnergySystemDesign)
 
     draw_box!(ax, design)
     draw_nodes!(ax, design)
-
+    println(design)
     if is_pass_thru(design)
         #draw_passthru!(ax, design)
+    #if is_parent_connector(design)
+
     else
         draw_icon!(ax, design)
         draw_label!(ax, design)
