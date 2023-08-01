@@ -113,7 +113,37 @@ function EnergySystemDesign(
         end
     end
 
-    
+
+    if haskey(system,:areas) && haskey(system,:transmission)
+        connection_iterator =enumerate(system[:transmission])
+        for (i, connection) in connection_iterator
+            child_design_from = filtersingle(
+                            x -> x.system[:node].An == system[:transmission][i].From.An,
+                            components,
+                        )
+            if !isnothing(child_design_from)
+                connector_design_from = filtersingle(
+                    x -> x.system[:connector] == system[:transmission][i].From.An,
+                    child_design_from.connectors,
+                )
+            end
+            child_design_to = filtersingle(
+                    x -> x.system[:node].An == system[:transmission][i].To.An,
+                    components,
+                )
+            if !isnothing(child_design_to)
+                connector_design_to = filtersingle(
+                    x -> x.system[:connector] == system[:transmission][i].To.An,
+                    child_design_to.connectors,
+                )
+            end
+            if !isnothing(connector_design_from) && !isnothing(connector_design_to)
+                push!(connections, (connector_design_from, connector_design_to))
+            end
+
+            
+        end
+    end
 
     xy = Observable((x, y))
     color = :black
@@ -221,10 +251,14 @@ function process_children!(
             
             push!(kwargs_pair, :parent => parent)
         
-        
             if !is_connector
                 #if x and y are missing, add defaults
-                if !haskey(kwargs, "x") & !haskey(kwargs, "y")
+                if key == "RefArea"
+                    if hasproperty(system,:Lon) && hasproperty(system,:Lat)
+                        push!(kwargs_pair, :x => system.Lon)
+                        push!(kwargs_pair, :y => system.Lat)
+                    end
+                elseif !haskey(kwargs, "x") & !haskey(kwargs, "y")
                     push!(kwargs_pair, :x => i * 3 * Δh)
                     push!(kwargs_pair, :y => i * Δh)
                 end
@@ -299,6 +333,12 @@ function is_tuple_approx(a::Tuple{Float64,Float64}, b::Tuple{Float64,Float64}; a
 
     return all([r1, r2])
 end
+
+get_change(::Val) = (0.0, 0.0)
+get_change(::Val{Keyboard.up}) = (0.0, +Δh / 5)
+get_change(::Val{Keyboard.down}) = (0.0, -Δh / 5)
+get_change(::Val{Keyboard.left}) = (-Δh / 5, 0.0)
+get_change(::Val{Keyboard.right}) = (+Δh / 5, 0.0)
 
 function view(design::EnergySystemDesign, interactive = true)
 
@@ -684,6 +724,60 @@ function clear_selection(design::EnergySystemDesign)
     end
 end
 
+
+function connect!(ax::Axis, design::EnergySystemDesign)
+    all_connectors = vcat([s.connectors for s in design.components]...)
+    push!(all_connectors, design.connectors...)
+    selected_connectors = EnergySystemDesign[]
+
+    for connector in all_connectors
+        if connector.color[] == :pink
+            push!(selected_connectors, connector)
+            connector.color[] = connector.system_color
+        end
+    end
+
+    if length(selected_connectors) > 1
+        connect!(ax, (selected_connectors[1], selected_connectors[2]))
+        push!(design.connections, (selected_connectors[1], selected_connectors[2]))
+    end
+end
+
+
+function connect!(ax::Axis, connection::Tuple{EnergySystemDesign,EnergySystemDesign})
+
+    xs = Observable(Float64[])
+    ys = Observable(Float64[])
+
+    update = () -> begin
+        empty!(xs[])
+        empty!(ys[])
+        for connector in connection
+            push!(xs[], connector.xy[][1])
+            push!(ys[], connector.xy[][2])
+        end
+        notify(xs)
+        notify(ys)
+    end
+
+    style = :solid
+    for connector in connection
+        s = get_style(connector)
+        if s != :solid
+            style = s
+        end
+
+        on(connector.xy) do val
+            update()
+        end
+    end
+
+    update()
+
+    lines!(ax, xs, ys; color = connection[1].color[], linestyle = style)
+end
+
+
 get_node_position(w::Symbol, delta, i) = get_node_position(Val(w), delta, i)
 get_node_label_position(w::Symbol, x, y) = get_node_label_position(Val(w), x, y)
 
@@ -720,6 +814,23 @@ get_text_alignment(::Val{:E}) = (:left, :top)
 get_text_alignment(::Val{:W}) = (:right, :top)
 get_text_alignment(::Val{:S}) = (:left, :top)
 get_text_alignment(::Val{:N}) = (:left, :bottom)
+
+
+#this function can be developed to give dotted connectors for investment possibilities:
+get_style(design::EnergySystemDesign) = get_style(design.system)
+function get_style(system::Dict)
+
+    #sts = ModelingToolkit.get_states(system)
+    #if length(sts) == 1
+    #    s = first(sts)
+    #    vtype = ModelingToolkit.get_connection_type(s)
+    #    if vtype === ModelingToolkit.Flow
+    #        return :dash
+    #    end
+    #end
+
+    return :solid
+end
 
 function draw_box!(ax::Axis, design::EnergySystemDesign)
 
