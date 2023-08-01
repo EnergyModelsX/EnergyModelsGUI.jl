@@ -298,7 +298,7 @@ function process_children!(
                         x=0
                         y=0
                     else
-                        x,y = place_nodes_in_circle(nodes_count-1,current_node,2)
+                        x,y = place_nodes_in_circle(nodes_count-1,current_node,1)
                         current_node +=1
                     end
                     push!(kwargs_pair, :x => x)
