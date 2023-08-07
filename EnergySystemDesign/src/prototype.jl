@@ -6,8 +6,7 @@ using CairoMakie
 using FilterHelpers
 using FileIO
 using TOML
-const objectscale = 0.01
-const Δh = 0.05
+Δh = 0.05
 const dragging = Ref(false)
 
 
@@ -100,6 +99,8 @@ function EnergySystemDesign(
             kwargs...,
         )
     end
+    xy = Observable((x, y))
+    color = :black
     for wall in [:E, :W, :N, :S]
         connectors_on_wall = filter(x -> get_wall(x) == wall, connectors)
         n = length(connectors_on_wall)
@@ -177,8 +178,7 @@ function EnergySystemDesign(
         
     end
 
-    xy = Observable((x, y))
-    color = :black
+    
 
     return EnergySystemDesign(
         parent,
@@ -269,7 +269,7 @@ function process_children!(
     elseif haskey(systems,:node) && is_connector
         system_iterator = enumerate([systems[:node]])
     end
-
+    parent_x, parent_y = parent_xy[]
     if !isempty(systems) && !isnothing(system_iterator)
         current_node = 1
         for (i, system) in system_iterator
@@ -295,7 +295,7 @@ function process_children!(
                     end
                 elseif !haskey(kwargs, "x") & !haskey(kwargs, "y") & haskey(systems,:nodes)
                     nodes_count = length(systems[:nodes])
-                    parent_x, parent_y = parent_xy[]
+                    
                     if key == "GeoAvailability"
                         x=parent_x
                         y=parent_y
@@ -324,6 +324,10 @@ function process_children!(
                         push!(kwargs_pair, :wall => connectors[safe_connector_name(Symbol(system))])
                     end
                 end
+                x=parent_x
+                y=parent_y
+                push!(kwargs_pair, :x => x)
+                push!(kwargs_pair, :y => y)
             end
         
             for (key, value) in kwargs
@@ -395,10 +399,7 @@ get_change(::Val{Keyboard.left}) = (-Δh / 5, 0.0)
 get_change(::Val{Keyboard.right}) = (+Δh / 5, 0.0)
 
 function view(design::EnergySystemDesign, interactive = true)
-    min_x, max_x, min_y, max_y = find_min_max_coordinates(design)
-
-    totarea = (max_x-min_x)*(max_y-min_y)
-    println(totarea)
+    new_global_delta_h(design)
     if interactive
         GLMakie.activate!(inline=false)
     else
@@ -418,12 +419,12 @@ function view(design::EnergySystemDesign, interactive = true)
     ax = Axis(
         fig[2:11, 1:10];
         aspect = DataAspect(),
-        yticksvisible = false,
-        xticksvisible = false,
-        yticklabelsvisible = false,
-        xticklabelsvisible = false,
-        xgridvisible = false,
-        ygridvisible = false,
+        yticksvisible = true,
+        xticksvisible = true,
+        yticklabelsvisible = true,
+        xticklabelsvisible = true,
+        xgridvisible = true,
+        ygridvisible = true,
         bottomspinecolor = :transparent,
         leftspinecolor = :transparent,
         rightspinecolor = :transparent,
@@ -447,7 +448,7 @@ function view(design::EnergySystemDesign, interactive = true)
     end
     
     for component in design.components
-        add_component!(ax, component,totarea)
+        add_component!(ax, component)
         for connector in component.connectors
             notify(connector.wall)
         end
@@ -455,12 +456,12 @@ function view(design::EnergySystemDesign, interactive = true)
     end
 
     for connection in design.connections
-        connect!(ax, connection,totarea)
+        connect!(ax, connection)
     end
 
     if interactive
         on(events(fig).mousebutton, priority = 2) do event
-
+            new_global_delta_h(design)
             if event.button == Mouse.left
                 if event.action == Mouse.press
 
@@ -482,7 +483,7 @@ function view(design::EnergySystemDesign, interactive = true)
                             x = xvalues[1] + Δh * 0.8
                             y = yvalues[1] + Δh * 0.8
                             selected_system = filtersingle(
-                                s -> is_tuple_approx(s.xy[], (x, y); atol = Δh*objectscale*totarea),
+                                s -> is_tuple_approx(s.xy[], (x, y); atol = Δh),
                                 [design.components; design.connectors],
                             )
 
@@ -491,7 +492,7 @@ function view(design::EnergySystemDesign, interactive = true)
                                 x = xvalues[1] + Δh * 0.8 * 0.5
                                 y = yvalues[1] + Δh * 0.8 * 0.5
                                 selected_system = filterfirst(
-                                    s -> is_tuple_approx(s.xy[], (x, y); atol = Δh* objectscale*totarea),
+                                    s -> is_tuple_approx(s.xy[], (x, y); atol = Δh),
                                     [design.components; design.connectors],
                                 )
 
@@ -577,6 +578,7 @@ function view(design::EnergySystemDesign, interactive = true)
         end
 
         on(events(fig).keyboardbutton) do event
+            new_global_delta_h(design)
             if event.action == Keyboard.press
 
                 change = get_change(Val(event.key))
@@ -705,8 +707,8 @@ function view(design::EnergySystemDesign, interactive = true)
         on(open_button.clicks) do clicks
             for component in design.components
                 if component.color[] == :pink
-                    view_design =
-                        EnergySystemDesign(component.system, get_design_path(component))
+                    view_design = component
+                        #EnergySystemDesign(component.system, get_design_path(component))
                     view_design.parent = if haskey(design.system,:name) design.system[:name]
                     else Symbol("TopLevel")
                     end
@@ -778,7 +780,7 @@ function clear_selection(design::EnergySystemDesign)
 end
 
 
-function connect!(ax::Axis, design::EnergySystemDesign,totarea::Number)
+function connect!(ax::Axis, design::EnergySystemDesign)
     all_connectors = vcat([s.connectors for s in design.components]...)
     push!(all_connectors, design.connectors...)
     selected_connectors = EnergySystemDesign[]
@@ -791,13 +793,13 @@ function connect!(ax::Axis, design::EnergySystemDesign,totarea::Number)
     end
 
     if length(selected_connectors) > 1
-        connect!(ax, (selected_connectors[1], selected_connectors[2]),totarea)
+        connect!(ax, (selected_connectors[1], selected_connectors[2]))
         push!(design.connections, (selected_connectors[1], selected_connectors[2]))
     end
 end
 
 
-function connect!(ax::Axis, connection::Tuple{EnergySystemDesign,EnergySystemDesign},totarea::Number)
+function connect!(ax::Axis, connection::Tuple{EnergySystemDesign,EnergySystemDesign})
 
     xs = Observable(Float64[])
     ys = Observable(Float64[])
@@ -806,8 +808,8 @@ function connect!(ax::Axis, connection::Tuple{EnergySystemDesign,EnergySystemDes
         empty!(xs[])
         empty!(ys[])
         for connector in connection
-            push!(xs[], connector.xy[][1]+ objectscale*Δh*totarea)
-            push!(ys[], connector.xy[][2] - objectscale*Δh*totarea)
+            push!(xs[], connector.xy[][1])
+            push!(ys[], connector.xy[][2])
         end
         notify(xs)
         notify(ys)
@@ -848,17 +850,17 @@ get_node_label_position(::Val{:W}, x, y) = (x - Δh / 5, y)
 
 
 
-function add_component!(ax::Axis, design::EnergySystemDesign,totarea::Number)
+function add_component!(ax::Axis, design::EnergySystemDesign)
 
-    draw_box!(ax, design,totarea)
-    draw_nodes!(ax, design,totarea)
+    draw_box!(ax, design)
+    draw_nodes!(ax, design)
     if is_pass_thru(design)
         #draw_passthru!(ax, design)
     #if is_parent_connector(design)
 
     else
-        draw_icon!(ax, design,totarea)
-        draw_label!(ax, design,totarea)
+        draw_icon!(ax, design)
+        draw_label!(ax, design)
     end
 
 end
@@ -886,22 +888,20 @@ function get_style(system::Dict)
     return :solid
 end
 
-function draw_box!(ax::Axis, design::EnergySystemDesign,totarea::Number)
+function draw_box!(ax::Axis, design::EnergySystemDesign)
 
     xo = Observable(zeros(5))
     yo = Observable(zeros(5))
 
-
     Δh_, linewidth = if haskey(design.system,:connector)
-        0.6 * objectscale*Δh*totarea, 2
+        0.6 * Δh, 2
     else
-        objectscale*Δh*totarea, 1
+        Δh, 1
     end
 
     on(design.xy) do val
         x = val[1]
         y = val[2]
-
         xo[], yo[] = box(x, y, Δh_)
     end
 
@@ -917,7 +917,7 @@ function draw_box!(ax::Axis, design::EnergySystemDesign,totarea::Number)
             x = val[1]
             y = val[2]
 
-            xo2[], yo2[] = box(x, y, Δh_ * 1.1)
+            xo2[], yo2[] = box(x, y, Δh_ * 1.2)
         end
 
 
@@ -928,7 +928,7 @@ function draw_box!(ax::Axis, design::EnergySystemDesign,totarea::Number)
 end
 
 
-function draw_nodes!(ax::Axis, design::EnergySystemDesign,totarea)
+function draw_nodes!(ax::Axis, design::EnergySystemDesign)
 
     xo = Observable(0.0)
     yo = Observable(0.0)
@@ -950,7 +950,7 @@ function draw_nodes!(ax::Axis, design::EnergySystemDesign,totarea)
                 filter(x -> get_wall(x) == get_wall(connector), design.connectors)
 
             n_items = length(connectors_on_wall)
-            delta = 2 * Δh*totarea*objectscale / (n_items + 1)
+            delta = 2 * Δh / (n_items + 1)
 
             sort!(connectors_on_wall, by=x->x.wall[])
 
@@ -971,37 +971,37 @@ function draw_nodes!(ax::Axis, design::EnergySystemDesign,totarea)
             update(connector)
         end
 
-        draw_node!(ax, connector,totarea)
-        draw_node_label!(ax, connector,totarea)
+        draw_node!(ax, connector)
+        draw_node_label!(ax, connector)
     end
 
 end
 
-function draw_node!(ax::Axis, connector::EnergySystemDesign,totarea::Number)
+function draw_node!(ax::Axis, connector::EnergySystemDesign)
     xo = Observable(0.0)
     yo = Observable(0.0)
 
     on(connector.xy) do val
 
-        x = val[1]+objectscale*Δh*totarea
-        y = val[2] - objectscale*Δh*totarea
+        x = val[1]
+        y = val[2]
         xo[] = x
         yo[] = y
 
     end
-    scatter!(ax, xo, yo; marker = :rect, color = connector.color, markersize = 1.2*totarea*objectscale)
+    scatter!(ax, xo, yo; marker = :rect, color = connector.color, markersize = 15)
 end
 
 
-function draw_node_label!(ax::Axis, connector::EnergySystemDesign,totarea::Number)
+function draw_node_label!(ax::Axis, connector::EnergySystemDesign)
     xo = Observable(0.0)
     yo = Observable(0.0)
     alignment = Observable((:left, :top))
 
     on(connector.xy) do val
 
-        x = val[1] + 1.1*objectscale*Δh*totarea
-        y = val[2] - 1.1*objectscale*Δh*totarea
+        x = val[1] 
+        y = val[2]
 
         xt, yt = get_node_label_position(get_wall(connector), x, y)
 
@@ -1025,18 +1025,13 @@ function draw_node_label!(ax::Axis, connector::EnergySystemDesign,totarea::Numbe
     )
 end
 
-function find_min_max_coordinates(component::EnergySystemDesign, min_x, max_x, min_y, max_y)
+function find_min_max_coordinates(component::EnergySystemDesign,min_x::Number, max_x::Number, min_y::Number, max_y::Number)
     if component.xy !== nothing
         x, y = component.xy[]
         min_x = min(min_x, x)
         max_x = max(max_x, x)
         min_y = min(min_y, y)
         max_y = max(max_y, y)
-        println("new component")
-        println(min_x)
-        println(max_x)
-        println(min_y)
-        println(max_y)
     end
     
     for child in component.components
@@ -1053,17 +1048,20 @@ end
 function find_min_max_coordinates(root::EnergySystemDesign)
     return find_min_max_coordinates(root, Inf, -Inf, Inf, -Inf)
 end
+function new_global_delta_h(design::EnergySystemDesign)
+    min_x, max_x, min_y, max_y = find_min_max_coordinates(design)
+    global Δh = max(0.01*sqrt((max_x-min_x)^2+(max_y-min_y)^2),0.05)
+end
 
-
-function draw_icon!(ax::Axis, design::EnergySystemDesign,totarea::Number)
+function draw_icon!(ax::Axis, design::EnergySystemDesign)
 
     xo = Observable(zeros(2))
     yo = Observable(zeros(2))
 
     scale = if haskey(design.system,:connector)
-        0.5 * objectscale*totarea
+        0.5 * 0.8
     else
-        objectscale*totarea
+        0.8
     end
 
     on(design.xy) do val
@@ -1097,15 +1095,15 @@ end
 get_wall(design::EnergySystemDesign) =  Symbol(string(design.wall[])[1])
 
 
-function draw_label!(ax::Axis, design::EnergySystemDesign,totarea::Number)
+function draw_label!(ax::Axis, design::EnergySystemDesign)
 
     xo = Observable(0.0)
     yo = Observable(0.0)
 
     scale = if haskey(design.system,:connector)
-        0.5*objectscale*(1 + 0.75 * 0.5)
+        1 + 0.75 * 0.5
     else
-        objectscale*totarea*1.1
+        1.1
     end
 
     on(design.xy) do val
