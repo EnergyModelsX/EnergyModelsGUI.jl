@@ -1,5 +1,4 @@
 #Module for visualization of Clean export models
-#Based on ModelingToolkitDesigner source code.
 
 using GLMakie
 using CairoMakie
@@ -1050,7 +1049,7 @@ function find_min_max_coordinates(root::EnergySystemDesign)
 end
 function new_global_delta_h(design::EnergySystemDesign)
     min_x, max_x, min_y, max_y = find_min_max_coordinates(design)
-    global Δh = max(0.01*sqrt((max_x-min_x)^2+(max_y-min_y)^2),0.05)
+    global Δh = max(0.005*sqrt((max_x-min_x)^2+(max_y-min_y)^2),0.05)
 end
 
 function draw_icon!(ax::Axis, design::EnergySystemDesign)
