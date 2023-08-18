@@ -18,7 +18,7 @@ mutable struct EnergySystemDesign
     system_color::Symbol
     components::Vector{EnergySystemDesign}
     connectors::Vector{EnergySystemDesign}
-    connections::Vector{Tuple{EnergySystemDesign,EnergySystemDesign}}
+    connections::Vector{Tuple{EnergySystemDesign, EnergySystemDesign, Dict}}
 
     xy::Observable{Tuple{Float64,Float64}}
     icon::Union{String,Nothing}
@@ -27,6 +27,7 @@ mutable struct EnergySystemDesign
 
     file::String
 end
+
 
 Base.copy(x::Tuple{EnergySystemDesign,EnergySystemDesign}) = (copy(x[1]), copy(x[2]))
 
@@ -66,7 +67,7 @@ function EnergySystemDesign(
     #systems = system
     components = EnergySystemDesign[]
     connectors = EnergySystemDesign[]
-    connections = Tuple{EnergySystemDesign,EnergySystemDesign}[]
+    connections = Tuple{EnergySystemDesign,EnergySystemDesign,Dict}[]
     if haskey(system,:areas)
         parent_arg = Symbol("Toplevel")
     elseif haskey(system,:node)
@@ -139,8 +140,11 @@ function EnergySystemDesign(
                     child_design_to.connectors,
                 )
             end
+            connection_sys = Dict([(:connection, system[:transmission][i])])
+            
             if !isnothing(connector_design_from) && !isnothing(connector_design_to)
-                push!(connections, (connector_design_from, connector_design_to))
+                this_connection = (connector_design_from, connector_design_to,connection_sys)
+                push!(connections, this_connection)
             end
 
             
@@ -168,8 +172,10 @@ function EnergySystemDesign(
                     child_design_to.connectors,
                 )
             end
+            connection_sys = Dict([(:connection, system[:links][i])])
             if !isnothing(connector_design_from) && !isnothing(connector_design_to)
-                push!(connections, (connector_design_from, connector_design_to))
+                this_connection = (connector_design_from, connector_design_to,connection_sys)
+                push!(connections, this_connection)
             end
 
             
@@ -797,8 +803,7 @@ function connect!(ax::Axis, design::EnergySystemDesign)
     end
 end
 
-
-function connect!(ax::Axis, connection::Tuple{EnergySystemDesign,EnergySystemDesign})
+function connect!(ax::Axis, connection::Tuple{EnergySystemDesign,EnergySystemDesign,Dict})
 
     xs = Observable(Float64[])
     ys = Observable(Float64[])
@@ -806,7 +811,7 @@ function connect!(ax::Axis, connection::Tuple{EnergySystemDesign,EnergySystemDes
     update = () -> begin
         empty!(xs[])
         empty!(ys[])
-        for connector in connection
+        for connector in connection[1:2]
             push!(xs[], connector.xy[][1])
             push!(ys[], connector.xy[][2])
         end
@@ -815,7 +820,7 @@ function connect!(ax::Axis, connection::Tuple{EnergySystemDesign,EnergySystemDes
     end
 
     style = :solid
-    for connector in connection
+    for connector in connection[1:2]
         s = get_style(connector)
         if s != :solid
             style = s
@@ -826,6 +831,7 @@ function connect!(ax::Axis, connection::Tuple{EnergySystemDesign,EnergySystemDes
         end
     end
 
+    style=get_style(connection[3])
     update()
 
     lines!(ax, xs, ys; color = connection[1].color[], linestyle = style)
@@ -871,18 +877,32 @@ get_text_alignment(::Val{:S}) = (:left, :top)
 get_text_alignment(::Val{:N}) = (:left, :bottom)
 
 
-#this function can be developed to give dotted connectors for investment possibilities:
 get_style(design::EnergySystemDesign) = get_style(design.system)
 function get_style(system::Dict)
-
-    #sts = ModelingToolkit.get_states(system)
-    #if length(sts) == 1
-    #    s = first(sts)
-    #    vtype = ModelingToolkit.get_connection_type(s)
-    #    if vtype === ModelingToolkit.Flow
-    #        return :dash
-    #    end
-    #end
+    if haskey(system,:node) && hasproperty(system[:node],:Data)
+        system_data = system[:node].Data
+        for data_element in eachindex(system_data)
+            thistype = string(typeof(system_data[data_element]))
+            if thistype == "InvData"
+                return :dash
+            end
+        end
+    
+    elseif haskey(system,:connection) && hasproperty(system[:connection],:Modes)
+        system_modes = system[:connection].Modes
+        for mode in eachindex(system_modes)
+            this_mode = system_modes[mode]
+            if hasproperty(this_mode,:Data)
+                system_data = this_mode.Data
+                for data_element in eachindex(system_data)
+                    thistype = string(typeof(system_data[data_element]))
+                    if thistype == "TransInvData"
+                        return :dash
+                    end
+                end
+            end
+        end
+    end
 
     return :solid
 end
@@ -904,8 +924,8 @@ function draw_box!(ax::Axis, design::EnergySystemDesign)
         xo[], yo[] = box(x, y, Δh_)
     end
 
-
-    lines!(ax, xo, yo; color = design.color, linewidth)
+    style = get_style(design)
+    lines!(ax, xo, yo; color = design.color, linewidth,linestyle = style)
 
 
     if !isempty(design.components)
@@ -920,7 +940,7 @@ function draw_box!(ax::Axis, design::EnergySystemDesign)
         end
 
 
-        lines!(ax, xo2, yo2; color = design.color, linewidth)
+        lines!(ax, xo2, yo2; color = design.color, linewidth,linestyle = style)
     end
 
 
