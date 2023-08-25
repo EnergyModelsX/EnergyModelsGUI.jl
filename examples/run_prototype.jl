@@ -5,13 +5,14 @@
 include("generate_EMI.jl")
 
 #2: load the functions and data definitions:
-include("prototype.jl")
+include(joinpath(@__DIR__,"..","src", "EnergyModelsGUI.jl"))
 
 #3: Specify path for design information:
-path = joinpath(@__DIR__, "design") # folder where visualization info is saved and retrieved
+path = joinpath(@__DIR__, "..", "design") # folder where visualization info is saved and retrieved
 
 #4: Generate the system topology:
 design=nothing
-design = EnergySystemDesign(case, path);
+design = EnergyModelsGUI.EnergySystemDesign(case, path);
+
 #5: Plot the topology:
-view(design)
+EnergyModelsGUI.view(design)
