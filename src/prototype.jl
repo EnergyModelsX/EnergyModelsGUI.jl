@@ -5,6 +5,8 @@ using CairoMakie
 using FilterHelpers
 using FileIO
 using TOML
+using GeoMakie
+using Leaflet
 Δh = 0.05
 const dragging = Ref(false)
 
@@ -20,7 +22,7 @@ mutable struct EnergySystemDesign
     connectors::Vector{EnergySystemDesign}
     connections::Vector{Tuple{EnergySystemDesign, EnergySystemDesign, Dict}}
 
-    xy::Observable{Tuple{Float64,Float64}}
+    xy::Observable{Tuple{Float64,Float64}} #coordinates 
     icon::Union{String,Nothing}
     color::Observable{Symbol}
     wall::Observable{Symbol}
@@ -75,7 +77,7 @@ function EnergySystemDesign(
     else
         parent_arg = Symbol("ParentNotFound")
     end
-    xy = Observable((x, y))
+    xy = Observable((x, y)) #extracting coordinates
     if !isempty(system)
 
         process_children!(
@@ -274,7 +276,7 @@ function process_children!(
     elseif haskey(systems,:node) && is_connector
         system_iterator = enumerate([systems[:node]])
     end
-    parent_x, parent_y = parent_xy[]
+    parent_x, parent_y = parent_xy[] # we get these from constructor
     if !isempty(systems) && !isnothing(system_iterator)
         current_node = 1
         for (i, system) in system_iterator
@@ -295,13 +297,13 @@ function process_children!(
                 #if x and y are missing, add defaults
                 if key == "RefArea"
                     if hasproperty(system,:Lon) && hasproperty(system,:Lat)
-                        push!(kwargs_pair, :x => system.Lon)
+                        push!(kwargs_pair, :x => system.Lon) #assigning long and lat
                         push!(kwargs_pair, :y => system.Lat)
                     end
                 elseif !haskey(kwargs, "x") & !haskey(kwargs, "y") & haskey(systems,:nodes)
                     nodes_count = length(systems[:nodes])
                     
-                    if key == "GeoAvailability"
+                    if key == "GeoAvailability" # second layer of topology, no need of coordinate inside the region, and make a circle
                         x=parent_x
                         y=parent_y
                     else
@@ -310,7 +312,7 @@ function process_children!(
                     end
                     push!(kwargs_pair, :x => x)
                     push!(kwargs_pair, :y => y)
-                elseif !haskey(kwargs, "x") & !haskey(kwargs, "y")
+                elseif !haskey(kwargs, "x") & !haskey(kwargs, "y") # x=0, y=0. Fallback condition
                     push!(kwargs_pair, :x => i * 3 * Δh)
                     push!(kwargs_pair, :y => i * Δh)
                 end
@@ -421,8 +423,11 @@ function view(design::EnergySystemDesign, interactive = true)
         "$(design.parent).$(string(design.system[:node])) [$(design.file)]"
     end
 
-    ax = Axis(
-        fig[2:11, 1:10];
+    
+    """ax = GeoAxis(
+        fig[2:11, 1:10]; #dest = "+proj=wintri",
+        coastlines = true,
+        dest = "+proj=eqearth", 
         aspect = DataAspect(),
         yticksvisible = true,
         xticksvisible = true,
@@ -434,7 +439,43 @@ function view(design::EnergySystemDesign, interactive = true)
         leftspinecolor = :transparent,
         rightspinecolor = :transparent,
         topspinecolor = :transparent,
+    )"""
+    
+    
+
+    # Define the latitude and longitude coordinates for Norway's boundary. Need to change this so that it can pick any given country boundary
+    norway_boundary = [
+        (4.0, 58.0),
+        (4.0, 71.0),
+        (32.0, 71.0),
+        (32.0, 58.0),
+    ]
+
+    # Calculate the bounding box for Norway
+    min_lon = minimum(p[1] for p in norway_boundary)
+    max_lon = maximum(p[1] for p in norway_boundary)
+    min_lat = minimum(p[2] for p in norway_boundary)
+    max_lat = maximum(p[2] for p in norway_boundary)
+
+    # Create a figure
+    fig = Figure()
+
+    # Create a GeoAxis with specific settings and set the bounding box for Norway
+    ax = GeoAxis(
+        fig[2:11, 1:10],
+        dest = "+proj=eqearth",
+        coastlines = true,  # You can set this to true if you want coastlines
+        lonlims = (min_lon, max_lon),
+        latlims = (min_lat, max_lat),
     )
+
+    
+    # Add a polygon representing Norway's boundary to the GeoAxis
+    poly!(ax, norway_boundary, linewidth = 2, color = RGBA(0, 0, 1, 0.3))
+
+    # Display the map
+    display(fig)
+
 
     if interactive
         #connect_button = Button(fig[12, 1]; label = "connect", fontsize = 12)
