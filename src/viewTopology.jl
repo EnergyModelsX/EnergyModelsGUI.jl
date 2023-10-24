@@ -8,8 +8,12 @@ using FileIO
 using TOML
 Δh = 0.05
 const dragging = Ref(false)
+boundary_add = 0.5
+function view(design::EnergySystemDesign) 
+    view(design,design,true)
+end
 
-function view(design::EnergySystemDesign, interactive = true)
+function view(design::EnergySystemDesign,root_design::EnergySystemDesign,interactive = true)
     new_global_delta_h(design)
     if interactive
         GLMakie.activate!(inline=false)
@@ -28,20 +32,8 @@ function view(design::EnergySystemDesign, interactive = true)
     end
 
 
-    # Define the latitude and longitude coordinates for Norway's boundary. Need to change this so that it can pick any given country boundary
-     norway_boundary = [
-        (4.0, 58.0),
-        (4.0, 71.0),
-        (32.0, 71.0),
-        (32.0, 58.0),
-    ]
-
-    # Calculate the bounding box for Norway
-    min_lon = minimum(p[1] for p in norway_boundary)
-    max_lon = maximum(p[1] for p in norway_boundary)
-    min_lat = minimum(p[2] for p in norway_boundary)
-    max_lat = maximum(p[2] for p in norway_boundary)
-
+    min_lon, max_lon, min_lat, max_lat = find_min_max_coordinates(design)
+    
     # Create a figure
     fig = Figure()
 
@@ -50,14 +42,11 @@ function view(design::EnergySystemDesign, interactive = true)
         fig[2:11, 1:10],
         dest = "+proj=eqearth",
         coastlines = true,  # You can set this to true if you want coastlines
-        lonlims = (min_lon, max_lon),
-        latlims = (min_lat, max_lat),
+        lonlims = (min_lon-boundary_add, max_lon+boundary_add),
+        latlims = (min_lat-boundary_add, max_lat+boundary_add),
     )
 
     
-    # Add a polygon representing Norway's boundary to the GeoAxis
-    poly!(ax, norway_boundary, linewidth = 2, color = RGBA(0, 0, 1, 0.3))
-
     # Display the map
     display(fig)
 
@@ -70,6 +59,7 @@ function view(design::EnergySystemDesign, interactive = true)
         align_horrizontal_button = Button(fig[12, 4]; label = "align horz.", fontsize = 12)
         align_vertical_button = Button(fig[12, 5]; label = "align vert.", fontsize = 12)
         open_button = Button(fig[12, 6]; label = "open", fontsize = 12)
+        up_button = Button(fig[12, 7]; label = "navigate up", fontsize = 12)
         #mode_toggle = Toggle(fig[12, 7])
 
         save_button = Button(fig[12, 10]; label = "save", fontsize = 12)
@@ -343,14 +333,17 @@ function view(design::EnergySystemDesign, interactive = true)
                     view_design.parent = if haskey(design.system,:name) design.system[:name]
                     else Symbol("TopLevel")
                     end
-                    
-                    fig_ = view(view_design)
-                    display(GLMakie.Screen(), fig_)
+                    view(component,root_design)
+                    #fig_ = view(view_design)
+                    #display(GLMakie.Screen(), fig_)
                     break
                 end
             end
         end
 
+        on(up_button.clicks) do clicks
+            view(root_design)
+        end
         on(save_button.clicks) do clicks
             save_design(design)
         end
