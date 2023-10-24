@@ -5,7 +5,7 @@ using FilterHelpers
 using FileIO
 using TOML
 Δh = 0.05
-const dragging = Ref(false)
+#const dragging = Ref(false)
 
 # Extracts the first character of the `wall` field as a `Symbol`.
 
@@ -604,7 +604,7 @@ end
     Function to find the min max coordinates, this could be use to fix the map focus on the specified region.
 """
 function find_min_max_coordinates(component::EnergySystemDesign,min_x::Number, max_x::Number, min_y::Number, max_y::Number)
-    if component.xy !== nothing
+    if component.xy !== nothing && haskey(component.system,:node)
         x, y = component.xy[]
         min_x = min(min_x, x)
         max_x = max(max_x, x)
