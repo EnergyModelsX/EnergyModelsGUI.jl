@@ -1,8 +1,6 @@
 # This module is to create a constructor that create new objects of type EnergySystemDesign. 
 #Module for visualization of Clean export models
-
-using GLMakie
-using CairoMakie
+using Observables
 using FilterHelpers
 using FileIO
 using TOML
@@ -313,6 +311,46 @@ function design_file(system::Dict, path::String)
 
     return file
 end
+
+
+"""
+    Function to place nodes evenly in a circle
+"""
+
+function place_nodes_in_circle(total_nodes::Int, current_node::Int, distance::T, start_x::Float64, start_y::Float64) where T<:Number
+    angle = 2π * current_node / total_nodes
+    x = start_x + distance * cos(angle)
+    y = start_y + distance * sin(angle)
+    return x, y
+end
+
+"""
+    Generates a design path based on the type of the `system` field in an `EnergySystemDesign` instance.
+"""
+function get_design_path(design::EnergySystemDesign)
+    type = string(typeof(design.system[:node]))
+    parts = split(type, '.')
+    path = joinpath(parts[1:end-1]..., "$(parts[end]).toml")
+    return replace(design.file, path => "")
+end
+
+safe_connector_name(name::Symbol) = Symbol("_$name")
+
+
+"""
+    Function to find the icon associated with a given system's node type.
+"""
+function find_icon(system::Dict, design_path::String)
+    icon_name = "NotFound"
+    if haskey(system,:node)
+        icon_name = string(typeof(system[:node]))
+    end
+    icon = joinpath(@__DIR__, "..", "icons", "$icon_name.png")
+    isfile(icon) && return icon
+    return joinpath(@__DIR__,"..", "icons", "NotFound.png")
+end
+
+find_icon(design::EnergySystemDesign) = find_icon(design.system, get_design_path(design))
 
 """
     Processes children or components within an energy system design and populates the `children` vector.
