@@ -394,7 +394,7 @@ function process_children!(
                 elseif !haskey(kwargs, "x") & !haskey(kwargs, "y") & haskey(systems,:nodes)
                     nodes_count = length(systems[:nodes])
                     
-                    if key == "GenAvailability" # second layer of topology, no need of coordinate inside the region, and make a circle
+                    if key == "GenAvailability" || key == "GeoAvailability" # second layer of topology, no need of coordinate inside the region, and make a circle
                         x=parent_x
                         y=parent_y
                     else
