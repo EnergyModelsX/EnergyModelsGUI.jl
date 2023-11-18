@@ -94,6 +94,22 @@ get_node_label_position(::Val{:W}, x, y) = (x - Δh / 5, y)
 
 
 """
+    Parameters:
+    - `design::EnergySystemDesign`: An instance of the `EnergySystemDesign` struct.
+
+    Returns:
+    A boolean indicating whether the system is a pass-through system.
+ """
+
+is_pass_thru(design::EnergySystemDesign) = is_pass_thru(design.system)
+function is_pass_thru(system::Dict)
+    if haskey(system,:type)
+        return startswith(system[:type], "PassThru")
+    end
+    return false
+end
+
+"""
     Adding components
 """
 function add_component!(ax::Axis, design::EnergySystemDesign)
