@@ -8,11 +8,11 @@ using TOML
 """
     Check if 2 tuple values are approximately equal within a specified tolerance.
     Parameters:
-    - `a::Tuple{Float64, Float64}`: The first tuple.
-    - `b::Tuple{Float64, Float64}`: The second tuple to compare.
-    - `atol::Float64`: The absolute tolerance for the comparison
+    - `a::Tuple{Real, Real}`: The first tuple.
+    - `b::Tuple{Real, Real}`: The second tuple to compare.
+    - `atol::Real`: The absolute tolerance for the comparison
 """
-function is_tuple_approx(a::Tuple{Float64,Float64}, b::Tuple{Float64,Float64}; atol)
+function is_tuple_approx(a::Tuple{Real,Real}, b::Tuple{Real,Real}; atol)
 
     r1 = isapprox(a[1], b[1]; atol)
     r2 = isapprox(a[2], b[2]; atol)
@@ -25,8 +25,8 @@ end
     Function to align certain components within an 'EnergySystemDesign' instance either horizontally or vertically.
 """
 function align(design::EnergySystemDesign, type)
-    xs = Float64[]
-    ys = Float64[]
+    xs = Real[]
+    ys = Real[]
     for sub_design in [design.components; design.connectors]
         if sub_design.color[] == :pink
             x, y = sub_design.xy[]
