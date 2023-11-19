@@ -15,7 +15,7 @@ using TOML
     - `components::Vector{EnergySystemDesign}`: Components of the system, stored as an array of EnergySystemDesign objects.
     - `connectors::Vector{EnergySystemDesign}`: Connectors between different systems, stored as an array of EnergySystemDesign objects.
     - `connections::Vector{Tuple{EnergySystemDesign, EnergySystemDesign, Dict}}`: Connections between system parts, each represented as a tuple with two EnergySystemDesign objects and a dictionary for associated properties.
-    - `xy::Observable{Tuple{Float64,Float64}}`: Coordinates of the system, observed for changes.
+    - `xy::Observable{Tuple{Real,Real}}`: Coordinates of the system, observed for changes.
     - `icon::Union{String, Nothing}`: Optional icon associated with the system, stored as a string or Nothing.
     - `color::Observable{Symbol}`: Color of the system, observed for changes and represented as a Symbol.
     - `wall::Observable{Symbol}`: Represents an aspect of the system's state, observed for changes and represented as a Symbol.
@@ -36,7 +36,7 @@ mutable struct EnergySystemDesign
     connectors::Vector{EnergySystemDesign}
     connections::Vector{Tuple{EnergySystemDesign, EnergySystemDesign, Dict}}
 
-    xy::Observable{Tuple{Float64,Float64}} #coordinates 
+    xy::Observable{Tuple{Real,Real}} #coordinates 
     icon::Union{String,Nothing}
     color::Observable{Symbol}
     wall::Observable{Symbol}
@@ -69,8 +69,8 @@ Base.copy(x::EnergySystemDesign) = EnergySystemDesign(
     Parameters:
     - `system::Dict`: A dictionary containing system-related data stored as key-value pairs.
     - `design_path::String`: A file path or identifier related to the design.
-    - `x::Float64 = 0.0`: Initial x-coordinate of the system (default: 0.0).
-    - `y::Float64 = 0.0`: Initial y-coordinate of the system (default: 0.0).
+    - `x::Real = 0.0`: Initial x-coordinate of the system (default: 0.0).
+    - `y::Real = 0.0`: Initial y-coordinate of the system (default: 0.0).
     - `icon::Union{String, Nothing} = nothing`: An icon associated with the system (default: nothing).
     - `wall::Symbol = :E`: An initial wall value (default: :E).
     - `parent::Union{Symbol, Nothing} = nothing`: An parent reference or indicator (default: nothing).
@@ -84,8 +84,8 @@ Base.copy(x::EnergySystemDesign) = EnergySystemDesign(
 function EnergySystemDesign(
     system::Dict,
     design_path::String;
-    x = 0.0,
-    y = 0.0,
+    x::Real = 0.0,
+    y::Real = 0.0,
     icon = nothing,
     wall = :E,
     parent = nothing,
@@ -300,7 +300,7 @@ end
     Function to place nodes evenly in a circle
 """
 
-function place_nodes_in_circle(total_nodes::Int, current_node::Int, distance::T, start_x::Float64, start_y::Float64) where T<:Number
+function place_nodes_in_circle(total_nodes::Int, current_node::Int, distance::Real, start_x::Real, start_y::Real)
     angle = 2π * current_node / total_nodes
     x = start_x + distance * cos(angle)
     y = start_y + distance * sin(angle)
@@ -344,7 +344,7 @@ find_icon(design::EnergySystemDesign) = find_icon(design.system, get_design_path
     - `design_dict::Dict`: A dictionary containing design-specific data.
     - `design_path::String`: A file path or identifier related to the design.
     - `parent::Symbol`: A symbol representing the parent of the children.
-    - `parent_xy::Observable{Tuple{Float64,Float64}}`: An observable tuple holding the coordinates of the parent.
+    - `parent_xy::Observable{Tuple{T,T}}`: An observable tuple holding the coordinates of the parent, where T is a subtype of Real.
     - `is_connector::Bool = false`: A boolean indicating whether the children are connectors (default: false).
     - `connectors...`: Additional keyword arguments.
 """
@@ -355,10 +355,10 @@ function process_children!(
     design_dict::Dict,
     design_path::String,
     parent::Symbol,
-    parent_xy::Observable{Tuple{Float64,Float64}},
+    parent_xy::Observable{Tuple{T,T}},
     is_connector = false;
     connectors...,
-)
+) where T <: Real
     system_iterator = nothing
     if haskey(systems,:areas) && !is_connector
         system_iterator = enumerate(systems[:areas])

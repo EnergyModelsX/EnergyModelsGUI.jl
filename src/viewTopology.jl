@@ -42,8 +42,8 @@ end
 """
 function connect!(ax::Axis, connection::Tuple{EnergySystemDesign,EnergySystemDesign,Dict})
 
-    xs = Observable(Float64[])
-    ys = Observable(Float64[])
+    xs = Observable(Real[])
+    ys = Observable(Real[])
 
     update = () -> begin
         empty!(xs[])
@@ -523,7 +523,7 @@ function view(design::EnergySystemDesign,root_design::EnergySystemDesign,interac
                             point = plt
                             observable = point[1]
                             values = observable[]
-                            geometry_point = Float64.(values[1])
+                            geometry_point = Real.(values[1])
 
                             x = geometry_point[1]
                             y = geometry_point[2]
