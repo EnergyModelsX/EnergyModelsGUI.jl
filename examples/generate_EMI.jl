@@ -1,15 +1,15 @@
-
 using EnergyModelsBase
 using EnergyModelsGeography
 using EnergyModelsInvestments
-using HiGHS
 using JuMP
+using HiGHS
 using TimeStruct
 
 const EMB = EnergyModelsBase
 const EMG = EnergyModelsGeography
 const EMI = EnergyModelsInvestments
 
+runOptimization = false
 
 function run_model(case, model, optimizer = nothing)
     @info "Run model" model optimizer
@@ -380,10 +380,12 @@ end
 # Generate case data
 case, modeltype = generate_data()
 
-# Run the optimization as an investment model.
-m = run_model(case, modeltype, HiGHS.Optimizer)
+if runOptimization
+    # Run the optimization as an investment model.
+    m = run_model(case, modeltype, HiGHS.Optimizer)
 
-# Uncomment to print all the constraints set in the model.
-# print(m)
+    # Uncomment to print all the constraints set in the model.
+    # print(m)
 
-solution_summary(m)
+    solution_summary(m)
+end

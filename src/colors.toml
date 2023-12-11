@@ -1,0 +1,13 @@
+[Resource]
+Electricity = "#0000FF"
+Hydrogen = "#99CCFF"
+Cooling = "#00FFFF"
+Resource = "#FFCC99"
+Waste = "#FFCC00"
+Heat = "#FF0000"
+ResourceCarrier = "#7030a0"
+Biomass = "FF99CC"
+Gas = "#339966"
+Oil = "#808000"
+ResourceEmit = "#7F7F7F"
+Coal = "#000000"
