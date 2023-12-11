@@ -1,78 +1,371 @@
-# Module to view the topology using GeoMakie, CairoMakie and GLMakie
-
-using GeoMakie
-using GLMakie
-using CairoMakie
-using FilterHelpers
-using FileIO
-using TOML
-Δh = 0.05
-const dragging = Ref(false)
+# Set global variables
+Δh = Observable(0.05) # Half of sidelength of main box
+alternatingColors = true
+coarseCoastLines = false
+Δh_px = 50
+markersize = 15
+dragging = Ref(false)
 boundary_add = 0.5
+linewidth = 2
+line_sep_px = 2
+repeatColors = 4
+connectionLinewidth = 3 
+twoWay_sep_px = alternatingColors ? 6 : 10
+xlimits = Observable(Vector{Float64}([0.0,1.0]))
+ylimits = Observable(Vector{Float64}([0.0,1.0]))
+plot_widths = Observable(Vector{Int64}([800,700]))
+icon_scale = 0.8 # fraction of Δh
+
+
+# Create half an arrow to highlight the direction of the energy flow
+halfArrow = BezierPath([
+    MoveTo(Point(0, 0)),
+    LineTo(Point(-1.0, 0.0)),
+    LineTo(Point(-1.0,0.5)),
+    ClosePath(),
+])
+
+"""
+    pixel_to_data(pixel_size::Real)
+
+Convert pixel size to data widths (in x- and y-direction)
+"""
+function pixel_to_data(pixel_size::Real)
+    # Calculate the range in data coordinates
+    x_range = xlimits[][2] - xlimits[][1]
+    y_range = ylimits[][2] - ylimits[][1]
+    # Calculate the conversion factor
+    x_factor = x_range / plot_widths[][1]
+    y_factor = y_range / plot_widths[][2]
+    # Convert pixel size to data coordinates
+    return (pixel_size * x_factor, pixel_size * y_factor)
+end
+
+"""
+    Function to find the min max coordinates, this could be use to fix the map focus on the specified region.
+"""
+function find_min_max_coordinates(component::EnergySystemDesign,min_x::Number, max_x::Number, min_y::Number, max_y::Number)
+    if component.xy !== nothing && haskey(component.system,:node)
+        x, y = component.xy[]
+        min_x = min(min_x, x)
+        max_x = max(max_x, x)
+        min_y = min(min_y, y)
+        max_y = max(max_y, y)
+    end
+    
+    for child in component.components
+        min_x, max_x, min_y, max_y = find_min_max_coordinates(child, min_x, max_x, min_y, max_y)
+    end
+    
+    return min_x, max_x, min_y, max_y
+end
+
+function find_min_max_coordinates(root::EnergySystemDesign)
+    return find_min_max_coordinates(root, Inf, -Inf, Inf, -Inf)
+end
+
+function new_global_delta_h(ax::Axis)
+    xyWidths = ax.finallimits[].widths
+    plot_widths = ax.scene.px_area[].widths
+    global Δh[] = minimum(Vector(Δh_px*xyWidths./plot_widths))
+end
+
+function new_global_delta_h(design::EnergySystemDesign)
+    min_x, max_x, min_y, max_y = find_min_max_coordinates(design)
+    global Δh[] = max(0.005*sqrt((max_x-min_x)^2+(max_y-min_y)^2),0.05)
+    return min_x, max_x, min_y, max_y
+end
+
+"""
+    This function updates the wall field for a pair of EnergySystemDesign's based on their relative location to each other. This is done to 
+        reduce lines crossing over boxes
+
+    Parameters:
+    - `component_design_from::EnergySystemDesign: An instance of a EnergySystemDesign from which the connection originates
+    - `component_design_to::EnergySystemDesign: An instance of a EnergySystemDesign from which the connection ends
+
+"""
+function facingWalls(component_design_from::EnergySystemDesign, component_design_to::EnergySystemDesign)
+    xy_from = component_design_from.xy[]
+    xy_to = component_design_to.xy[]
+    θ = atan(xy_to[2]-xy_from[2], xy_to[1]-xy_from[1])
+    if -π/4 <= θ && θ < π/4 
+        return (:E, :W)
+    elseif π/4 <= θ && θ < 3π/4 
+        return (:N, :S)
+    elseif -3π/4 <= θ && θ < -π/4 
+        return (:S, :N)
+    else
+        return (:W, :E)
+    end
+end
 
 """
     Functions handling different keyboard inputs (events) and return changes in x, y coordinates.
 """
 get_change(::Val) = (0.0, 0.0)
-get_change(::Val{Keyboard.up}) = (0.0, +Δh / 5)
-get_change(::Val{Keyboard.down}) = (0.0, -Δh / 5)
-get_change(::Val{Keyboard.left}) = (-Δh / 5, 0.0)
-get_change(::Val{Keyboard.right}) = (+Δh / 5, 0.0)
+get_change(::Val{Keyboard.up}) = (0.0, +Δh[] / 5)
+get_change(::Val{Keyboard.down}) = (0.0, -Δh[] / 5)
+get_change(::Val{Keyboard.left}) = (-Δh[] / 5, 0.0)
+get_change(::Val{Keyboard.right}) = (+Δh[] / 5, 0.0)
 
-function connect!(ax::Axis, design::EnergySystemDesign)
-    all_connectors = vcat([s.connectors for s in design.components]...)
-    push!(all_connectors, design.connectors...)
-    selected_connectors = EnergySystemDesign[]
+"""
+    Function to get the opposite wall symbol
 
-    for connector in all_connectors
-        if connector.color[] == :pink
-            push!(selected_connectors, connector)
-            connector.color[] = connector.system_color
-        end
-    end
+    Parameters:
+    - `wall::Symbol`: A symbol for a wall (i.e., :E as in East) 
 
-    if length(selected_connectors) > 1
-        connect!(ax, (selected_connectors[1], selected_connectors[2]))
-        push!(design.connections, (selected_connectors[1], selected_connectors[2]))
+"""
+function getOppositeWall(wall::Symbol)
+    if wall == :E
+        return :W
+    elseif wall == :N
+        return :S
+    elseif wall == :W
+        return :E
+    else
+        return :N
     end
 end
 
 """
-     Function to add a line connecting/updating 2 connectors.
+    Check if 2 tuple values are approximately equal within a specified tolerance.
+    Parameters:
+    - `a::Tuple{Real, Real}`: The first tuple.
+    - `b::Tuple{Real, Real}`: The second tuple to compare.
+    - `atol::Real`: The absolute tolerance for the comparison
 """
-function connect!(ax::Axis, connection::Tuple{EnergySystemDesign,EnergySystemDesign,Dict})
+function is_tuple_approx(a::Tuple{Real,Real}, b::Tuple{Real,Real}; atol)
 
-    xs = Observable(Real[])
-    ys = Observable(Real[])
+    r1 = isapprox(a[1], b[1]; atol)
+    r2 = isapprox(a[2], b[2]; atol)
 
-    update = () -> begin
-        empty!(xs[])
-        empty!(ys[])
-        for connector in connection[1:2]
-            push!(xs[], connector.xy[][1])
-            push!(ys[], connector.xy[][2])
+    return all([r1, r2])
+end
+
+
+"""
+Function to align certain components within an 'EnergySystemDesign' instance either horizontally or vertically.
+"""
+function align(design::EnergySystemDesign, type)
+    xs = Real[]
+    ys = Real[]
+    for sub_design in design.components
+        if sub_design.color[] == :pink
+            x, y = sub_design.xy[]
+            push!(xs, x)
+            push!(ys, y)
         end
-        notify(xs)
-        notify(ys)
     end
 
-    style = :solid
-    for connector in connection[1:2]
-        s = get_style(connector)
-        if s != :solid
-            style = s
+    ym = sum(ys) / length(ys)
+    xm = sum(xs) / length(xs)
+
+    for sub_design in design.components
+        if sub_design.color[] == :pink
+
+            x, y = sub_design.xy[]
+
+            if type == :horrizontal
+                sub_design.xy[] = (x, ym)
+            elseif type == :vertical
+                sub_design.xy[] = (xm, y)
+            end
+
+
+        end
+    end
+end
+"""
+Draws lines between connected objects in design.
+
+    Parameters:
+    - `ax::Axis`: An instance of the `Axis` (or similar) type for performing the actual connection.
+    - `design::EnergySystemDesign`: An instance of the `EnergySystemDesign` struct representing the design.
+
+"""
+function connect!(ax::Axis, design::EnergySystemDesign)
+    topLevel = haskey(design.system,:areas) && haskey(design.system,:transmission)
+
+    for component in design.components
+        if topLevel
+            linkedToComponent = filter(x -> component.system[:node].id == x[3][:connection].To.id, design.connections)
+            linkedFromComponent = filter(x -> component.system[:node].id == x[3][:connection].From.id, design.connections)
+        else
+            linkedToComponent = filter(x -> component.system[:node].id == x[3][:connection].to.id, design.connections)
+            linkedFromComponent = filter(x -> component.system[:node].id == x[3][:connection].from.id, design.connections)
+        end
+        on(component.xy, priority=4) do val
+            wallCounter = Dict(:E => 0, :N => 0, :W => 0, :S => 0)
+            for linkedComponent in linkedToComponent
+                wall_from, wall_to = facingWalls(component, linkedComponent[1])
+                wallCounter[wall_from] += 1
+            end
+            for linkedComponent in linkedFromComponent
+                wall_from, wall_to = facingWalls(component, linkedComponent[2])
+                wallCounter[wall_from] += 1
+            end
+            minConnections, min_wall = findmin(wallCounter)
+            maxConnections, max_wall = findmax(wallCounter)
+            opposite_max_wall = getOppositeWall(max_wall)
+            if wallCounter[opposite_max_wall] == minConnections
+                component.wall[] = opposite_max_wall
+            else
+                component.wall[] = min_wall
+            end
+        end
+        notify(component.xy)
+    end
+        
+    for connection in design.connections
+        
+        # Check if link between two nodes goes in both directions (twoWay)
+        connectionCon = connection[3][:connection]
+        twoWay = false
+        for connection2 in design.connections
+            connection2Con = connection2[3][:connection]
+            if topLevel
+                if connection2Con.To.id == connectionCon.From.id &&
+                   connection2Con.From.id == connectionCon.To.id
+                    twoWay = true
+                end
+            else
+                if connection2Con.to.id == connectionCon.from.id &&
+                   connection2Con.from.id == connectionCon.to.id
+                    twoWay = true
+                end
+            end
         end
 
-        on(connector.xy) do val
+        # Plot line for connection with decorations
+        connect!(ax, connection, twoWay)
+    end
+end
+# 
+
+"""
+     Function to add a line connecting/updating 2 components.
+"""
+function connect!(ax::Axis, connection::Tuple{EnergySystemDesign,EnergySystemDesign,Dict}, twoWay::Bool)
+
+    colors = connection[3][:colors]
+    colorsRep = repeat(colors,repeatColors)
+    noColors = length(colors)
+    noLinePts = noColors*repeatColors+1
+    if alternatingColors
+        xs = Observable(zeros(noLinePts))
+        ys = Observable(zeros(noLinePts))
+    else    
+        xs = Observable(zeros(2))
+        ys = Observable(zeros(2))
+    end
+
+    noArrows = 6 
+    placeArrows(x) = range(x[1] + 1.0*(x[2]-x[1])/(noArrows+2), x[2] - 1.1*(x[2]-x[1])/(noArrows+2), noArrows)
+    halfArrows = scatter!(placeArrows(xs[]),placeArrows(ys[]),marker = halfArrow,markersize = markersize, rotations = 0, color=:black)
+    translate!(halfArrows, 0,0,1000)
+    if alternatingColors
+        lineConnections = Vector{Any}(undef, noLinePts)
+        for i ∈ 1:noLinePts-1
+            lineConnections[i] = lines!(ax, xs[][i:i+1], ys[][i:i+1]; color = colorsRep[i], linewidth=connectionLinewidth)
+            translate!(lineConnections[i], 0,0,1000)
+        end
+
+        update = () -> begin
+            for i ∈ 1:noLinePts-1
+                lineConnections[i].linestyle = get_style(connection)
+            end
+            empty!(xs[])
+            empty!(ys[])
+            xy_start = collect(connection[1].xy[])
+            xy_end = collect(connection[2].xy[])
+            lineParametrization(t) = xy_start .+ (xy_end .- xy_start).*t 
+            for t ∈ range(0,1,noLinePts)
+                xy = lineParametrization(t)
+                push!(xs[], xy[1])
+                push!(ys[], xy[2])
+            end
+            θ = atan(ys[][end]-ys[][1], xs[][end]-xs[][1])
+            twoWay_sep = pixel_to_data(twoWay_sep_px)
+            if twoWay
+                xs[] .+= twoWay_sep[1]/2*cos(θ+π/2)
+                ys[] .+= twoWay_sep[2]/2*sin(θ+π/2)
+            end
+            for i ∈ 1:noLinePts-1
+                lineConnections[i][1] = xs[][i:i+1]
+                lineConnections[i][2] = ys[][i:i+1] 
+            end
+            notify(xs)
+            notify(ys)
+
+            # Update the direcitonal arrows along the lines
+            halfArrows[:rotations] = θ 
+            halfArrows[1] = placeArrows(xs[][[1,end]]) 
+            halfArrows[2] = placeArrows(ys[][[1,end]])
+
+        end
+    else
+        lineConnections = Vector{Any}(undef, noColors)
+        for i ∈ 1:noColors
+            lineConnections[i] = lines!(ax, xs[], ys[]; color = colorsRep[i], linewidth=connectionLinewidth)
+            translate!(lineConnections[i], 0,0,1000)
+        end
+
+        update = () -> begin
+            for i ∈ 1:noColors
+                lineConnections[i].linestyle = get_style(connection)
+            end
+            empty!(xs[])
+            empty!(ys[])
+            for component ∈ connection[1:2]
+                push!(xs[], component.xy[][1])
+                push!(ys[], component.xy[][2])
+            end
+            θ = atan(ys[][end]-ys[][1], xs[][end]-xs[][1])
+            lines_shift = pixel_to_data(connectionLinewidth) .+ pixel_to_data(line_sep_px)
+            if twoWay
+                twoWay_sep = pixel_to_data(twoWay_sep_px)
+            else
+                twoWay_sep = .- pixel_to_data((noColors-1)*(line_sep_px + connectionLinewidth))
+            end
+            x = Vector(xs[])
+            y = Vector(ys[])
+            for i ∈ 1:noColors
+                x .= xs[] .+ (twoWay_sep[1]/2 + lines_shift[1]*(i-1))*cos(θ+π/2)
+                y .= ys[] .+ (twoWay_sep[2]/2 + lines_shift[2]*(i-1))*sin(θ+π/2)
+                lineConnections[i][1][][1] = [x[1], y[1]]
+                lineConnections[i][1][][2] = [x[2], y[2]]
+                notify(lineConnections[i][1])
+            end
+            notify(xs)
+            notify(ys)
+
+            # Update the direcitonal arrows along the lines
+            halfArrows[:rotations] = θ 
+            halfArrows[1] = placeArrows(x)
+            halfArrows[2] = placeArrows(y)
+            #notify(halfArrows)
+
+        end
+    end
+
+
+    for component in connection[1:2]
+        on(component.xy) do val
             update()
         end
     end
+    on(ax.scene.px_area) do val
+        update()
+    end
+    on(ax.finallimits) do _
+        update()
+    end
 
-    style=get_style(connection[3])
     update()
 
-    lines!(ax, xs, ys; color = connection[1].color[], linestyle = style)
 end
+
 
 """
     Positioning nodes and their labels based on specific directions.
@@ -80,50 +373,27 @@ end
 get_node_position(w::Symbol, delta, i) = get_node_position(Val(w), delta, i)
 get_node_label_position(w::Symbol, x, y) = get_node_label_position(Val(w), x, y)
 
-get_node_position(::Val{:N}, delta, i) = (delta * i - Δh, +Δh)
-get_node_label_position(::Val{:N}, x, y) = (x + Δh / 10, y + Δh / 5)
+get_node_position(::Val{:N}, delta, i) = (delta * i - Δh[], +Δh[])
+get_node_label_position(::Val{:N}, x, y) = (x + Δh[] / 10, y + Δh[] / 5)
 
-get_node_position(::Val{:S}, delta, i) = (delta * i - Δh, -Δh)
-get_node_label_position(::Val{:S}, x, y) = (x + Δh / 10, y - Δh / 5)
+get_node_position(::Val{:S}, delta, i) = (delta * i - Δh[], -Δh[])
+get_node_label_position(::Val{:S}, x, y) = (x + Δh[] / 10, y - Δh[] / 5)
 
-get_node_position(::Val{:E}, delta, i) = (+Δh, delta * i - Δh)
-get_node_label_position(::Val{:E}, x, y) = (x + Δh / 5, y)
+get_node_position(::Val{:E}, delta, i) = (+Δh[], delta * i - Δh[])
+get_node_label_position(::Val{:E}, x, y) = (x + Δh[] / 5, y)
 
-get_node_position(::Val{:W}, delta, i) = (-Δh, delta * i - Δh)
-get_node_label_position(::Val{:W}, x, y) = (x - Δh / 5, y)
+get_node_position(::Val{:W}, delta, i) = (-Δh[], delta * i - Δh[])
+get_node_label_position(::Val{:W}, x, y) = (x - Δh[] / 5, y)
 
-
-"""
-    Parameters:
-    - `design::EnergySystemDesign`: An instance of the `EnergySystemDesign` struct.
-
-    Returns:
-    A boolean indicating whether the system is a pass-through system.
- """
-
-is_pass_thru(design::EnergySystemDesign) = is_pass_thru(design.system)
-function is_pass_thru(system::Dict)
-    if haskey(system,:type)
-        return startswith(system[:type], "PassThru")
-    end
-    return false
-end
 
 """
     Adding components
 """
-function add_component!(ax::Axis, design::EnergySystemDesign)
+function add_component!(ax::Axis, component::EnergySystemDesign)
 
-    draw_box!(ax, design)
-    draw_nodes!(ax, design)
-    if is_pass_thru(design)
-        #draw_passthru!(ax, design)
-    #if is_parent_connector(design)
-
-    else
-        draw_icon!(ax, design)
-        draw_label!(ax, design)
-    end
+    draw_box!(ax, component)
+    draw_icon!(ax, component)
+    draw_label!(ax, component)
 
 end
 
@@ -131,15 +401,14 @@ end
     Text allignment
 """
 get_text_alignment(wall::Symbol) = get_text_alignment(Val(wall))
-get_text_alignment(::Val{:E}) = (:left, :top)
-get_text_alignment(::Val{:W}) = (:right, :top)
-get_text_alignment(::Val{:S}) = (:left, :top)
-get_text_alignment(::Val{:N}) = (:left, :bottom)
+get_text_alignment(::Val{:E}) = (:left, :center)
+get_text_alignment(::Val{:W}) = (:right, :center)
+get_text_alignment(::Val{:S}) = (:center, :top)
+get_text_alignment(::Val{:N}) = (:center, :bottom)
 
 """
     Get the line style for an `EnergySystemDesign` object based on its system properties.   
 """
-get_style(design::EnergySystemDesign) = get_style(design.system)
 function get_style(system::Dict)
     if haskey(system,:node) && hasproperty(system[:node],:Data)
         system_data = system[:node].Data
@@ -168,6 +437,15 @@ function get_style(system::Dict)
 
     return :solid
 end
+get_style(design::EnergySystemDesign) = get_style(design.system)
+function get_style(connection::Tuple{EnergySystemDesign,EnergySystemDesign,Dict})
+    style = get_style(connection[1])
+    if style == :dash
+        return style
+    end
+    style = get_style(connection[2])
+    return style
+end
 
 
 """
@@ -177,219 +455,121 @@ function draw_box!(ax::Axis, design::EnergySystemDesign)
 
     xo = Observable(zeros(5))
     yo = Observable(zeros(5))
+    vertices = [(x, y) for (x, y) in zip(xo[][1:end-1], yo[][1:end-1])]
+    #whiteRect = Observable(GLMakie.GeometryBasics.HyperRectangle{2, Int64})
+    #xy_ll = Observable(zeros(2)) # Coordinate for box corner at lower left
 
-    Δh_, linewidth = if haskey(design.system,:connector)
-        0.6 * Δh, 2
-    else
-        Δh, 1
-    end
+    whiteRect = poly!(ax, vertices, color=:white,strokewidth=0) # Create a white background rectangle to hide lines from connections
+    translate!(whiteRect, 0,0,1004)
 
     # Observe changes in design coordinates and update box position
     on(design.xy) do val
         x = val[1]
         y = val[2]
-        xo[], yo[] = box(x, y, Δh_)
+
+        xo[], yo[] = box(x, y, Δh[]/2)
+        whiteRect[1] = [(x, y) for (x, y) in zip(xo[][1:end-1], yo[][1:end-1])]
     end
 
     style = get_style(design)
-    lines!(ax, xo, yo; color = design.color, linewidth,linestyle = style)
 
     # if the design has components, draw an enlarged box around it. 
     if !isempty(design.components)
         xo2 = Observable(zeros(5))
         yo2 = Observable(zeros(5))
+        vertices = [(x, y) for (x, y) in zip(xo2[][1:end-1], yo2[][1:end-1])]
         
+        whiteRect2 = poly!(ax, vertices, color=:white,strokewidth=0) # Create a white background rectangle to hide lines from connections
+        translate!(whiteRect2, 0,0,1002)
+
         # observe changes in design coordinates and update enlarged box position
         on(design.xy) do val
             x = val[1]
             y = val[2]
 
-            xo2[], yo2[] = box(x, y, Δh_ * 1.2)
+            xo2[], yo2[] = box(x, y, Δh[] * 0.6)
+            whiteRect2[1] = [(x, y) for (x, y) in zip(xo2[][1:end-1], yo2[][1:end-1])]
         end
 
 
-        lines!(ax, xo2, yo2; color = design.color, linewidth,linestyle = style)
+        boxBoundary2 = lines!(ax, xo2, yo2; color = design.color, linewidth=linewidth,linestyle = style)
+        translate!(boxBoundary2, 0,0,1001)
     end
+
+    boxBoundary = lines!(ax, xo, yo; color = design.color, linewidth=linewidth,linestyle = style)
+    translate!(boxBoundary, 0,0,1005)
 
 
 end
 
-
-function draw_nodes!(ax::Axis, design::EnergySystemDesign)
-
-    xo = Observable(0.0)
-    yo = Observable(0.0)
-
+function draw_icon!(ax::Axis, design::EnergySystemDesign)
+    xo = Observable(zeros(2))
+    yo = Observable(zeros(2))
     on(design.xy) do val
-
         x = val[1]
         y = val[2]
 
-        xo[] = x
-        yo[] = y
-
+        xo[] = [x - Δh[] * icon_scale/2, x + Δh[] * icon_scale/2]
+        yo[] = [y - Δh[] * icon_scale/2, y + Δh[] * icon_scale/2]
     end
 
-    update =
-        (connector) -> begin
-
-            connectors_on_wall =
-                filter(x -> get_wall(x) == get_wall(connector), design.connectors)
-
-            n_items = length(connectors_on_wall)
-            delta = 2 * Δh / (n_items + 1)
-
-            sort!(connectors_on_wall, by=x->x.wall[])
-
-            for i = 1:n_items
-                x, y = get_node_position(get_wall(connector), delta, i)
-                connectors_on_wall[i].xy[] = (x + xo[], y + yo[])
-            end
-        end
-
-
-    for connector in design.connectors
-
-        on(connector.wall) do val
-            update(connector)
-        end
-
-        on(design.xy) do val
-            update(connector)
-        end
-
-        draw_node!(ax, connector)
-        draw_node_label!(ax, connector)
+    if !isnothing(design.icon)
+        icon_image = image!(ax, xo, yo, rotr90(load(design.icon)))
+        translate!(icon_image, 0,0,2000)
     end
-
 end
 
-function draw_node!(ax::Axis, connector::EnergySystemDesign)
-    xo = Observable(0.0)
-    yo = Observable(0.0)
+function draw_label!(ax::Axis, component::EnergySystemDesign)
 
-    on(connector.xy) do val
-
-        x = val[1]
-        y = val[2]
-        xo[] = x
-        yo[] = y
-
-    end
-    scatter!(ax, xo, yo; marker = :rect, color = connector.color, markersize = 15)
-end
-
-
-function draw_node_label!(ax::Axis, connector::EnergySystemDesign)
     xo = Observable(0.0)
     yo = Observable(0.0)
     alignment = Observable((:left, :top))
 
-    on(connector.xy) do val
+    scale = 0.7
 
-        x = val[1] 
-        y = val[2]
-
-        xt, yt = get_node_label_position(get_wall(connector), x, y)
-
-        xo[] = xt
-        yo[] = yt
-
-        alignment[] = get_text_alignment(get_wall(connector))
-    end
-
-    scene = GLMakie.Makie.parent_scene(ax)
-    current_font_size = theme(scene, :fontsize)
-
-    text!(
-        ax,
-        xo,
-        yo;
-        text = string(connector.system[:connector]),
-        color = connector.color,
-        align = alignment,
-        fontsize = current_font_size[] * 0.9,
-    )
-end
-
-"""
-    Function to find the min max coordinates, this could be use to fix the map focus on the specified region.
-"""
-
-function draw_icon!(ax::Axis, design::EnergySystemDesign)
-
-    xo = Observable(zeros(2))
-    yo = Observable(zeros(2))
-
-    scale = if haskey(design.system,:connector)
-        0.5 * 0.8
-    else
-        0.8
-    end
-
-    on(design.xy) do val
+    on(component.xy) do val
 
         x = val[1]
         y = val[2]
 
-        xo[] = [x - Δh * scale, x + Δh * scale]
-        yo[] = [y - Δh * scale, y + Δh * scale]
-
-    end
-
-
-    if !isnothing(design.icon)
-        img = load(design.icon)
-        w = get_wall(design)
-        imgd = if w == :E
-            rotr90(img)
-        elseif w == :S
-            rotr90(rotr90(img))
-        elseif w == :W
-            rotr90(rotr90(rotr90(img)))
-        elseif w == :N
-            img
+        if component.wall[] == :E
+            xo[] = x + Δh[] * scale
+            yo[] = y
+        elseif component.wall[] == :S
+            xo[] = x
+            yo[] = y - Δh[] * scale
+        elseif component.wall[] == :W
+            xo[] = x - Δh[] * scale
+            yo[] = y
+        elseif component.wall[] == :N
+            xo[] = x
+            yo[] = y + Δh[] * scale
         end
-
-        image!(ax, xo, yo, imgd)
-    end
-end
-
-get_wall(design::EnergySystemDesign) =  Symbol(string(design.wall[])[1])
-
-
-function draw_label!(ax::Axis, design::EnergySystemDesign)
-
-    xo = Observable(0.0)
-    yo = Observable(0.0)
-
-    scale = if haskey(design.system,:connector)
-        1 + 0.75 * 0.5
-    else
-        1.1
-    end
-
-    on(design.xy) do val
-
-        x = val[1]
-        y = val[2]
-
-        xo[] = x
-        yo[] = y + Δh * scale
+        alignment[] = get_text_alignment(component.wall[])
 
     end
-    if haskey(design.system,:node)
-        text!(ax, xo, yo; text = "$(string(design.system[:node]))\n($(typeof(design.system[:node])))", align = (:center, :bottom))
+    if haskey(component.system,:node)
+        label_text = text!(ax, xo, yo; text = "$(string(component.system[:node]))\n($(typeof(component.system[:node])))", align = alignment)
+        translate!(label_text, 0,0,1007)
     end
 end
 
 
-function box(x, y, Δh = 0.05)
+function box(x, y, Δh_)
 
-    xs = [x + Δh, x - Δh, x - Δh, x + Δh, x + Δh]
-    ys = [y + Δh, y + Δh, y - Δh, y - Δh, y + Δh]
+    xs = [x + Δh_, x - Δh_, x - Δh_, x + Δh_, x + Δh_]
+    ys = [y + Δh_, y + Δh_, y - Δh_, y - Δh_, y + Δh_]
 
     return xs, ys
+end
+
+"""
+    Function to clear the color selection of components within 'EnergySystemDesign' instance. 
+"""
+function clear_selection(design::EnergySystemDesign)
+    for component in design.components
+        component.color[] = :black
+    end
 end
 
 """
@@ -400,16 +580,12 @@ function view(design::EnergySystemDesign)
 end
 
 function view(design::EnergySystemDesign,root_design::EnergySystemDesign,interactive = true)
-    new_global_delta_h(design)
+    min_lon, max_lon, min_lat, max_lat = new_global_delta_h(design)
     if interactive
         GLMakie.activate!(inline=false)
     else
         CairoMakie.activate!()
     end
-
-
-
-    fig = Figure()
 
     title = if isnothing(design.parent)
         "TopLevel [$(design.file)]"
@@ -417,58 +593,82 @@ function view(design::EnergySystemDesign,root_design::EnergySystemDesign,interac
         "$(design.parent).$(string(design.system[:node])) [$(design.file)]"
     end
 
-
-    min_lon, max_lon, min_lat, max_lat = find_min_max_coordinates(design)
-    
     # Create a figure
-    fig = Figure()
-
-    # Create a GeoAxis with specific settings and set the bounding box for Norway
+    fig = Figure(resolution = (1400, 1000))
+    source = "+proj=merc +lon_0=0 +x_0=0 +y_0=0 +a=6378137 +b=6378137 +units=m +no_defs"
+    dest = "+proj=merc +lon_0=0 +x_0=0 +y_0=0 +a=6378137 +b=6378137 +units=m +no_defs"
     ax = GeoAxis(
         fig[2:11, 1:10],
-        dest = "+proj=eqearth",
-        coastlines = true,  # You can set this to true if you want coastlines
+        source = source, 
+        dest = dest,
+        coastlines = coarseCoastLines,  # You can set this to true if you want coastlines
         lonlims = (min_lon-boundary_add, max_lon+boundary_add),
         latlims = (min_lat-boundary_add, max_lat+boundary_add),
+        backgroundcolor=:lightblue1,
     )
 
-    
-    # Display the map
-    display(fig)
+    if !coarseCoastLines
 
+        # Define the URL and the local file path
+        url = "https://datahub.io/core/geo-countries/r/countries.geojson"
+        temp_dir = tempdir()  # Get the system's temporary directory
+        filename = "EnergyModelsGUI_countries.geojson"
+        local_file_path = joinpath(temp_dir, filename)
+
+        # Download the file if it doesn't exist
+        if !isfile(local_file_path)
+            download(url, local_file_path)
+        end
+
+        # Now read the data from the file
+        countries = GeoJSON.read(read(local_file_path, String))
+        poly!(ax, countries; color = :honeydew, colormap = :dense,
+            strokecolor = :gray50, strokewidth = 0.5,
+        )
+    end
 
     if interactive
-        #connect_button = Button(fig[12, 1]; label = "connect", fontsize = 12)
-        clear_selection_button =
-            Button(fig[12, 2]; label = "clear selection", fontsize = 12)
-        next_wall_button = Button(fig[12, 3]; label = "move node", fontsize = 12)
         align_horrizontal_button = Button(fig[12, 4]; label = "align horz.", fontsize = 12)
         align_vertical_button = Button(fig[12, 5]; label = "align vert.", fontsize = 12)
         open_button = Button(fig[12, 6]; label = "open", fontsize = 12)
         up_button = Button(fig[12, 7]; label = "navigate up", fontsize = 12)
-        #mode_toggle = Toggle(fig[12, 7])
-
-        save_button = Button(fig[12, 10]; label = "save", fontsize = 12)
-
-
-        Label(fig[1, :], title; halign = :left, fontsize = 11)
+        save_button = Button(fig[12, 8]; label = "save", fontsize = 12)
+        Label(fig[1, :], title; halign = :center, fontsize = 11)
     end
+
+    connect!(ax, design)
     
     for component in design.components
-        add_component!(ax, component)
-        for connector in component.connectors
-            notify(connector.wall)
-        end
-        notify(component.xy)
-    end
-
-    for connection in design.connections
-        connect!(ax, connection)
+        add_component!(ax,component)
     end
 
     if interactive
+        on(ax.finallimits, priority = 9) do finallimits
+            widths = finallimits.widths
+            origin = finallimits.origin
+            xlimits[] = [origin[1], origin[1] + widths[1]]
+            ylimits[] = [origin[2], origin[2] + widths[2]]
+            new_global_delta_h(ax)
+            notifyComponents()
+        end
+        on(ax.scene.px_area, priority = 9) do _
+            # Get the size of the axis in pixels
+            plot_widthsTuple = ax.scene.px_area[].widths
+            plot_widths[] = collect(plot_widthsTuple)
+            # Get the current limits of the axis
+            new_global_delta_h(ax)
+            notifyComponents()
+        end
         on(events(fig).mousebutton, priority = 2) do event
-            new_global_delta_h(design)
+
+            mouse_pos = events(ax).mouseposition[]
+            plot_origin = pixelarea(ax.scene)[].origin
+            plot_widths = pixelarea(ax.scene)[].widths
+            mouse_pos_loc = mouse_pos .- plot_origin
+            clickOutsidePlot = any(mouse_pos_loc .< 0) || any(mouse_pos_loc .- plot_widths .> 0)
+            if clickOutsidePlot
+                return
+            end
             if event.button == Mouse.left
                 if event.action == Mouse.press
 
@@ -476,8 +676,10 @@ function view(design::EnergySystemDesign,root_design::EnergySystemDesign,interac
                     # Delete marker
                     plt, i = pick(fig)
 
-                    if !isnothing(plt)
-
+                    if isnothing(plt)
+                        clear_selection(design)
+                        Consume(true)
+                    else
                         if plt isa Image
 
                             image = plt
@@ -487,70 +689,28 @@ function view(design::EnergySystemDesign,root_design::EnergySystemDesign,interac
                             yvalues = yobservable[]
 
 
-                            x = xvalues[1] + Δh * 0.8
-                            y = yvalues[1] + Δh * 0.8
+                            x = xvalues[1] + Δh[] * icon_scale/2
+                            y = yvalues[1] + Δh[] * icon_scale/2
                             selected_system = filtersingle(
-                                s -> is_tuple_approx(s.xy[], (x, y); atol = Δh),
-                                [design.components; design.connectors],
+                                s -> is_tuple_approx(s.xy[], (x, y); atol = Δh[]),
+                                design.components,
                             )
 
                             if isnothing(selected_system)
-
-                                x = xvalues[1] + Δh * 0.8 * 0.5
-                                y = yvalues[1] + Δh * 0.8 * 0.5
-                                selected_system = filterfirst(
-                                    s -> is_tuple_approx(s.xy[], (x, y); atol = Δh),
-                                    [design.components; design.connectors],
-                                )
-
-                                if isnothing(selected_system)
-                                    @warn "clicked an image at ($(round(x; digits=1)), $(round(y; digits=1))), but no system design found!"
-                                else
-                                    selected_system.color[] = :pink
-                                    dragging[] = true
-                                end
+                                @warn "clicked an image at ($(round(x; digits=1)), $(round(y; digits=1))), but no system design found!"
                             else
                                 selected_system.color[] = :pink
                                 dragging[] = true
                             end
 
-
-
                         elseif plt isa Lines
 
                         elseif plt isa Scatter
 
-                            point = plt
-                            observable = point[1]
-                            values = observable[]
-                            geometry_point = Real.(values[1])
-
-                            x = geometry_point[1]
-                            y = geometry_point[2]
-
-                            selected_component = filtersingle(
-                                c -> is_tuple_approx(c.xy[], (x, y); atol = 1e-3),
-                                design.components,
-                            )
-                            if !isnothing(selected_component)
-                                selected_component.color[] = :pink
-                            else
-                                all_connectors =
-                                    vcat([s.connectors for s in design.components]...)
-                                selected_connector = filtersingle(
-                                    c -> is_tuple_approx(c.xy[], (x, y); atol = 1e-3),
-                                    all_connectors,
-                                )
-                                selected_connector.color[] = :pink
-                            end
-
                         elseif plt isa GLMakie.Mesh
-
-
-
+                            clear_selection(design)
+                            Consume(true)
                         end
-
-
                     end
                     Consume(true)
                 elseif event.action == Mouse.release
@@ -559,21 +719,30 @@ function view(design::EnergySystemDesign,root_design::EnergySystemDesign,interac
                     Consume(true)
                 end
             end
-
             if event.button == Mouse.right
-                clear_selection(design)
-                Consume(true)
+                if event.action == Mouse.press
+                    clear_selection(design)
+                    Consume(true)
+                elseif event.action == Mouse.release
+                end
             end
 
             return Consume(false)
         end
 
-        on(events(fig).mouseposition, priority = 2) do mp
+        on(events(ax).mouseposition, priority = 2) do mouse_pos
             if dragging[]
-                for sub_design in [design.components; design.connectors]
+                for sub_design in design.components
                     if sub_design.color[] == :pink
-                        position = mouseposition(ax)
-                        sub_design.xy[] = (position[1], position[2])
+                        xyWidths = ax.finallimits[].widths
+                        xy_origin = ax.finallimits[].origin
+                        plot_origin = pixelarea(ax.scene)[].origin
+                        plot_widths = pixelarea(ax.scene)[].widths
+                        mouse_pos_loc = mouse_pos .- plot_origin
+                        xy = xy_origin .+ mouse_pos_loc .* xyWidths ./ plot_widths
+                        sub_design.xy[] = Tuple(xy)
+
+                        notifyComponents()
                         break #only move one system for mouse drag
                     end
                 end
@@ -585,13 +754,12 @@ function view(design::EnergySystemDesign,root_design::EnergySystemDesign,interac
         end
 
         on(events(fig).keyboardbutton) do event
-            new_global_delta_h(design)
             if event.action == Keyboard.press
 
                 change = get_change(Val(event.key))
 
                 if change != (0.0, 0.0)
-                    for sub_design in [design.components; design.connectors]
+                    for sub_design in design.components
                         if sub_design.color[] == :pink
 
                             xc = sub_design.xy[][1]
@@ -604,114 +772,21 @@ function view(design::EnergySystemDesign,root_design::EnergySystemDesign,interac
 
                     reset_limits!(ax)
 
+                    notifyComponents()
                     return Consume(true)
                 end
             end
         end
 
-        #on(connect_button.clicks) do clicks
-        #    connect!(ax, design)
-        #end
-
-        on(clear_selection_button.clicks) do clicks
-            clear_selection(design)
-        end
-
-        #TODO: fix the ordering too
-        on(next_wall_button.clicks) do clicks
-            for component in design.components
-                for connector in component.connectors
-
-
-                    if connector.color[] == :pink
-
-                        current_wall = get_wall(connector)
-                        current_order = get_wall_order(connector)
-
-                        
-
-                        if current_order > 1
-                            connectors_on_wall = filter(x -> get_wall(x) == current_wall, component.connectors)
-                            for cow in connectors_on_wall
-
-                                order = max(get_wall_order(cow), 1)
-                                
-                                if order == current_order - 1
-                                    cow.wall[] = Symbol(current_wall, current_order)
-                                end
-                                
-                                if order == current_order
-                                    cow.wall[] = Symbol(current_wall, current_order - 1)
-                                end
-                            end
-                            
-                        else
-
-                            next_wall = if current_wall == :N
-                                :E
-                            elseif current_wall == :W
-                                :N
-                            elseif current_wall == :S
-                                :W
-                            elseif current_wall == :E
-                                :S
-                            end
-
-                            connectors_on_wall = filter(x -> get_wall(x) == next_wall, component.connectors)
-                            
-                            # connector is added to wall, need to fix any un-ordered connectors
-                            for cow in connectors_on_wall
-                                order = get_wall_order(cow)
-                                
-                                if order == 0
-                                    cow.wall[] = Symbol(next_wall, 1)
-                                end
-                            end
-                            
-                            
-                            current_order = length(connectors_on_wall) + 1
-                            if current_order > 1
-                                connector.wall[] = Symbol(next_wall, current_order) 
-                            else
-                                connector.wall[] = next_wall
-                            end
-
-                            
-
-
-                            # connector is leaving wall, need to reduce the order
-                            connectors_on_wall = filter(x -> get_wall(x) == current_wall, component.connectors)
-                            if length(connectors_on_wall) > 1
-                                for cow in connectors_on_wall
-                                    order = get_wall_order(cow)
-                                    
-                                    if order == 0
-                                        cow.wall[] = Symbol(current_wall, 1)
-                                    else
-                                        cow.wall[] = Symbol(current_wall, order - 1)
-                                    end
-                                end
-                            else
-                                for cow in connectors_on_wall
-                                    cow.wall[] = current_wall
-                                end
-                            end
-
-                        end                        
-                    end
-                end
-            end
-        end
-
-        on(align_horrizontal_button.clicks) do clicks
+        on(align_horrizontal_button.clicks, priority=10) do clicks
             align(design, :horrizontal)
         end
 
-        on(align_vertical_button.clicks) do clicks
+        on(align_vertical_button.clicks, priority=10) do clicks
             align(design, :vertical)
         end
 
-        on(open_button.clicks) do clicks
+        on(open_button.clicks, priority=10) do clicks
             for component in design.components
                 if component.color[] == :pink
                     view_design = component
@@ -727,20 +802,23 @@ function view(design::EnergySystemDesign,root_design::EnergySystemDesign,interac
             end
         end
 
-        on(up_button.clicks) do clicks
+        on(up_button.clicks, priority=10) do clicks
             view(root_design)
         end
-        on(save_button.clicks) do clicks
+        on(save_button.clicks, priority=10) do clicks
             save_design(design)
         end
-
-        #on(mode_toggle.active) do val
-        #    toggle_pass_thrus(design, val)
-        #end
     end
 
-    #toggle_pass_thrus(design, !interactive)
+    notifyComponents = () -> begin
+        for component ∈ design.components
+            notify(component.xy)
+        end
+    end
+    new_global_delta_h(ax)
+    notifyComponents()
+    notify(ax.finallimits)
+    display(fig)
 
     return fig
 end
-

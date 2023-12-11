@@ -7,10 +7,11 @@ using TimeStruct
 const EMB = EnergyModelsBase
 const EMG = EnergyModelsGeography
 
-function run_model(optimizer=nothing)
+runOptimization = false
+
+function run_model(case, model, optimizer=nothing)
    @debug "Run model" optimizer
 
-    case, model = read_data()
     m = EMG.create_model(case, model)
 
     if !isnothing(optimizer)
@@ -198,6 +199,10 @@ function get_sub_system_data(i,𝒫₀, 𝒫ᵉᵐ₀, products, modeltype;
     return nodes, links
 end
 
-m, case = run_model(HiGHS.Optimizer)
+case, model = read_data()
 
-solution_summary(m)
+if runOptimization
+    m, case = run_model(case, model, HiGHS.Optimizer)
+
+    solution_summary(m)
+end

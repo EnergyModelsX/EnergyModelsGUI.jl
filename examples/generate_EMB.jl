@@ -1,7 +1,6 @@
 using EnergyModelsBase
 using JuMP
 using HiGHS
-using Pkg
 using TimeStruct
 
 

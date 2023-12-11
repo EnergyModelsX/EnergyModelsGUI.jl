@@ -1,0 +1,5 @@
+[deps]
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+EnergyModelsBase = "5d7e687e-f956-46f3-9045-6f5a5fd49f50"
+EnergyModelsGUI = "737a7361-d3b7-40e9-b1ac-59bee4c5ea2d"
+JuMP = "4076af6c-e467-56ae-b986-b466b2749572"

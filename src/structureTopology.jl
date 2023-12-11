@@ -1,60 +1,73 @@
-# This module is to create a constructor that create new objects of type EnergySystemDesign. 
-#Module for visualization of Clean export models
-using Observables
-using FilterHelpers
-using FileIO
-using TOML
-Δh = 0.05
-#const dragging = Ref(false)
-
 """
-    Fields:
-    - `parent::Union{Symbol, Nothing}`: Parent reference or indicator.
-    - `system::Dict`: Data related to the system, stored as key-value pairs.
-    - `system_color::Symbol`: The color of the system represented as a Symbol.
-    - `components::Vector{EnergySystemDesign}`: Components of the system, stored as an array of EnergySystemDesign objects.
-    - `connectors::Vector{EnergySystemDesign}`: Connectors between different systems, stored as an array of EnergySystemDesign objects.
-    - `connections::Vector{Tuple{EnergySystemDesign, EnergySystemDesign, Dict}}`: Connections between system parts, each represented as a tuple with two EnergySystemDesign objects and a dictionary for associated properties.
-    - `xy::Observable{Tuple{Real,Real}}`: Coordinates of the system, observed for changes.
-    - `icon::Union{String, Nothing}`: Optional icon associated with the system, stored as a string or Nothing.
-    - `color::Observable{Symbol}`: Color of the system, observed for changes and represented as a Symbol.
-    - `wall::Observable{Symbol}`: Represents an aspect of the system's state, observed for changes and represented as a Symbol.
-    - `file::String`: Filename or path associated with the EnergySystemDesign.
+Struct to provides a flexible data structure for modeling and working with complex energy system designs in Julia.
 
-    This struct provides a flexible data structure for modeling and working with complex energy system designs in Julia.
-
+# Fields:
+- `parent::Union{Symbol, Nothing}`: Parent reference or indicator.
+- `system::Dict`: Data related to the system, stored as key-value pairs.
+- `system_color::Symbol`: The color of the system represented as a Symbol.
+- `components::Vector{EnergySystemDesign}`: Components of the system, stored as an array of EnergySystemDesign objects.
+- `connections::Vector{Tuple{EnergySystemDesign, EnergySystemDesign, Dict}}`: Connections between system parts, each represented as a tuple with two EnergySystemDesign objects and a dictionary for associated properties.
+- `xy::Observable{Tuple{Real,Real}}`: Coordinates of the system, observed for changes.
+- `icon::Union{String, Nothing}`: Optional icon associated with the system, stored as a string or Nothing.
+- `color::Observable{Symbol}`: Color of the system, observed for changes and represented as a Symbol.
+- `wall::Observable{Symbol}`: Represents an aspect of the system's state, observed for changes and represented as a Symbol.
+- `file::String`: Filename or path associated with the EnergySystemDesign.
 """
-
 mutable struct EnergySystemDesign
-    # parameters::Vector{Parameter}
-    # states::Vector{State}
-
     parent::Union{Symbol,Nothing}
     system::Dict
     system_color::Symbol
     components::Vector{EnergySystemDesign}
-    connectors::Vector{EnergySystemDesign}
     connections::Vector{Tuple{EnergySystemDesign, EnergySystemDesign, Dict}}
-
     xy::Observable{Tuple{Real,Real}} #coordinates 
     icon::Union{String,Nothing}
     color::Observable{Symbol}
     wall::Observable{Symbol}
-
     file::String
 end
 
+"""
+    show(io::IO, obj::EnergySystemDesign)
 
-# Define a copy function that is part of the Base module in Julia which contain fundamental functions and types. .copy to customize the behaviour for specific types
-Base.copy(x::Tuple{EnergySystemDesign,EnergySystemDesign}) = (copy(x[1]), copy(x[2])) 
+Print a simplified overview of the fields of an EnergySystemDesign struct
+"""
+function Base.show(io::IO, obj::EnergySystemDesign)
+    indent = 1
+    indent_str = "  " ^ indent
+    println(io, "EnergySystemDesign with fields:")
+    println(io, "  parent (Union{Symbol,Nothing}): ", obj.parent)
+    println(io, "  system (Dict): ")
+    for (key, value) ∈ obj.system
+        println(io, indent_str, "  ", key, ": ", value)
+    end
+    println(io, "  system_color (Symbol): ", obj.system_color)
+    println(io, "  components (Vector{EnergySystemDesign}): ")
+    for (index,comp) ∈ enumerate(obj.components)
+        if haskey(comp.system, :node)
+            println(io, "    [", index, "] ", comp.system[:node])
+        end
+    end
+    println(io, "  connections (Vector{Tuple{EnergySystemDesign, EnergySystemDesign, Dict}}): ")
+    for (index,conn) ∈ enumerate(obj.connections)
+        println(io, "    [", index, "] ", conn[1].system[:node], " - ", conn[2].system[:node])
+    end
 
-# Method to make a deep copy of an 'EnergySystemDesign' object
+    println(io, "  xy (Observable{Tuple{Real,Real}}): ", obj.xy)
+    println(io, "  icon (Union{String,Nothing}): ", obj.icon)
+    println(io, "  color (Observable{Symbol}): ", obj.color)
+    println(io, "  wall (Observable{Symbol}): ", obj.wall)
+
+    println(io, "  file (String): ", obj.file)
+end
+
+"""
+Make a copy of a EnergySystemDesign struct overloading the copy function that is part of the Base module in Julia.
+"""
 Base.copy(x::EnergySystemDesign) = EnergySystemDesign(
     x.parent,
     x.system,
     x.system_color,
     copy.(x.components), # create deep copy of array or collection contained within EnergySystemDesign object. 
-    copy.(x.connectors),
     copy.(x.connections),
     Observable(x.xy[]),
     x.icon,
@@ -64,9 +77,14 @@ Base.copy(x::EnergySystemDesign) = EnergySystemDesign(
 )
 
 """
-    This function creates and initializes instances of the `EnergySystemDesign` struct, representing energy system designs.
+Copy a tuple of EnergySystemDesign structs
+"""
+Base.copy(x::Tuple{EnergySystemDesign,EnergySystemDesign}) = (copy(x[1]), copy(x[2])) 
 
-    Parameters:
+"""
+Create and initialize an instance of the `EnergySystemDesign` struct, representing energy system designs.
+
+Parameters:
     - `system::Dict`: A dictionary containing system-related data stored as key-value pairs.
     - `design_path::String`: A file path or identifier related to the design.
     - `x::Real = 0.0`: Initial x-coordinate of the system (default: 0.0).
@@ -76,11 +94,9 @@ Base.copy(x::EnergySystemDesign) = EnergySystemDesign(
     - `parent::Union{Symbol, Nothing} = nothing`: An parent reference or indicator (default: nothing).
     - `kwargs...`: Additional keyword arguments.
 
-    The function reads system configuration data from a TOML file specified by `design_path` (if it exists), initializes various internal fields,
-    and processes connections and wall values. It constructs and returns an `EnergySystemDesign` instance.
-
+The function reads system configuration data from a TOML file specified by `design_path` (if it exists), initializes various internal fields,
+and processes connections and wall values. It constructs and returns an `EnergySystemDesign` instance.
 """
-
 function EnergySystemDesign(
     system::Dict,
     design_path::String;
@@ -98,10 +114,7 @@ function EnergySystemDesign(
         Dict()
     end
 
-    #systems = filter(x -> typeof(x) == ODESystem, ModelingToolkit.get_systems(system))
-    #systems = system
     components = EnergySystemDesign[]
-    connectors = EnergySystemDesign[]
     connections = Tuple{EnergySystemDesign,EnergySystemDesign,Dict}[]
     if haskey(system,:areas)
         parent_arg = Symbol("Toplevel")
@@ -120,112 +133,62 @@ function EnergySystemDesign(
             design_path,
             parent_arg,
             xy,
-            false;
-            kwargs...,
-        )
-        process_children!(
-            connectors,
-            system,
-            design_dict,
-            design_path,
-            parent_arg,
-            xy,
-            true;
-            kwargs...,
         )
     end
     xy = Observable((x, y))
     color = :black
-    for wall in [:E, :W, :N, :S]
-        connectors_on_wall = filter(x -> get_wall(x) == wall, connectors)
-        n = length(connectors_on_wall)
-        if n > 1
-            i = 0
-            for conn in connectors_on_wall
-                order = get_wall_order(conn)
-                i = max(i, order) + 1
-                if order == 0
-                   conn.wall[] = Symbol(wall, i) 
-                end
-            end
-        end
-    end
 
+    colorsFile = joinpath(@__DIR__,"..","src", "colors.toml")
+    colors_dict = TOML.parsefile(colorsFile)
 
     if haskey(system,:areas) && haskey(system,:transmission)
         connection_iterator =enumerate(system[:transmission])
         for (i, connection) in connection_iterator
-            child_design_from = filtersingle(
+            connector_design_from = filtersingle(
                             x -> x.system[:node].An == system[:transmission][i].From.An,
                             components,
                         )
-            if !isnothing(child_design_from)
-                connector_design_from = filtersingle(
-                    x -> x.system[:connector] == system[:transmission][i].From.An,
-                    child_design_from.connectors,
-                )
-            end
-            child_design_to = filtersingle(
+            connector_design_to = filtersingle(
                     x -> x.system[:node].An == system[:transmission][i].To.An,
                     components,
                 )
-            if !isnothing(child_design_to)
-                connector_design_to = filtersingle(
-                    x -> x.system[:connector] == system[:transmission][i].To.An,
-                    child_design_to.connectors,
-                )
-            end
-            connection_sys = Dict([(:connection, system[:transmission][i])])
             
             if !isnothing(connector_design_from) && !isnothing(connector_design_to)
+                hex_colors = [colors_dict["Resource"][split(string(typeof(mode.Resource)), '{')[1]] for mode ∈ system[:transmission][i].Modes]
+                colors = [parse(Colorant, hex_color) for hex_color ∈ hex_colors]
+                connection_sys = Dict(:connection => system[:transmission][i], :colors => colors)
                 this_connection = (connector_design_from, connector_design_to,connection_sys)
                 push!(connections, this_connection)
             end
-
-            
         end
     elseif haskey(system,:nodes) && haskey(system,:links)
         connection_iterator =enumerate(system[:links])
         for (i, connection) in connection_iterator
-            child_design_from = filtersingle(
+            connector_design_from = filtersingle(
                             x -> x.system[:node] == system[:links][i].from,
                             components,
                         )
-            if !isnothing(child_design_from)
-                connector_design_from = filtersingle(
-                    x -> x.system[:connector] == system[:links][i].from,
-                    child_design_from.connectors,
-                )
-            end
-            child_design_to = filtersingle(
+            connector_design_to = filtersingle(
                     x -> x.system[:node] == system[:links][i].to,
                     components,
                 )
-            if !isnothing(child_design_to)
-                connector_design_to = filtersingle(
-                    x -> x.system[:connector] == system[:links][i].to,
-                    child_design_to.connectors,
-                )
-            end
-            connection_sys = Dict([(:connection, system[:links][i])])
             if !isnothing(connector_design_from) && !isnothing(connector_design_to)
+                resources = system[:links][i].from.Output.keys
+                filteredResources = [resources[index] for index in 1:length(resources) if isassigned(resources, index)]
+                hex_colors = [colors_dict["Resource"][split(string(typeof(resource)), '{')[1]] for resource ∈ filteredResources]
+                colors = [parse(Colorant, hex_color) for hex_color ∈ hex_colors]
+                connection_sys = Dict(:connection => system[:links][i], :colors => colors)
                 this_connection = (connector_design_from, connector_design_to,connection_sys)
                 push!(connections, this_connection)
             end
-
-            
         end
-        
     end
-
-    
 
     return EnergySystemDesign(
         parent,
         system,
         color,
         components,
-        connectors,
         connections,
         xy,
         icon,
@@ -235,46 +198,7 @@ function EnergySystemDesign(
     )
 end
 
-# Extracts the first character of the `wall` field as a `Symbol`.
-
-get_wall(design::EnergySystemDesign) =  Symbol(string(design.wall[])[1])
-
-
-"""
-    This function extract and return the wall order from the `wall` field of an `EnergySystemDesign`.
-
-    Parameters:
-    - `design::EnergySystemDesign`: An instance of the `EnergySystemDesign` struct.
-
-    Returns:
-    An integer representing the wall order, or 0 if not found.
-"""
-
-function get_wall_order(design::EnergySystemDesign)
-
-    wall = string(design.wall[])
-    if length(wall) > 1
-        order = tryparse(Int, wall[2:end])
-
-        if isnothing(order)
-            order = 1
-        end
-
-        return order
-    else
-
-
-        return 0
-
-    end
-
-
-end
-
 function design_file(system::Dict, path::String)
-    #@assert !isnothing(system.gui_metadata) "ODESystem must use @component: $(system.name)"
-
-    # path = joinpath(@__DIR__, "designs")
     if !isdir(path)
         mkdir(path)
     end
@@ -283,13 +207,6 @@ function design_file(system::Dict, path::String)
     else
         systemName = string(system[:node])
     end
-    #parts = split(string(system.gui_metadata.type), '.')
-    #for part in parts[1:end-1]
-    #    path = joinpath(path, part)
-    #    if !isdir(path)
-    #        mkdir(path)
-    #    end
-    #end
     file = joinpath(path, "$(systemName).toml")
 
     return file
@@ -297,13 +214,16 @@ end
 
 
 """
-    Function to place nodes evenly in a circle
+    Function to place nodes evenly on a semicircle
 """
-
-function place_nodes_in_circle(total_nodes::Int, current_node::Int, distance::Real, start_x::Real, start_y::Real)
-    angle = 2π * current_node / total_nodes
-    x = start_x + distance * cos(angle)
-    y = start_y + distance * sin(angle)
+function place_nodes_in_semicircle(total_nodes::Int, current_node::Int, r::Real, xₒ::Real, yₒ::Real)
+    if total_nodes == 1
+        θ = π
+    else
+        θ = π * (1 - (current_node-1)/(total_nodes-1))
+    end
+    x = xₒ + r * cos(θ)
+    y = yₒ + r * sin(θ)
     return x, y
 end
 
@@ -317,23 +237,25 @@ function get_design_path(design::EnergySystemDesign)
     return replace(design.file, path => "")
 end
 
-safe_connector_name(name::Symbol) = Symbol("_$name")
-
-
 """
     Function to find the icon associated with a given system's node type.
 """
-function find_icon(system::Dict, design_path::String)
+function find_icon(system::Dict)
     icon_name = "NotFound"
     if haskey(system,:node)
         icon_name = string(typeof(system[:node]))
     end
     icon = joinpath(@__DIR__, "..", "icons", "$icon_name.png")
+    if !isfile(icon)
+        icon_name_super = string(supertype(typeof(system[:node])))
+        #@warn "Could not find an icon for type $icon_name. Using the supertype $icon_name_super instead."
+        icon = joinpath(@__DIR__, "..", "icons", "$icon_name_super.png")
+    end
     isfile(icon) && return icon
     return joinpath(@__DIR__,"..", "icons", "NotFound.png")
 end
 
-find_icon(design::EnergySystemDesign) = find_icon(design.system, get_design_path(design))
+find_icon(design::EnergySystemDesign) = find_icon(design.system)
 
 """
     Processes children or components within an energy system design and populates the `children` vector.
@@ -345,10 +267,8 @@ find_icon(design::EnergySystemDesign) = find_icon(design.system, get_design_path
     - `design_path::String`: A file path or identifier related to the design.
     - `parent::Symbol`: A symbol representing the parent of the children.
     - `parent_xy::Observable{Tuple{T,T}}`: An observable tuple holding the coordinates of the parent, where T is a subtype of Real.
-    - `is_connector::Bool = false`: A boolean indicating whether the children are connectors (default: false).
-    - `connectors...`: Additional keyword arguments.
+    - `kwargs...`: Additional keyword arguments.
 """
-
 function process_children!(
     children::Vector{EnergySystemDesign},
     systems::Dict,
@@ -356,23 +276,20 @@ function process_children!(
     design_path::String,
     parent::Symbol,
     parent_xy::Observable{Tuple{T,T}},
-    is_connector = false;
-    connectors...,
 ) where T <: Real
     system_iterator = nothing
-    if haskey(systems,:areas) && !is_connector
+    if haskey(systems,:areas)
         system_iterator = enumerate(systems[:areas])
-    elseif haskey(systems,:nodes) && !is_connector
+    elseif haskey(systems,:nodes)
         system_iterator = enumerate(systems[:nodes])
-    elseif haskey(systems,:node) && is_connector
-        system_iterator = enumerate([systems[:node]])
     end
     parent_x, parent_y = parent_xy[] # we get these from constructor
     if !isempty(systems) && !isnothing(system_iterator)
         current_node = 1
         for (i, system) in system_iterator
             
-            key = string(typeof(system))
+            system_type = typeof(system)
+            key = string(system_type)
             kwargs = if haskey(design_dict, key)
                 design_dict[key]
             else
@@ -384,66 +301,46 @@ function process_children!(
             
             push!(kwargs_pair, :parent => parent)
         
-            if !is_connector
-                #if x and y are missing, add defaults
-                if key == "RefArea"
-                    if hasproperty(system,:Lon) && hasproperty(system,:Lat)
-                        push!(kwargs_pair, :x => system.Lon) #assigning long and lat
-                        push!(kwargs_pair, :y => system.Lat)
-                    end
-                elseif !haskey(kwargs, "x") & !haskey(kwargs, "y") & haskey(systems,:nodes)
-                    nodes_count = length(systems[:nodes])
-                    
-                    if key == "GenAvailability" || key == "GeoAvailability" # second layer of topology, no need of coordinate inside the region, and make a circle
-                        x=parent_x
-                        y=parent_y
-                    else
-                        x,y = place_nodes_in_circle(nodes_count-1,current_node,1,parent_x,parent_y)
-                        current_node +=1
-                    end
-                    push!(kwargs_pair, :x => x)
-                    push!(kwargs_pair, :y => y)
-                elseif !haskey(kwargs, "x") & !haskey(kwargs, "y") # x=0, y=0. Fallback condition
-                    push!(kwargs_pair, :x => i * 3 * Δh)
-                    push!(kwargs_pair, :y => i * Δh)
+            #if x and y are missing, add defaults
+            if key == "RefArea"
+                if hasproperty(system,:Lon) && hasproperty(system,:Lat)
+                    push!(kwargs_pair, :x => system.Lon) #assigning long and lat
+                    push!(kwargs_pair, :y => system.Lat)
                 end
-        
-                # r => wall for icon rotation
-                if haskey(kwargs, "r")
-                    push!(kwargs_pair, :wall => kwargs["r"])
-                end
-            elseif is_connector
-                if hasproperty(system,:An)
-                    if haskey(connectors, safe_connector_name(Symbol(system.An)))
-                        push!(kwargs_pair, :wall => connectors[safe_connector_name(Symbol(system.An))])
-                    end
+            elseif !haskey(kwargs, "x") && !haskey(kwargs, "y") && haskey(systems,:nodes)
+                nodes_count = length(systems[:nodes])
+                
+                if system isa EnergyModelsBase.Availability || supertype(system_type) == EnergyModelsBase.Availability # second layer of topology, no need of coordinate inside the region, and make a circle
+                    x = parent_x
+                    y = parent_y
                 else
-                    if haskey(connectors, safe_connector_name(Symbol(system)))
-                        push!(kwargs_pair, :wall => connectors[safe_connector_name(Symbol(system))])
-                    end
+                    x,y = place_nodes_in_semicircle(nodes_count-1,current_node,1,parent_x,parent_y)
+                    current_node +=1
                 end
-                x=parent_x
-                y=parent_y
                 push!(kwargs_pair, :x => x)
                 push!(kwargs_pair, :y => y)
+            elseif !haskey(kwargs, "x") && !haskey(kwargs, "y") # x=0, y=0. Fallback condition
+                push!(kwargs_pair, :x => i * 3)
+                push!(kwargs_pair, :y => i)
             end
-        
+    
+            # r => wall for icon rotation
+            if haskey(kwargs, "r")
+                push!(kwargs_pair, :wall => kwargs["r"])
+            end
+
             for (key, value) in kwargs
                 push!(kwargs_pair, Symbol(key) => value)
             end
-            if haskey(systems,:areas) && !is_connector
+            if haskey(systems,:areas)
                 area_An = systems[:areas][i].An
                 area_links = filter(item->getfield(item,:from) == area_An || getfield(item,:to) == area_An,systems[:links]) 
                 area_nodes = filter(item -> any(link -> link.from == item || link.to == item, area_links),systems[:nodes])
                 this_sys = Dict([(:node, system),(:links,area_links),(:nodes,area_nodes)])
-            elseif !is_connector
+            else
                 this_sys = Dict([(:node, system)])
-            elseif is_connector && hasproperty(system,:An)
-                this_sys = Dict([(:connector, system.An)])
-            elseif is_connector
-                this_sys = Dict([(:connector, system)])
             end
-            push!(kwargs_pair, :icon => find_icon(this_sys, design_path))
+            push!(kwargs_pair, :icon => find_icon(this_sys))
         
             
             push!(
@@ -454,3 +351,32 @@ function process_children!(
     end
 end
 
+
+function save_design(design::EnergySystemDesign)
+
+    design_dict = Dict()
+
+    for component in design.components
+
+        x, y = component.xy[]
+
+        pairs = Pair{Symbol,Any}[
+            :x => round(x; digits = 5)
+            :y => round(y; digits = 5)
+        ]
+
+        design_dict[string(component.system[:node])] = Dict(pairs)
+    end
+
+    save_design(design_dict, design.file)
+end
+
+function save_design(design_dict::Dict, file::String)
+    open(file, "w") do io
+        TOML.print(io, design_dict) do val
+            if val isa Symbol
+                return string(val)
+            end
+        end
+    end
+end
