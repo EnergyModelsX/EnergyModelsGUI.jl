@@ -91,6 +91,7 @@ register:
     # Set name and email for the bot pushing to the registry.
     - git config --global user.email "<@>"
     - git config --global user.name "Registrator"
+    - DISPLAY=:0 xvfb-run -s '-screen 0 1024x768x24' julia --project="test" -e 'using Pkg; Pkg.add("LocalRegistry")' #Install LocalRegistry used for pushing to registry
     - DISPLAY=:0 xvfb-run -s '-screen 0 1024x768x24' julia --project="test" -e 'using Pkg; Pkg.instantiate()'  # install dependencies.
     # Register the package. LocalRegistry will not register a new version if it is already registered.
     - DISPLAY=:0 xvfb-run -s '-screen 0 1024x768x24' julia --project="test" -e 'using LocalRegistry;
