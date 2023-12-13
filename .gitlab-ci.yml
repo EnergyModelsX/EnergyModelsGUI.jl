@@ -96,8 +96,8 @@ register:
     # Register the package. LocalRegistry will not register a new version if it is already registered.
     - DISPLAY=:0 xvfb-run -s '-screen 0 1024x768x24' julia --project="test" -e 'using LocalRegistry;
         repo = "git@gitlab.sintef.no:" * ENV["CI_PROJECT_PATH"] * ".git";
-        registry =  "git@gitlab.sintef.no:clean_export/registrycleanexport.git;
-        register(repo=repo, ,registry = registry, create_gitlab_mr=true, ignore_reregistration = true)'  # register the package
+        registry =  "git@gitlab.sintef.no:clean_export/registrycleanexport.git";
+        register(repo=repo, registry = registry, create_gitlab_mr=true, ignore_reregistration = true)'  # register the package
   rules:
     # Only execute this on the default branch.
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
