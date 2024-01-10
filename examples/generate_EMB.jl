@@ -12,7 +12,13 @@ function generate_data()
     Coal = ResourceCarrier("Coal", 0.35)
     Power = ResourceCarrier("Power", 0.0)
     CO2 = ResourceEmit("CO2", 1.0)
+
+
     products = [NG, Coal, Power, CO2]
+
+    # Define colors for all products
+    products_color = ["Gas", "Coal", "Electricity", "ResourceEmit"]
+    EnergyModelsGUI.setColors!(idToColorsMap, products, products_color)
 
     # Creation of a dictionary with entries of 0 for all resources for the availability node
     # to be able to create the links for the availability node.
@@ -48,6 +54,9 @@ function generate_data()
             Dict(:Surplus => FixedProfile(0), :Deficit => FixedProfile(1e6)),
             Dict(Power => 1)),
     ]
+    #idToIconsMap[nodes[1].id] = "Availability"
+    #idToIconsMap[nodes[2].id] = ""
+    #idToIconsMap[nodes[3].id] = ""
 
     # Connect all nodes with the availability node for the overall energy/mass balance
     links = [

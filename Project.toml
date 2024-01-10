@@ -1,7 +1,7 @@
 name = "EnergyModelsGUI"
 uuid = "737a7361-d3b7-40e9-b1ac-59bee4c5ea2d"
 authors = ["Magnus Askeland <Magnus.Askeland@sintef.no>, Shweta Tiwari <Shweta.Tiwari@sintef.no>, Jon Vegard Venås <JonVegard.Venas@sintef.no"]
-version = "0.1.0"
+version = "0.1.1"
 
 [deps]
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
@@ -25,6 +25,9 @@ Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 YAML = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"
 
 [compat]
+EnergyModelsBase = "0.5.2"
+EnergyModelsGeography = "0.7.1"
+EnergyModelsInvestments = "0.4.6"
 JuMP = "^0.23, 1"
 TimeStruct = "^0.6.1"
 julia = "^1.6"

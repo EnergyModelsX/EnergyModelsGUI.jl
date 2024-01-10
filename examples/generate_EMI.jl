@@ -167,6 +167,10 @@ function get_resources()
     CO2 = ResourceEmit("CO2", 1.0)
     products = [NG, Coal, Power, CO2]
 
+    # Define colors for all products
+    products_color = ["Gas", "Coal", "Electricity", "ResourceEmit"]
+    EnergyModelsGUI.setColors!(idToColorsMap, products, products_color)
+
     # Creation of a dictionary with entries of 0. for all resources
     𝒫₀ = Dict(k => 0 for k ∈ products)
 
