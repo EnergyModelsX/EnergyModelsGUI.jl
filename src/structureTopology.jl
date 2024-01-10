@@ -16,6 +16,8 @@ Struct to provides a flexible data structure for modeling and working with compl
 mutable struct EnergySystemDesign
     parent::Union{Symbol,Nothing}
     system::Dict
+    idToColorsMap::Dict{Any,Any}
+    idToIconsMap::Dict{Any,Any}
     system_color::Symbol
     components::Vector{EnergySystemDesign}
     connections::Vector{Tuple{EnergySystemDesign, EnergySystemDesign, Dict}}
@@ -24,6 +26,7 @@ mutable struct EnergySystemDesign
     color::Observable{Symbol}
     wall::Observable{Symbol}
     file::String
+    plotObj::Vector{Any}
 end
 
 """
@@ -40,6 +43,8 @@ function Base.show(io::IO, obj::EnergySystemDesign)
     for (key, value) ∈ obj.system
         println(io, indent_str, "  ", key, ": ", value)
     end
+    println(io, "  idToColorsMap (Dict{Any,Any}): ", obj.idToColorsMap)
+    println(io, "  idToIconsMap (Dict{Any,Any}): ", obj.idToIconsMap)
     println(io, "  system_color (Symbol): ", obj.system_color)
     println(io, "  components (Vector{EnergySystemDesign}): ")
     for (index,comp) ∈ enumerate(obj.components)
@@ -58,15 +63,20 @@ function Base.show(io::IO, obj::EnergySystemDesign)
     println(io, "  wall (Observable{Symbol}): ", obj.wall)
 
     println(io, "  file (String): ", obj.file)
+    println(io, "  plotObj (Vector{Any}): ", obj.plotObj)
 end
 
 """
+    Base.copy(x::EnergySystemDesign)
+
 Make a copy of a EnergySystemDesign struct overloading the copy function that is part of the Base module in Julia.
 """
 Base.copy(x::EnergySystemDesign) = EnergySystemDesign(
     x.parent,
     x.system,
     x.system_color,
+    copy.(x.idToColorsMap), # create deep copy of array or collection contained within EnergySystemDesign object. 
+    copy.(x.idToIconsMap),
     copy.(x.components), # create deep copy of array or collection contained within EnergySystemDesign object. 
     copy.(x.connections),
     Observable(x.xy[]),
@@ -74,9 +84,12 @@ Base.copy(x::EnergySystemDesign) = EnergySystemDesign(
     Observable(x.system_color),
     Observable(x.wall[]),
     x.file,
+    x.plotObj,
 )
 
 """
+    Base.copy(x::Tuple{EnergySystemDesign,EnergySystemDesign})
+
 Copy a tuple of EnergySystemDesign structs
 """
 Base.copy(x::Tuple{EnergySystemDesign,EnergySystemDesign}) = (copy(x[1]), copy(x[2])) 
@@ -100,6 +113,8 @@ and processes connections and wall values. It constructs and returns an `EnergyS
 function EnergySystemDesign(
     system::Dict,
     design_path::String;
+    idToColorsMap::Dict{Any,Any} = Dict{Any, Any}(),
+    idToIconsMap::Dict{Any,Any} = Dict{Any, Any}(),
     x::Real = 0.0,
     y::Real = 0.0,
     icon = nothing,
@@ -124,6 +139,7 @@ function EnergySystemDesign(
         parent_arg = Symbol("ParentNotFound")
     end
     xy = Observable((x, y)) #extracting coordinates
+    plotObj = []
     if !isempty(system)
 
         process_children!(
@@ -131,15 +147,16 @@ function EnergySystemDesign(
             system,
             design_dict,
             design_path,
+            idToColorsMap,
+            idToIconsMap,
             parent_arg,
             xy,
+            plotObj,
         )
     end
     xy = Observable((x, y))
     color = :black
 
-    colorsFile = joinpath(@__DIR__,"..","src", "colors.toml")
-    colors_dict = TOML.parsefile(colorsFile)
 
     if haskey(system,:areas) && haskey(system,:transmission)
         connection_iterator =enumerate(system[:transmission])
@@ -154,7 +171,7 @@ function EnergySystemDesign(
                 )
             
             if !isnothing(connector_design_from) && !isnothing(connector_design_to)
-                hex_colors = [colors_dict["Resource"][split(string(typeof(mode.Resource)), '{')[1]] for mode ∈ system[:transmission][i].Modes]
+                hex_colors = [haskey(idToColorsMap, mode.Resource.id) ? idToColorsMap[mode.Resource.id] : missingColor for mode ∈ system[:transmission][i].Modes]
                 colors = [parse(Colorant, hex_color) for hex_color ∈ hex_colors]
                 connection_sys = Dict(:connection => system[:transmission][i], :colors => colors)
                 this_connection = (connector_design_from, connector_design_to,connection_sys)
@@ -173,9 +190,9 @@ function EnergySystemDesign(
                     components,
                 )
             if !isnothing(connector_design_from) && !isnothing(connector_design_to)
-                resources = system[:links][i].from.Output.keys
-                filteredResources = [resources[index] for index in 1:length(resources) if isassigned(resources, index)]
-                hex_colors = [colors_dict["Resource"][split(string(typeof(resource)), '{')[1]] for resource ∈ filteredResources]
+                resourcesOutput = keys(system[:links][i].from.Output)
+                resourcesInput = keys(system[:links][i].to.Input)
+                hex_colors = [haskey(idToColorsMap,resource.id) ? idToColorsMap[resource.id] : missingColor for resource ∈ resourcesOutput if resource ∈ resourcesInput]
                 colors = [parse(Colorant, hex_color) for hex_color ∈ hex_colors]
                 connection_sys = Dict(:connection => system[:links][i], :colors => colors)
                 this_connection = (connector_design_from, connector_design_to,connection_sys)
@@ -187,6 +204,8 @@ function EnergySystemDesign(
     return EnergySystemDesign(
         parent,
         system,
+        idToColorsMap,
+        idToIconsMap,
         color,
         components,
         connections,
@@ -195,7 +214,32 @@ function EnergySystemDesign(
         Observable(color),
         Observable(wall),
         file,
+        plotObj,
     )
+end
+
+"""
+    setColors!(idToColorMap::Dict{Any,Any}, products::Vector{S}, productsColors::Vector{T})
+
+Populate idToColorsMap with id from products and colors from productColors (which is a vector of any combinations of String and Symbol).
+Color can be represented as a hex (i.e. #a4220b2) or a symbol (i.e. :green), but also a string of the identifier for default colors in the src/colors.toml file
+"""
+function setColors!(idToColorMap::Dict{Any,Any}, products::Vector{S}, productsColors::Vector{T}) where {S <: Resource, T <: Any}
+    colorsFile = joinpath(@__DIR__,"..","src", "colors.toml")
+    resourceColors = TOML.parsefile(colorsFile)["Resource"]
+    for (i, product) ∈ enumerate(products)
+        if productsColors[i] isa Symbol || productsColors[i][1] == '#'
+            idToColorMap[product.id] = productsColors[i] 
+        else
+            try
+                idToColorMap[product.id] = resourceColors[productsColors[i]]
+            catch
+                @warn("Color identifier $(productsColors[i]) is not represented in the colors file $colorsFile. " 
+                      *"Using :black instead for \"$(product.id)\".")
+                idToColorMap[product.id] = "#000000" 
+            end
+        end
+    end
 end
 
 function design_file(system::Dict, path::String)
@@ -240,22 +284,20 @@ end
 """
     Function to find the icon associated with a given system's node type.
 """
-function find_icon(system::Dict)
-    icon_name = "NotFound"
-    if haskey(system,:node)
-        icon_name = string(typeof(system[:node]))
+function find_icon(system::Dict, idToIconsMap::Dict{Any,Any})
+    icon = nothing
+    if haskey(system,:node) && !isempty(idToIconsMap)
+        try
+            icon_name = idToIconsMap[system[:node].id]
+            icon = joinpath(@__DIR__, "..", "icons", "$icon_name.png")
+        catch
+            @warn("Could not find $(system[:node].id) in idToIconsMap")
+        end
     end
-    icon = joinpath(@__DIR__, "..", "icons", "$icon_name.png")
-    if !isfile(icon)
-        icon_name_super = string(supertype(typeof(system[:node])))
-        #@warn "Could not find an icon for type $icon_name. Using the supertype $icon_name_super instead."
-        icon = joinpath(@__DIR__, "..", "icons", "$icon_name_super.png")
-    end
-    isfile(icon) && return icon
-    return joinpath(@__DIR__,"..", "icons", "NotFound.png")
+    return icon
 end
 
-find_icon(design::EnergySystemDesign) = find_icon(design.system)
+find_icon(design::EnergySystemDesign,idToIconsMap::Dict{Any,Any}) = find_icon(design.system,idToIconsMap)
 
 """
     Processes children or components within an energy system design and populates the `children` vector.
@@ -274,8 +316,11 @@ function process_children!(
     systems::Dict,
     design_dict::Dict,
     design_path::String,
+    idToColorsMap::Dict{Any,Any},
+    idToIconsMap::Dict{Any,Any},
     parent::Symbol,
     parent_xy::Observable{Tuple{T,T}},
+    plotObj::Vector{Any},
 ) where T <: Real
     system_iterator = nothing
     if haskey(systems,:areas)
@@ -286,6 +331,9 @@ function process_children!(
     parent_x, parent_y = parent_xy[] # we get these from constructor
     if !isempty(systems) && !isnothing(system_iterator)
         current_node = 1
+        if haskey(systems,:nodes)
+            nodes_count = length(systems[:nodes])
+        end
         for (i, system) in system_iterator
             
             system_type = typeof(system)
@@ -299,6 +347,8 @@ function process_children!(
             kwargs_pair = Pair[]
         
             
+            push!(kwargs_pair, :idToColorsMap => idToColorsMap)
+            push!(kwargs_pair, :idToIconsMap => idToIconsMap)
             push!(kwargs_pair, :parent => parent)
         
             #if x and y are missing, add defaults
@@ -308,14 +358,14 @@ function process_children!(
                     push!(kwargs_pair, :y => system.Lat)
                 end
             elseif !haskey(kwargs, "x") && !haskey(kwargs, "y") && haskey(systems,:nodes)
-                nodes_count = length(systems[:nodes])
                 
                 if system isa EnergyModelsBase.Availability || supertype(system_type) == EnergyModelsBase.Availability # second layer of topology, no need of coordinate inside the region, and make a circle
                     x = parent_x
                     y = parent_y
+                    nodes_count -= 1
                 else
-                    x,y = place_nodes_in_semicircle(nodes_count-1,current_node,1,parent_x,parent_y)
-                    current_node +=1
+                    x,y = place_nodes_in_semicircle(nodes_count,current_node,1,parent_x,parent_y)
+                    current_node += 1
                 end
                 push!(kwargs_pair, :x => x)
                 push!(kwargs_pair, :y => y)
@@ -340,7 +390,8 @@ function process_children!(
             else
                 this_sys = Dict([(:node, system)])
             end
-            push!(kwargs_pair, :icon => find_icon(this_sys))
+            push!(kwargs_pair, :icon => find_icon(this_sys, idToIconsMap))
+            push!(kwargs_pair, :plotObj => plotObj)
         
             
             push!(
