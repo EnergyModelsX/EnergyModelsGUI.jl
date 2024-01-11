@@ -203,13 +203,8 @@ function connect!(ax::Axis, design::EnergySystemDesign)
     topLevel = haskey(design.system,:areas) && haskey(design.system,:transmission)
 
     for component in design.components
-        if topLevel
-            linkedToComponent = filter(x -> component.system[:node].id == x[3][:connection].To.id, design.connections)
-            linkedFromComponent = filter(x -> component.system[:node].id == x[3][:connection].From.id, design.connections)
-        else
-            linkedToComponent = filter(x -> component.system[:node].id == x[3][:connection].to.id, design.connections)
-            linkedFromComponent = filter(x -> component.system[:node].id == x[3][:connection].from.id, design.connections)
-        end
+        linkedToComponent = filter(x -> component.system[:node].id == x[3][:connection].to.id, design.connections)
+        linkedFromComponent = filter(x -> component.system[:node].id == x[3][:connection].from.id, design.connections)
         on(component.xy, priority=4) do val
             wallCounter = Dict(:E => 0, :N => 0, :W => 0, :S => 0)
             for linkedComponent in linkedToComponent
@@ -239,16 +234,9 @@ function connect!(ax::Axis, design::EnergySystemDesign)
         twoWay = false
         for connection2 in design.connections
             connection2Con = connection2[3][:connection]
-            if topLevel
-                if connection2Con.To.id == connectionCon.From.id &&
-                   connection2Con.From.id == connectionCon.To.id
-                    twoWay = true
-                end
-            else
-                if connection2Con.to.id == connectionCon.from.id &&
-                   connection2Con.from.id == connectionCon.to.id
-                    twoWay = true
-                end
+            if connection2Con.to.id == connectionCon.from.id &&
+                connection2Con.from.id == connectionCon.to.id
+                twoWay = true
             end
         end
 
@@ -474,8 +462,8 @@ get_text_alignment(::Val{:N}) = (:center, :bottom)
     Get the line style for an `EnergySystemDesign` object based on its system properties.   
 """
 function get_style(system::Dict)
-    if haskey(system,:node) && hasproperty(system[:node],:Data)
-        system_data = system[:node].Data
+    if haskey(system,:node) && hasproperty(system[:node],:data)
+        system_data = system[:node].data
         for data_element in eachindex(system_data)
             thistype = string(typeof(system_data[data_element]))
             if thistype == "InvData"
@@ -483,12 +471,12 @@ function get_style(system::Dict)
             end
         end
     
-    elseif haskey(system,:connection) && hasproperty(system[:connection],:Modes)
-        system_modes = system[:connection].Modes
+    elseif haskey(system,:connection) && hasproperty(system[:connection],:modes)
+        system_modes = system[:connection].modes
         for mode in eachindex(system_modes)
             this_mode = system_modes[mode]
-            if hasproperty(this_mode,:Data)
-                system_data = this_mode.Data
+            if hasproperty(this_mode,:data)
+                system_data = this_mode.data
                 for data_element in eachindex(system_data)
                     thistype = string(typeof(system_data[data_element]))
                     if thistype == "TransInvData"
@@ -595,21 +583,27 @@ function draw_icon!(ax::Axis, design::EnergySystemDesign)
     if isnothing(design.icon)
         node = design.system[:node] 
         if typeof(node) <: EnergyModelsGeography.Area
-            node = node.An
+            node = node.node
         end
 
         if typeof(node) <: EnergyModelsBase.Sink
-            resourcesInput = keys(node.Input)
-            hexColors = [haskey(design.idToColorsMap,resource.id) ? design.idToColorsMap[resource.id] : missingColor for resource ∈ resourcesInput]
+            resourcesInput = node.input
+            hexColors = [haskey(design.idToColorsMap,resource.id) ? design.idToColorsMap[resource.id] : missingColor for resource ∈ keys(resourcesInput)]
             colors = [parse(Colorant, hex_color) for hex_color ∈ hexColors]
             sinkPoly = scatter!(ax, design.xy, markersize=Δh_px, color=colors[1])
             push!(design.plotObj, sinkPoly)
             GLMakie.translate!(sinkPoly, 0,0,2000)
-        elseif typeof(node) <: EnergyModelsBase.Network
-            resourcesInput = keys(node.Input)
+        elseif typeof(node) <: EnergyModelsBase.NetworkNode
+            if typeof(node) <: EnergyModelsBase.Availability
+                resourcesInput = node.input
+                resourcesOutput = node.output
+            else
+                resourcesInput = keys(node.input)
+                resourcesOutput = keys(node.output)
+            end
+
             hexColorsInput = [haskey(design.idToColorsMap,resource.id) ? design.idToColorsMap[resource.id] : missingColor for resource ∈ resourcesInput]
             colorsInput = [parse(Colorant, hex_color) for hex_color ∈ hexColorsInput]
-            resourcesOutput = keys(node.Output)
             hexColorsOutput = [haskey(design.idToColorsMap,resource.id) ? design.idToColorsMap[resource.id] : missingColor for resource ∈ resourcesOutput]
             colorsOutput = [parse(Colorant, hex_color) for hex_color ∈ hexColorsOutput]
             for (j, colors) ∈ enumerate([colorsInput, colorsOutput])
@@ -640,8 +634,8 @@ function draw_icon!(ax::Axis, design::EnergySystemDesign)
             end
 
         elseif typeof(node) <: EnergyModelsBase.Source
-            resourcesOutput = keys(node.Output)
-            hexColors = [haskey(design.idToColorsMap,resource.id) ? design.idToColorsMap[resource.id] : missingColor for resource ∈ resourcesOutput]
+            resourcesOutput = node.output
+            hexColors = [haskey(design.idToColorsMap,resource.id) ? design.idToColorsMap[resource.id] : missingColor for resource ∈ keys(resourcesOutput)]
             colors = [parse(Colorant, hex_color) for hex_color ∈ hexColors]
             box = Rect2{Float64}([0.0, 0.0], [1.0, 1.0])
             sourcePoly = poly!(ax, box, color=colors[1])
@@ -656,6 +650,7 @@ function draw_icon!(ax::Axis, design::EnergySystemDesign)
     else
         icon_image = image!(ax, xo, yo, rotr90(load(design.icon)))
         GLMakie.translate!(icon_image, 0,0,2000)
+        push!(design.plotObj, icon_image)
     end
 end
 
@@ -1024,7 +1019,7 @@ function view(design::EnergySystemDesign,root_design::EnergySystemDesign,interac
 
         on(open_button.clicks, priority=10) do clicks
             for component in design.components
-                if component.color[] == selection_color
+                if component.color[] == selection_color && component.parent == :Toplevel
                     view_design = component
                     view_design.parent = if haskey(design.system,:name) design.system[:name]
                     else Symbol("TopLevel")

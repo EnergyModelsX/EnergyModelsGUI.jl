@@ -30,15 +30,19 @@ function read_data()
     @info "Hard coded dummy model for now."
 
     # Retrieve the products
-    𝒫₀, 𝒫ᵉᵐ₀, products = get_resources()
+    products = get_resources()
     NG    = products[1]
     Power = products[3]
     CO2   = products[4]
-    
-    model = EMB.OperationalModel(
+
+    model = OperationalModel(
                             Dict(
                                 CO2 => StrategicProfile([160, 140, 120, 100]),
                                 NG  => FixedProfile(1e6)
+                            ),
+                            Dict(
+                                CO2 => FixedProfile(0),
+                                NG  => FixedProfile(0)
                             ),
                             CO2,
                         )
@@ -62,7 +66,7 @@ function read_data()
     nodes        = []
     links        = []
     for a_id in area_ids
-        n, l = get_sub_system_data(a_id, 𝒫₀, 𝒫ᵉᵐ₀, products, model;
+        n, l = get_sub_system_data(a_id, products, model;
                                    gen_scale = gen_scale[a_id], mc_scale = mc_scale[a_id],
                                    d_scale = d_scale[a_id], demand=demand[a_id])
         append!(nodes, n)
@@ -81,7 +85,7 @@ function read_data()
              RefArea(6, "Sørlige Nordsjø II", 6.836, 57.151, an[6]),
              RefArea(7, "Danmark", 8.614, 56.359, an[7])]
 
-    
+
     cap_ohl = FixedProfile(50.0)
     cap_lng = FixedProfile(100.0)
     loss = FixedProfile(0.05)
@@ -139,20 +143,13 @@ function get_resources()
     products_color = ["Gas", "Coal", "Electricity", "ResourceEmit"]
     EnergyModelsGUI.setColors!(idToColorsMap, products, products_color)
 
-    # Creation of a dictionary with entries of 0. for all resources
-    𝒫₀ = Dict(k  => 0 for k ∈ products)
-
-    # Creation of a dictionary with entries of 0. for all emission resources
-    𝒫ᵉᵐ₀ = Dict(k  => 0. for k ∈ products if typeof(k) == ResourceEmit{Float64})
-    𝒫ᵉᵐ₀[CO2] = 0.0
-
-    return 𝒫₀, 𝒫ᵉᵐ₀, products
+    return products
 end
 
 # Subsystem test data for geography package
-function get_sub_system_data(i,𝒫₀, 𝒫ᵉᵐ₀, products, modeltype;
+function get_sub_system_data(i, products, modeltype;
                              gen_scale::Float64=1.0, mc_scale::Float64=1.0, d_scale::Float64=1.0, demand=false)
-    
+
     NG, Coal, Power, CO2 = products
 
     # Use of standard demand if not provided differently
@@ -166,26 +163,26 @@ function get_sub_system_data(i,𝒫₀, 𝒫ᵉᵐ₀, products, modeltype;
 
     j=(i-1)*100
     nodes = [
-            GeoAvailability(j+1, 𝒫₀, 𝒫₀),
-            EMB.RefSource(j+2, FixedProfile(1e12), FixedProfile(30*mc_scale),
+            GeoAvailability(j+1, products),
+            RefSource(j+2, FixedProfile(1e12), FixedProfile(30*mc_scale),
                             FixedProfile(0), Dict(NG => 1),
-                            []),  
-            EMB.RefSource(j+3, FixedProfile(1e12), FixedProfile(9*mc_scale),
+                            []),
+            RefSource(j+3, FixedProfile(1e12), FixedProfile(9*mc_scale),
                             FixedProfile(0), Dict(Coal => 1),
-                            []),  
-            EMB.RefNetworkEmissions(j+4, FixedProfile(25), FixedProfile(5.5*mc_scale),
+                            []),
+            RefNetworkNode(j+4, FixedProfile(25), FixedProfile(5.5*mc_scale),
                             FixedProfile(0), Dict(NG => 2),
-                            Dict(Power => 1, CO2 => 1), 𝒫ᵉᵐ₀, 0.9,
-                            []),  
-            EMB.RefNetwork(j+5, FixedProfile(25), FixedProfile(6*mc_scale),
+                            Dict(Power => 1, CO2 => 1),
+                            [CaptureEnergyEmissions(0.9)]),
+            RefNetworkNode(j+5, FixedProfile(25), FixedProfile(6*mc_scale),
                             FixedProfile(0),  Dict(Coal => 2.5),
                             Dict(Power => 1),
-                            []),  
-            EMB.RefStorageEmissions(j+6, FixedProfile(20), FixedProfile(600), FixedProfile(9.1),
-                            FixedProfile(0),  CO2, Dict(CO2 => 1, Power => 0.02), Dict(CO2 => 1),
                             []),
-            EMB.RefSink(j+7, StrategicProfile(demand),
-                            Dict(:Surplus => FixedProfile(0), :Deficit => FixedProfile(1e6)),
+            RefStorage(j+6, FixedProfile(20), FixedProfile(600), FixedProfile(9.1),
+                            FixedProfile(0),  CO2, Dict(CO2 => 1, Power => 0.02), Dict(CO2 => 1),
+                            Array{Data}([])),
+            RefSink(j+7, StrategicProfile(demand),
+                            Dict(:surplus => FixedProfile(0), :deficit => FixedProfile(1e6)),
                             Dict(Power => 1)),
             ]
 
