@@ -159,19 +159,19 @@ function EnergySystemDesign(
 
 
     if haskey(system,:areas) && haskey(system,:transmission)
-        connection_iterator =enumerate(system[:transmission])
+        connection_iterator = enumerate(system[:transmission])
         for (i, connection) in connection_iterator
             connector_design_from = filtersingle(
-                            x -> x.system[:node].An == system[:transmission][i].From.An,
+                            x -> x.system[:node].node == system[:transmission][i].from.node,
                             components,
                         )
             connector_design_to = filtersingle(
-                    x -> x.system[:node].An == system[:transmission][i].To.An,
-                    components,
+                            x -> x.system[:node].node == system[:transmission][i].to.node,
+                            components,
                 )
             
             if !isnothing(connector_design_from) && !isnothing(connector_design_to)
-                hex_colors = [haskey(idToColorsMap, mode.Resource.id) ? idToColorsMap[mode.Resource.id] : missingColor for mode ∈ system[:transmission][i].Modes]
+                hex_colors = [haskey(idToColorsMap, mode.resource.id) ? idToColorsMap[mode.resource.id] : missingColor for mode ∈ system[:transmission][i].modes]
                 colors = [parse(Colorant, hex_color) for hex_color ∈ hex_colors]
                 connection_sys = Dict(:connection => system[:transmission][i], :colors => colors)
                 this_connection = (connector_design_from, connector_design_to,connection_sys)
@@ -179,19 +179,28 @@ function EnergySystemDesign(
             end
         end
     elseif haskey(system,:nodes) && haskey(system,:links)
-        connection_iterator =enumerate(system[:links])
+        connection_iterator = enumerate(system[:links])
         for (i, connection) in connection_iterator
             connector_design_from = filtersingle(
                             x -> x.system[:node] == system[:links][i].from,
                             components,
                         )
             connector_design_to = filtersingle(
-                    x -> x.system[:node] == system[:links][i].to,
-                    components,
+                            x -> x.system[:node] == system[:links][i].to,
+                            components,
                 )
             if !isnothing(connector_design_from) && !isnothing(connector_design_to)
-                resourcesOutput = keys(system[:links][i].from.Output)
-                resourcesInput = keys(system[:links][i].to.Input)
+                link = system[:links][i]
+                if typeof(link.from) <: EnergyModelsBase.Availability
+                    resourcesOutput = link.from.output
+                else
+                    resourcesOutput = keys(link.from.output)
+                end
+                if typeof(link.to) <: EnergyModelsBase.Availability
+                    resourcesInput = link.to.input
+                else
+                    resourcesInput = keys(link.to.input)
+                end
                 hex_colors = [haskey(idToColorsMap,resource.id) ? idToColorsMap[resource.id] : missingColor for resource ∈ resourcesOutput if resource ∈ resourcesInput]
                 colors = [parse(Colorant, hex_color) for hex_color ∈ hex_colors]
                 connection_sys = Dict(:connection => system[:links][i], :colors => colors)
@@ -353,9 +362,9 @@ function process_children!(
         
             #if x and y are missing, add defaults
             if key == "RefArea"
-                if hasproperty(system,:Lon) && hasproperty(system,:Lat)
-                    push!(kwargs_pair, :x => system.Lon) #assigning long and lat
-                    push!(kwargs_pair, :y => system.Lat)
+                if hasproperty(system,:lon) && hasproperty(system,:lat)
+                    push!(kwargs_pair, :x => system.lon) #assigning long and lat
+                    push!(kwargs_pair, :y => system.lat)
                 end
             elseif !haskey(kwargs, "x") && !haskey(kwargs, "y") && haskey(systems,:nodes)
                 
@@ -383,7 +392,7 @@ function process_children!(
                 push!(kwargs_pair, Symbol(key) => value)
             end
             if haskey(systems,:areas)
-                area_An = systems[:areas][i].An
+                area_An = systems[:areas][i].node
                 area_links = filter(item->getfield(item,:from) == area_An || getfield(item,:to) == area_An,systems[:links]) 
                 area_nodes = filter(item -> any(link -> link.from == item || link.to == item, area_links),systems[:nodes])
                 this_sys = Dict([(:node, system),(:links,area_links),(:nodes,area_nodes)])

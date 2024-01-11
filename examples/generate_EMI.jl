@@ -1,8 +1,8 @@
 using EnergyModelsBase
 using EnergyModelsGeography
 using EnergyModelsInvestments
-using JuMP
 using HiGHS
+using JuMP
 using TimeStruct
 
 const EMB = EnergyModelsBase
@@ -27,7 +27,7 @@ function generate_data()
     @info "Generate data coded dummy model for now (Investment Model)"
 
     # Retrieve the products
-    𝒫₀, 𝒫ᵉᵐ₀, products = get_resources()
+    products = get_resources()
     NG = products[1]
     Power = products[3]
     CO2 = products[4]
@@ -46,8 +46,6 @@ function generate_data()
     for a_id in area_ids
         n, l = get_sub_system_data(
             a_id,
-            𝒫₀,
-            𝒫ᵉᵐ₀,
             products;
             gen_scale = gen_scale[a_id],
             mc_scale = mc_scale[a_id],
@@ -62,79 +60,79 @@ function generate_data()
 
     # Create the individual areas
     areas = [
-        EMG.RefArea(1, "Oslo", 10.751, 59.921, an[1]),
-        EMG.RefArea(2, "Bergen", 5.334, 60.389, an[2]),
-        EMG.RefArea(3, "Trondheim", 10.398, 63.437, an[3]),
-        EMG.RefArea(4, "Tromsø", 18.953, 69.669, an[4]),
+        RefArea(1, "Oslo", 10.751, 59.921, an[1]),
+        RefArea(2, "Bergen", 5.334, 60.389, an[2]),
+        RefArea(3, "Trondheim", 10.398, 63.437, an[3]),
+        RefArea(4, "Tromsø", 18.953, 69.669, an[4]),
     ]
 
     # Create the investment data for the different power line investment modes
     inv_data_12 = TransInvData(
-        Capex_trans = FixedProfile(500),
-        Trans_max_inst = FixedProfile(50),
-        Trans_max_add = FixedProfile(100),
-        Trans_min_add = FixedProfile(0),
-        Inv_mode = BinaryInvestment(),
-        Trans_start = 0,
+        capex_trans = FixedProfile(500),
+        trans_max_inst = FixedProfile(50),
+        trans_max_add = FixedProfile(100),
+        trans_min_add = FixedProfile(0),
+        inv_mode = BinaryInvestment(),
+        trans_start = 0,
     )
 
     inv_data_13 = TransInvData(
-        Capex_trans = FixedProfile(10),
-        Trans_max_inst = FixedProfile(100),
-        Trans_max_add = FixedProfile(100),
-        Trans_min_add = FixedProfile(10),
-        Inv_mode = SemiContinuousInvestment(),
-        Trans_start = 0,
+        capex_trans = FixedProfile(10),
+        trans_max_inst = FixedProfile(100),
+        trans_max_add = FixedProfile(100),
+        trans_min_add = FixedProfile(10),
+        inv_mode = SemiContinuousInvestment(),
+        trans_start = 0,
     )
 
     inv_data_23 = TransInvData(
-        Capex_trans = FixedProfile(10),
-        Trans_max_inst = FixedProfile(50),
-        Trans_max_add = FixedProfile(100),
-        Trans_min_add = FixedProfile(5),
-        Inv_mode = DiscreteInvestment(),
-        Trans_increment = FixedProfile(6),
-        Trans_start = 20,
+        capex_trans = FixedProfile(10),
+        trans_max_inst = FixedProfile(50),
+        trans_max_add = FixedProfile(100),
+        trans_min_add = FixedProfile(5),
+        inv_mode = DiscreteInvestment(),
+        trans_increment = FixedProfile(6),
+        trans_start = 20,
     )
 
     inv_data_34 = TransInvData(
-        Capex_trans = FixedProfile(10),
-        Trans_max_inst = FixedProfile(50),
-        Trans_max_add = FixedProfile(100),
-        Trans_min_add = FixedProfile(1),
-        Inv_mode = ContinuousInvestment(),
-        Trans_start = 0,
+        capex_trans = FixedProfile(10),
+        trans_max_inst = FixedProfile(50),
+        trans_max_add = FixedProfile(100),
+        trans_min_add = FixedProfile(1),
+        inv_mode = ContinuousInvestment(),
+        trans_start = 0,
     )
 
     # Create the TransmissionModes and the Transmission corridors
-    OverheadLine_50MW_12 = EMG.RefStatic("PowerLine_50", Power, FixedProfile(50.0), FixedProfile(0.05), FixedProfile(0), FixedProfile(0), 2, [inv_data_12])
-    OverheadLine_50MW_13 = EMG.RefStatic("PowerLine_50", Power, FixedProfile(50.0), FixedProfile(0.05), FixedProfile(0), FixedProfile(0), 2, [inv_data_13])
-    OverheadLine_50MW_23 = EMG.RefStatic("PowerLine_50", Power, FixedProfile(50.0), FixedProfile(0.05), FixedProfile(0), FixedProfile(0), 2, [inv_data_23])
-    OverheadLine_50MW_34 = EMG.RefStatic("PowerLine_50", Power, FixedProfile(50.0), FixedProfile(0.05), FixedProfile(0), FixedProfile(0), 2, [inv_data_34])
-    LNG_Ship_100MW = EMG.RefDynamic("LNG_100", NG, FixedProfile(100.0), FixedProfile(0.05), FixedProfile(0), FixedProfile(0), 2, [])
+    OverheadLine_50MW_12 = RefStatic("PowerLine_50", Power, FixedProfile(50.0), FixedProfile(0.05), FixedProfile(0), FixedProfile(0), 2, [inv_data_12])
+    OverheadLine_50MW_13 = RefStatic("PowerLine_50", Power, FixedProfile(50.0), FixedProfile(0.05), FixedProfile(0), FixedProfile(0), 2, [inv_data_13])
+    OverheadLine_50MW_23 = RefStatic("PowerLine_50", Power, FixedProfile(50.0), FixedProfile(0.05), FixedProfile(0), FixedProfile(0), 2, [inv_data_23])
+    OverheadLine_50MW_34 = RefStatic("PowerLine_50", Power, FixedProfile(50.0), FixedProfile(0.05), FixedProfile(0), FixedProfile(0), 2, [inv_data_34])
+    LNG_Ship_100MW = RefDynamic("LNG_100", NG, FixedProfile(100.0), FixedProfile(0.05), FixedProfile(0), FixedProfile(0), 2, [])
 
     transmission = [
-        EMG.Transmission(
+        Transmission(
             areas[1],
             areas[2],
             [OverheadLine_50MW_12],
         ),
-        EMG.Transmission(
+        Transmission(
             areas[1],
             areas[3],
             [OverheadLine_50MW_13],
         ),
-        EMG.Transmission(
+        Transmission(
             areas[2],
             areas[3],
             [OverheadLine_50MW_23],
         ),
-        EMG.Transmission(
+        Transmission(
             areas[3],
             areas[4],
             [OverheadLine_50MW_34],
         ),
-        EMG.Transmission(areas[4], areas[2], [LNG_Ship_100MW]),
+        Transmission(areas[4], areas[2], [LNG_Ship_100MW]),
     ]
 
     # Creation of the time structure and global data
@@ -147,10 +145,10 @@ function generate_data()
 
     # WIP data structure
     case = Dict(
-        :areas => Array{EMG.Area}(areas),
-        :transmission => Array{EMG.Transmission}(transmission),
+        :areas => Array{Area}(areas),
+        :transmission => Array{Transmission}(transmission),
         :nodes => Array{EMB.Node}(nodes),
-        :links => Array{EMB.Link}(links),
+        :links => Array{Link}(links),
         :products => products,
         :T => T,
     )
@@ -171,21 +169,12 @@ function get_resources()
     products_color = ["Gas", "Coal", "Electricity", "ResourceEmit"]
     EnergyModelsGUI.setColors!(idToColorsMap, products, products_color)
 
-    # Creation of a dictionary with entries of 0. for all resources
-    𝒫₀ = Dict(k => 0 for k ∈ products)
-
-    # Creation of a dictionary with entries of 0. for all emission resources
-    𝒫ᵉᵐ₀ = Dict(k => 0.0 for k ∈ products if typeof(k) == ResourceEmit{Float64})
-    𝒫ᵉᵐ₀[CO2] = 0.0
-
-    return 𝒫₀, 𝒫ᵉᵐ₀, products
+    return products
 end
 
 
 function get_sub_system_data(
     i,
-    𝒫₀,
-    𝒫ᵉᵐ₀,
     products;
     gen_scale::Float64 = 1.0,
     mc_scale::Float64 = 1.0,
@@ -207,82 +196,81 @@ function get_sub_system_data(
 
     j = (i - 1) * 100
     nodes = [
-        EMG.GeoAvailability(j + 1, 𝒫₀, 𝒫₀),
-        EMB.RefSink(
+        GeoAvailability(j + 1, products),
+        RefSink(
             j + 2,
             StrategicProfile(demand),
-            Dict(:Surplus => FixedProfile(0), :Deficit => FixedProfile(1e6)),
+            Dict(:surplus => FixedProfile(0), :deficit => FixedProfile(1e6)),
             Dict(Power => 1),
-            𝒫ᵉᵐ₀,
         ),
-        EMB.RefSource(
+        RefSource(
             j + 3,
             FixedProfile(30),
             FixedProfile(30 * mc_scale),
             FixedProfile(100),
             Dict(NG => 1),
             [InvData(
-                    Capex_cap = FixedProfile(1000),
-                    Cap_max_inst = FixedProfile(200),
-                    Cap_max_add = FixedProfile(200),
-                    Cap_min_add = FixedProfile(0),
-                    Inv_mode = ContinuousInvestment(),
-                    Cap_increment = FixedProfile(5),
-                    Cap_start = 0,
+                    capex_cap = FixedProfile(1000),
+                    cap_max_inst = FixedProfile(200),
+                    cap_max_add = FixedProfile(200),
+                    cap_min_add = FixedProfile(0),
+                    inv_mode = ContinuousInvestment(),
+                    cap_increment = FixedProfile(5),
+                    cap_start = 0,
                 ),
             ],
         ),
-        EMB.RefSource(
+        RefSource(
             j + 4,
             FixedProfile(9),
             FixedProfile(9 * mc_scale),
             FixedProfile(100),
             Dict(Coal => 1),
             [InvData(
-                    Capex_cap = FixedProfile(1000),
-                    Cap_max_inst = FixedProfile(200),
-                    Cap_max_add = FixedProfile(200),
-                    Cap_min_add = FixedProfile(0),
-                    Inv_mode = ContinuousInvestment(),
-                    Cap_start = 0,
+                    capex_cap = FixedProfile(1000),
+                    cap_max_inst = FixedProfile(200),
+                    cap_max_add = FixedProfile(200),
+                    cap_min_add = FixedProfile(0),
+                    inv_mode = ContinuousInvestment(),
+                    cap_start = 0,
                 ),
             ],
         ),
-        EMB.RefNetworkEmissions(
+        RefNetworkNode(
             j + 5,
             FixedProfile(0),
             FixedProfile(5.5 * mc_scale),
             FixedProfile(100),
             Dict(NG => 2),
-            Dict(Power => 1, CO2 => 1),
-            𝒫ᵉᵐ₀,
-            0.9,
-            [InvData(
-                    Capex_cap = FixedProfile(600),
-                    Cap_max_inst = FixedProfile(25),
-                    Cap_max_add = FixedProfile(25),
-                    Cap_min_add = FixedProfile(0),
-                    Inv_mode = ContinuousInvestment(),
+            Dict(Power => 1, CO2 => 0),
+            [
+                InvData(
+                    capex_cap = FixedProfile(600),
+                    cap_max_inst = FixedProfile(25),
+                    cap_max_add = FixedProfile(25),
+                    cap_min_add = FixedProfile(0),
+                    inv_mode = ContinuousInvestment(),
                 ),
+                CaptureEnergyEmissions(0.9)
             ],
         ),
-        EMB.RefNetwork(
+        RefNetworkNode(
             j + 6,
             FixedProfile(0),
             FixedProfile(6 * mc_scale),
             FixedProfile(100),
             Dict(Coal => 2.5),
-            Dict(Power => 1, CO2 => 1),
+            Dict(Power => 1),
             [InvData(
-                    Capex_cap = FixedProfile(800),
-                    Cap_max_inst = FixedProfile(25),
-                    Cap_max_add = FixedProfile(25),
-                    Cap_min_add = FixedProfile(0),
-                    Inv_mode = ContinuousInvestment(),
+                    capex_cap = FixedProfile(800),
+                    cap_max_inst = FixedProfile(25),
+                    cap_max_add = FixedProfile(25),
+                    cap_min_add = FixedProfile(0),
+                    inv_mode = ContinuousInvestment(),
                 ),
             ],
         ),
-        EMB.RefStorageEmissions(
+        RefStorage(
             j + 7,
             FixedProfile(0),
             FixedProfile(0),
@@ -292,35 +280,35 @@ function get_sub_system_data(
             Dict(CO2 => 1, Power => 0.02),
             Dict(CO2 => 1),
             [InvDataStorage(
-                    Capex_rate = FixedProfile(500),
-                    Rate_max_inst = FixedProfile(600),
-                    Rate_max_add = FixedProfile(600),
-                    Rate_min_add = FixedProfile(0),
-                    Capex_stor = FixedProfile(500),
-                    Stor_max_inst = FixedProfile(600),
-                    Stor_max_add = FixedProfile(600),
-                    Stor_min_add = FixedProfile(0),
-                    Inv_mode = ContinuousInvestment(),
+                    capex_rate = FixedProfile(500),
+                    rate_max_inst = FixedProfile(600),
+                    rate_max_add = FixedProfile(600),
+                    rate_min_add = FixedProfile(0),
+                    capex_stor = FixedProfile(500),
+                    stor_max_inst = FixedProfile(600),
+                    stor_max_add = FixedProfile(600),
+                    stor_min_add = FixedProfile(0),
+                    inv_mode = ContinuousInvestment(),
                 ),
             ],
         ),
-        EMB.RefNetwork(
+        RefNetworkNode(
             j + 8,
             FixedProfile(0),
             FixedProfile(0 * mc_scale),
             FixedProfile(0),
             Dict(Coal => 2.5),
-            Dict(Power => 1, CO2 => 1),
+            Dict(Power => 1),
             [InvData(
-                    Capex_cap = FixedProfile(1000),
-                    Cap_max_inst = FixedProfile(25),
-                    Cap_max_add = FixedProfile(2),
-                    Cap_min_add = FixedProfile(0),
-                    Inv_mode = ContinuousInvestment(),
+                    capex_cap = FixedProfile(1000),
+                    cap_max_inst = FixedProfile(25),
+                    cap_max_add = FixedProfile(2),
+                    cap_min_add = FixedProfile(0),
+                    inv_mode = ContinuousInvestment(),
                 ),
             ],
         ),
-        EMB.RefStorageEmissions(
+        RefStorage(
             j + 9,
             FixedProfile(3),
             FixedProfile(5),
@@ -330,52 +318,52 @@ function get_sub_system_data(
             Dict(CO2 => 1, Power => 0.02),
             Dict(CO2 => 1),
             [InvDataStorage(
-                    Capex_rate = FixedProfile(500),
-                    Rate_max_inst = FixedProfile(30),
-                    Rate_max_add = FixedProfile(3),
-                    Rate_min_add = FixedProfile(0),
-                    Capex_stor = FixedProfile(500),
-                    Stor_max_inst = FixedProfile(50),
-                    Stor_max_add = FixedProfile(5),
-                    Stor_min_add = FixedProfile(0),
-                    Inv_mode = ContinuousInvestment(),
+                    capex_rate = FixedProfile(500),
+                    rate_max_inst = FixedProfile(30),
+                    rate_max_add = FixedProfile(3),
+                    rate_min_add = FixedProfile(0),
+                    capex_stor = FixedProfile(500),
+                    stor_max_inst = FixedProfile(50),
+                    stor_max_add = FixedProfile(5),
+                    stor_min_add = FixedProfile(0),
+                    inv_mode = ContinuousInvestment(),
                 ),
             ],
         ),
-        EMB.RefNetwork(
+        RefNetworkNode(
             j + 10,
             FixedProfile(0),
             FixedProfile(0 * mc_scale),
             FixedProfile(0),
             Dict(Coal => 2.5),
-            Dict(Power => 1, CO2 => 1),
+            Dict(Power => 1),
             [InvData(
-                    Capex_cap = FixedProfile(10000),
-                    Cap_max_inst = FixedProfile(10000),
-                    Cap_max_add = FixedProfile(10000),
-                    Cap_min_add = FixedProfile(0),
-                    Inv_mode = ContinuousInvestment(),
+                    capex_cap = FixedProfile(10000),
+                    cap_max_inst = FixedProfile(10000),
+                    cap_max_add = FixedProfile(10000),
+                    cap_min_add = FixedProfile(0),
+                    inv_mode = ContinuousInvestment(),
                 ),
             ],
         ),
     ]
 
     links = [
-        EMB.Direct(j * 10 + 15, nodes[1], nodes[5], EMB.Linear())
-        EMB.Direct(j * 10 + 16, nodes[1], nodes[6], EMB.Linear())
-        EMB.Direct(j * 10 + 17, nodes[1], nodes[7], EMB.Linear())
-        EMB.Direct(j * 10 + 18, nodes[1], nodes[8], EMB.Linear())
-        EMB.Direct(j * 10 + 19, nodes[1], nodes[9], EMB.Linear())
-        EMB.Direct(j * 10 + 110, nodes[1], nodes[10], EMB.Linear())
-        EMB.Direct(j * 10 + 12, nodes[1], nodes[2], EMB.Linear())
-        EMB.Direct(j * 10 + 31, nodes[3], nodes[1], EMB.Linear())
-        EMB.Direct(j * 10 + 41, nodes[4], nodes[1], EMB.Linear())
-        EMB.Direct(j * 10 + 51, nodes[5], nodes[1], EMB.Linear())
-        EMB.Direct(j * 10 + 61, nodes[6], nodes[1], EMB.Linear())
-        EMB.Direct(j * 10 + 71, nodes[7], nodes[1], EMB.Linear())
-        EMB.Direct(j * 10 + 81, nodes[8], nodes[1], EMB.Linear())
-        EMB.Direct(j * 10 + 91, nodes[9], nodes[1], EMB.Linear())
-        EMB.Direct(j * 10 + 101, nodes[10], nodes[1], EMB.Linear())
+        Direct(j * 10 + 15, nodes[1], nodes[5], Linear())
+        Direct(j * 10 + 16, nodes[1], nodes[6], Linear())
+        Direct(j * 10 + 17, nodes[1], nodes[7], Linear())
+        Direct(j * 10 + 18, nodes[1], nodes[8], Linear())
+        Direct(j * 10 + 19, nodes[1], nodes[9], Linear())
+        Direct(j * 10 + 110, nodes[1], nodes[10], Linear())
+        Direct(j * 10 + 12, nodes[1], nodes[2], Linear())
+        Direct(j * 10 + 31, nodes[3], nodes[1], Linear())
+        Direct(j * 10 + 41, nodes[4], nodes[1], Linear())
+        Direct(j * 10 + 51, nodes[5], nodes[1], Linear())
+        Direct(j * 10 + 61, nodes[6], nodes[1], Linear())
+        Direct(j * 10 + 71, nodes[7], nodes[1], Linear())
+        Direct(j * 10 + 81, nodes[8], nodes[1], Linear())
+        Direct(j * 10 + 91, nodes[9], nodes[1], Linear())
+        Direct(j * 10 + 101, nodes[10], nodes[1], Linear())
     ]
     return nodes, links
 end

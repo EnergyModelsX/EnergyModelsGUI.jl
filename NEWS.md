@@ -1,13 +1,22 @@
 # Release notes
 
+Version 0.2.0 (2024-01-10)
+--------------------------
+### Adjustment
+Adjusted to changes in `EnergyModelsBase` v0.6.
+These changes are mainly:
+
+* All fields of composite types are now lower case.
+
+### Bugfix
+* Fix selection such that clicking on icons images results in node selection
+* Fix bug when selecting a node not having parent that is :Toplevel
+
+
 Version 0.1.1 (2024-01-09)
 --------------------------
-### Enhancement
-* Improved color handling by having a default behaviour based on the colors provided in the idToColorsMap dictionary
-* Improved icon handling by having a default behaviour based on the colors provided. Enhancing users capability to add user defined icons in the idToIconsMap dictionary
-* Created a field in EnergySystemDesign named plotObj to store all plotted objects associated with a given design object. This enabled more precise selection of nodes.
-* Parameterized many parameters including selection color and scaling of boxes w.r.t. parent nodes
-* Adjust limits of the axis to be consistent with a fixed aspect ratio (currently chosen to be 1:1)
+### Adjustment
+* Make default icon be based on colors instead of icons based on node types
 
 ### Bugfix
 * Zooming error due to GeoMakie resolved by deactivating zoom to area action
@@ -15,8 +24,12 @@ Version 0.1.1 (2024-01-09)
 * Removed requirement for an Availability node
 * Fixed bug that prevented more than two nodes to be selected
 
-### Adjustment
-* Make default icon be based on colors instead of icons based on node types
+### Enhancement
+* Improved color handling by having a default behaviour based on the colors provided in the idToColorsMap dictionary
+* Improved icon handling by having a default behaviour based on the colors provided. Enhancing users capability to add user defined icons in the idToIconsMap dictionary
+* Created a field in EnergySystemDesign named plotObj to store all plotted objects associated with a given design object. This enabled more precise selection of nodes.
+* Parameterized many parameters including selection color and scaling of boxes w.r.t. parent nodes
+* Adjust limits of the axis to be consistent with a fixed aspect ratio (currently chosen to be 1:1)
 
 ### Feature
 * An example without an Availability node added (based on the source-sink example in EnergyModelsBase)
