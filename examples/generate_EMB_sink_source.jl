@@ -11,15 +11,6 @@ function generate_data()
     CO2 = ResourceEmit("CO2", 1.0)
     products = [Power, CO2]
 
-    # Define colors for all products
-    products_color = ["Electricity", "ResourceEmit"]
-    EnergyModelsGUI.setColors!(idToColorsMap, products, products_color)
-
-    # Creation of a dictionary with entries of 0 for all emission resources
-    # This dictionary is normally used as usage based non-energy emissions.
-    𝒫ᵉᵐ₀ = Dict(k => 0.0 for k ∈ products if typeof(k) == ResourceEmit{Float64})
-    𝒫ᵉᵐ₀[CO2] = 0.0
-
     # Create the individual test nodes, corresponding to a system with an electricity
     # demand/sink and source
     nodes = [
@@ -31,8 +22,6 @@ function generate_data()
             Dict(Power => 1),
             []),
     ]
-    idToIconsMap[nodes[1].id] = "hydroPowerPlant"
-    idToIconsMap[nodes[2].id] = "factoryEmissions"
 
     # Connect all nodes with the availability node for the overall energy/mass balance
     links = [
@@ -69,3 +58,21 @@ end
 
 
 case, model = generate_data()
+
+if runOptimization
+    m = create_model(case, model)
+    set_optimizer(m, HiGHS.Optimizer)
+    optimize!(m)
+    solution_summary(m)
+end
+
+## The following variables are set for the GUI
+# Define colors for all products
+products_color = ["Electricity", "ResourceEmit"]
+idToColorMap = EnergyModelsGUI.setColors(case[:products], products_color)
+
+# Set custom icons
+icon_names = ["hydroPowerPlant", "factoryEmissions"]
+idToIconMap = EnergyModelsGUI.setIcons(case[:nodes], icon_names)
+
+design_path::String = joinpath(@__DIR__, "..", "design", "EMB_sink_source") # folder where visualization info is saved and retrieved

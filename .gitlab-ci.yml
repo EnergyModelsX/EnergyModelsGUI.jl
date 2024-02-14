@@ -42,13 +42,13 @@ before_script:
     - when: always
   
 
-test:1.9:
-  image: julia:1.9
+test:1.10:
+  image: julia:1.10
   <<: *test_definition
 
 # Test that the pages compile, without making it public. Only runs on merge requests.
 test:pages:
-  image: julia:1.9
+  image: julia:1.10
   stage: test
   script:
     - cd docs
@@ -64,7 +64,7 @@ test:pages:
 
 # Deploy the documentation.
 pages:
-  image: julia:1.9
+  image: julia:1.10
   stage: deploy
   script:
     - cd docs
@@ -84,7 +84,7 @@ pages:
 
 # Register version
 register:
-  image: julia:1.9
+  image: julia:1.10
   stage: deploy
   script:
     - julia -e 'using Pkg; Pkg.Registry.status()'

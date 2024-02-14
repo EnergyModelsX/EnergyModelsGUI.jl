@@ -16,12 +16,10 @@ From the Julia REPL, run
 julia> using EnergyModelsGUI
 # Get the path of the examples directory
 julia> exdir = joinpath(pkgdir(EnergyModelsGUI), "examples")
+# Choose if you want to run the optimization part of the examples
+julia> runOptimization::Bool = true
 # Include the code into the Julia REPL to run the following example
 julia> include(joinpath(exdir, "generate_EMG.jl"))
-# Specify path for saving design information:
-julia> path = joinpath(@__DIR__, "design") # folder where visualization info is saved and retrieved
-# Generate the system topology:
-julia> design = EnergyModelsGUI.EnergySystemDesign(case, path);
-#Plot the topology:
-julia> EnergyModelsGUI.view(design)
+# Start the GUI:
+julia> gui = EnergyModelsGUI.GUI(case; design_path, idToColorMap, idToIconMap, model = m)
 ```

@@ -10,19 +10,19 @@ It is a multi carrier energy model, where the definition of the resources are fu
 One of the primary design goals was to develop a model that can eaily be extended with new functionality without the need to understand and remember every variable and constraint in the model.
 
 For running and visualizing a basic energy system model, only the base technology package
-[`EnergyModelsBase.jl`](https://clean_export.pages.sintef.no/energymodelsbase.jl/),
+[`EnergyModelsBase.jl`](https://github.com/EnergyModelsX/EnergyModelsBase.jl.git),
 [`EnergyModelsGUI.jl`](https://clean_export.pages.sintef.no/energymodelsgui.jl/)
 and the time structure package
-[`TimeStruct.jl`](https://gitlab.sintef.no/julia-one-sintef/timestruct.jl)
+[`TimeStruct.jl`](https://github.com/sintefore/TimeStruct.jl/releases)
 is needed.
 
 The EnergyModelsGUI package also provides visualization utilities for the following packages
 
-- [`EnergyModelsGeography.jl`](https://clean_export.pages.sintef.no/energymodelsgeography.jl/):
+- [`EnergyModelsGeography.jl`](https://github.com/EnergyModelsX/EnergyModelsGeography.jl):
    this package makes it possible to easily extend your energy model different
    geographic areas, where transmission can be set to allow for the transport of
    resources between the different areas.
-- [`EnergyModelsInvestments.jl`](https://clean_export.pages.sintef.no/energymodelsinvestments.jl/):
+- [`EnergyModelsInvestments.jl`](https://github.com/EnergyModelsX/EnergyModelsInvestments.jl):
    this package implements functionality for investments, where the length of the
    investment periods are fully flexible and is decided by setting the time
    structure.
