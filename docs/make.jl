@@ -1,8 +1,3 @@
-using Pkg
-Pkg.activate("..")
-Pkg.resolve()
-Pkg.instantiate()
-
 using Documenter
 using EnergyModelsGUI
 const EMGUI = EnergyModelsGUI

@@ -7,8 +7,6 @@ using TimeStruct
 const EMB = EnergyModelsBase
 const EMG = EnergyModelsGeography
 
-runOptimization = false
-
 function run_model(case, model, optimizer=nothing)
    @debug "Run model" optimizer
 
@@ -139,10 +137,6 @@ function get_resources()
     CO2      = ResourceEmit("CO2",1.)
     products = [NG, Coal, Power, CO2]
 
-    # Define colors for all products
-    products_color = ["Gas", "Coal", "Electricity", "ResourceEmit"]
-    EnergyModelsGUI.setColors!(idToColorsMap, products, products_color)
-
     return products
 end
 
@@ -207,3 +201,14 @@ if runOptimization
 
     solution_summary(m)
 end
+
+## The following variables are set for the GUI
+# Define colors for all products
+products_color = ["Gas", "Coal", "Electricity", "ResourceEmit"]
+idToColorMap = EnergyModelsGUI.setColors(case[:products], products_color)
+
+# Do not use icons
+idToIconMap = EnergyModelsGUI.setIcons(case[:nodes], [])
+
+
+design_path::String = joinpath(@__DIR__, "..", "design", "EMG") # folder where visualization info is saved and retrieved

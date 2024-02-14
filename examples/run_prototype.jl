@@ -12,24 +12,20 @@
 ##########################################################################
 #using EnergyModelsGUI
 
-#1: load the functions and data definitions:
+# Compile EnergyModelsGUI (alternatively, fetch from registry: using EnergyModelsGUI)
 include(joinpath(@__DIR__,"..","src", "EnergyModelsGUI.jl"))
 
-idToColorsMap::Dict{Any,Any} = Dict{Any, Any}() # Initialize dictionary for colors map
-idToIconsMap::Dict{Any,Any} = Dict{Any, Any}() # Initialize dictionary for icons map
+# Generate a CE model that is loaded into memory as "case".
+runOptimization::Bool = true # Set runOptimization boolean to run optimization or not
 
-
-#2: generate a CE model that is loaded into memory as "case".
-#include("generate_EMB.jl")
+#include("generate_Case1.jl")
+#include("generate_Case2.jl")
+include("generate_EMB.jl")
 #include("generate_EMB_sink_source.jl")
 #include("generate_EMG.jl")
-include("generate_EMI.jl")
+#include("generate_EMI.jl")
 
-#3: Specify path for design information:
-path = joinpath(@__DIR__, "..", "design") # folder where visualization info is saved and retrieved
 
-#4: Generate the system topology:
-design = EnergyModelsGUI.EnergySystemDesign(case, path; idToColorsMap, idToIconsMap)
+# Run the GUI
+gui = EnergyModelsGUI.GUI(case; design_path, idToColorMap, idToIconMap, model = m)
 
-#5: Plot the topology:
-EnergyModelsGUI.view(design)

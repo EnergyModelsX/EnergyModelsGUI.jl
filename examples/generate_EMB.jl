@@ -14,10 +14,6 @@ function generate_data()
     CO2 = ResourceEmit("CO2", 1.0)
     products = [NG, Coal, Power, CO2]
 
-    # Define colors for all products
-    products_color = ["Gas", "Coal", "Electricity", "ResourceEmit"]
-    EnergyModelsGUI.setColors!(idToColorsMap, products, products_color)
-
     # Creation of a dictionary with entries of 0 for all emission resources
     # This dictionary is normally used as usage based non-energy emissions.
     𝒫ᵉᵐ₀ = Dict(k => 0.0 for k ∈ products if typeof(k) == ResourceEmit{Float64})
@@ -100,3 +96,20 @@ end
 
 
 case, model = generate_data()
+
+if runOptimization
+    m = create_model(case, model)
+    set_optimizer(m, HiGHS.Optimizer)
+    optimize!(m)
+    solution_summary(m)
+end
+
+## The following variables are set for the GUI
+# Define colors for all products
+products_color = ["Gas", "Coal", "Electricity", "ResourceEmit"]
+idToColorMap = EnergyModelsGUI.setColors(case[:products], products_color)
+
+# Do not use icons
+idToIconMap = EnergyModelsGUI.setIcons(case[:nodes], [])
+
+design_path::String = joinpath(@__DIR__, "..", "design", "EMB") # folder where visualization info is saved and retrieved

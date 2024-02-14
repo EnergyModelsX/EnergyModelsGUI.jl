@@ -9,8 +9,6 @@ const EMB = EnergyModelsBase
 const EMG = EnergyModelsGeography
 const EMI = EnergyModelsInvestments
 
-runOptimization = false
-
 function run_model(case, model, optimizer = nothing)
     @info "Run model" model optimizer
 
@@ -164,10 +162,6 @@ function get_resources()
     Power = ResourceCarrier("Power", 0.0)
     CO2 = ResourceEmit("CO2", 1.0)
     products = [NG, Coal, Power, CO2]
-
-    # Define colors for all products
-    products_color = ["Gas", "Coal", "Electricity", "ResourceEmit"]
-    EnergyModelsGUI.setColors!(idToColorsMap, products, products_color)
 
     return products
 end
@@ -381,3 +375,13 @@ if runOptimization
 
     solution_summary(m)
 end
+
+## The following variables are set for the GUI
+# Define colors for all products
+products_color = ["Gas", "Coal", "Electricity", "ResourceEmit"]
+idToColorMap = EnergyModelsGUI.setColors(case[:products], products_color)
+
+# Do not use icons
+idToIconMap = EnergyModelsGUI.setIcons(case[:nodes], [])
+
+design_path::String = joinpath(@__DIR__, "..", "design", "EMI") # folder where visualization info is saved and retrieved

@@ -3,11 +3,20 @@
 ## EnergySystemDesign
 
 ```@docs
-Base.show
+EnergyModelsGUI.EnergySystemDesign
 ```
 
 ## EnergySystemGUI
 
 ```@docs
-EnergyModelsGUI.view
+EnergyModelsGUI.GUI
+```
+
+## Utilities
+```@docs
+EnergyModelsGUI.setColors
+```
+
+```@docs
+EnergyModelsGUI.setIcons
 ```

@@ -1,5 +1,27 @@
 # Release notes
 
+Version 0.3.0 (2024-01-20)
+--------------------------
+### Adjustment
+* The interactive option in the view() function has been removed due to lacking usage and maintenance
+* Improved visualization of connections
+
+### Bugfix
+* Fix selection such that clicking on icons images results in node selection
+* Fix bug when selecting a node not having parent that is :Toplevel
+* Fix connection lines to be exactly at box boundary
+* Fix bug that assumes that all nodes are connected to an availability node for a `RefArea`
+* Fixed issue relating to reading x and y coordinates from toml file
+* Enabled visualization of sink/source to have more than one input/output
+
+### Enhancement
+* Created a new structure for the GUI that simplifies construction and enables better control of the GUI
+* Open sub system in same axis (not open in a new window) and store plot objects for efficiency
+* Added axis to plot results and provided optional argument for passing the optimization results from JuMP
+* Added text area to show information on the selected object
+* Improved handling of colors and icons (direct path to icons can be provided, or alternatively names of the .png files which will then have to exist in the icons folder of any of the EMX packages)
+* Added tests that checks if the example files runs without errors
+
 Version 0.2.0 (2024-01-10)
 --------------------------
 ### Adjustment

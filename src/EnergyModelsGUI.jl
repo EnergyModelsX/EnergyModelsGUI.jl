@@ -9,19 +9,28 @@ using FileIO
 using TOML
 using FilterHelpers
 using Observables
+using TimeStruct
 using EnergyModelsBase
 using EnergyModelsGeography
 using Colors
 using GeoMakie, GeoJSON
-using GLMakie, GeometryBasics
-using CairoMakie
+using GLMakie
+using JuMP
+using HTTP # Needed for downloading the geojson file used for high resolution world map
 
-missingColor = :black # Default color when color is not provided
-include("structureTopology.jl")
-include("viewTopology.jl")
+const TS = TimeStruct
+const EMB = EnergyModelsBase
+const EMG = EnergyModelsGeography
+
+include("datastructures.jl")
+include("utils.jl")
+include("setupTopology.jl")
+include("setupGUI.jl")
 
 
+export GUI
 export EnergySystemDesign
-export setColors!
+export setColors
+export setIcons
 
 end # module
