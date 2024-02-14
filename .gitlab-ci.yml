@@ -88,11 +88,27 @@ register:
   stage: deploy
   script:
     - julia -e 'using Pkg; Pkg.Registry.status()'
-    # Set name and email for the bot pushing to the registry.
+    # Set name and email for the bot pushing to the registry
     - git config --global user.email "<@>"
     - git config --global user.name "Registrator"
-    - DISPLAY=:0 xvfb-run -s '-screen 0 1024x768x24' julia --project="test" -e 'using Pkg; Pkg.add("LocalRegistry")' #Install LocalRegistry used for pushing to registry
-    - DISPLAY=:0 xvfb-run -s '-screen 0 1024x768x24' julia --project="test" -e 'using Pkg; Pkg.instantiate()'  # install dependencies.
+
+    #Install LocalRegistry used for pushing to registry
+    - DISPLAY=:0 xvfb-run -s '-screen 0 1024x768x24' julia --project="test" -e 'using Pkg; Pkg.add("LocalRegistry")' 
+
+    #Install dependencies
+    - DISPLAY=:0 xvfb-run -s '-screen 0 1024x768x24' julia --project="test" -e 'using Pkg; Pkg.instantiate()'  
+
+    # Introduce a wait step here if necessary to ensure that any background tasks have time to complete.
+    # This is a workaround for asynchronous tasks that may not finish immediately.
+    - sleep 60
+
+    # Ensure the Git working directory is clean before proceeding with registration.
+    # This step checks for uncommitted changes or untracked files and handles them.
+    # It's a precautionary step to avoid "Package directory is dirty" error.
+    - git status
+    - git add .
+    - git commit -m "CI: Auto-commit changes before package registration" || echo "No changes to commit"
+
     # Register the package. LocalRegistry will not register a new version if it is already registered.
     - DISPLAY=:0 xvfb-run -s '-screen 0 1024x768x24' julia --project="test" -e 'using LocalRegistry;
         repo = "git@gitlab.sintef.no:" * ENV["CI_PROJECT_PATH"] * ".git";
