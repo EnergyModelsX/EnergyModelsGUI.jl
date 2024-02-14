@@ -99,7 +99,8 @@ register:
     - DISPLAY=:0 xvfb-run -s '-screen 0 1024x768x24' julia --project="test" -e 'using Pkg; Pkg.instantiate()' 
      
      # Check for any changes. If changes exist, commit them.
-    - git diff --quiet || git commit -m "CI: Auto-commit changes"
+    - "git diff --quiet || (git add . && git commit -m 'CI: Auto-commit changes')"
+    
     # Register the package. LocalRegistry will not register a new version if it is already registered.
     - DISPLAY=:0 xvfb-run -s '-screen 0 1024x768x24' julia --project="test" -e 'using LocalRegistry;
         repo = "git@gitlab.sintef.no:" * ENV["CI_PROJECT_PATH"] * ".git";
