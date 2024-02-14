@@ -102,13 +102,6 @@ register:
     # This is a workaround for asynchronous tasks that may not finish immediately.
     - sleep 60
 
-    # Ensure the Git working directory is clean before proceeding with registration.
-    # This step checks for uncommitted changes or untracked files and handles them.
-    # It's a precautionary step to avoid "Package directory is dirty" error.
-    - git status
-    - git add .
-    - git commit -m "CI: Auto-commit changes before package registration" || echo "No changes to commit"
-
     # Register the package. LocalRegistry will not register a new version if it is already registered.
     - DISPLAY=:0 xvfb-run -s '-screen 0 1024x768x24' julia --project="test" -e 'using LocalRegistry;
         repo = "git@gitlab.sintef.no:" * ENV["CI_PROJECT_PATH"] * ".git";
