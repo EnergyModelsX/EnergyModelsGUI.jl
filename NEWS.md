@@ -1,6 +1,11 @@
 # Release notes
 
-Version 0.3.0 (2024-01-20)
+Version 0.3.1 (2024-02-14)
+--------------------------
+### Bugfix
+* Fix CI malfunction resulting from LocalRegistry added in CI. LocalRegistry is now part of test project instead.
+
+Version 0.3.0 (2024-02-14)
 --------------------------
 ### Adjustment
 * The interactive option in the view() function has been removed due to lacking usage and maintenance
