@@ -38,6 +38,12 @@ function EnergySystemDesign(
     else
         Dict()
     end
+    if isempty(idToColorMap)
+        products = system[:products]
+        seed::Vector{RGB} = [parse(Colorant, hex_color) for hex_color ∈ values(getDefaultColors())]
+        productsColors = distinguishable_colors(length(products), seed, dropseed=false)
+        idToColorMap = setColors(products, productsColors)
+    end
 
     components::Vector{EnergySystemDesign} = EnergySystemDesign[]
     connections::Vector{Connection} = Tuple{EnergySystemDesign,EnergySystemDesign,Dict}[]

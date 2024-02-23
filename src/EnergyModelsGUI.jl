@@ -8,7 +8,6 @@ module EnergyModelsGUI
 using FileIO
 using TOML
 using FilterHelpers
-using Observables
 using TimeStruct
 using EnergyModelsBase
 using EnergyModelsGeography
@@ -17,6 +16,7 @@ using GeoMakie, GeoJSON
 using GLMakie
 using JuMP
 using HTTP # Needed for downloading the geojson file used for high resolution world map
+using Pkg # Used to check for icons in other EMX repositories
 
 const TS = TimeStruct
 const EMB = EnergyModelsBase
@@ -32,5 +32,6 @@ export GUI
 export EnergySystemDesign
 export setColors
 export setIcons
+export update!
 
 end # module

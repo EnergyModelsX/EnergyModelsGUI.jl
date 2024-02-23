@@ -1,5 +1,22 @@
 # Release notes
 
+Version 0.3.2 (2024-02-23)
+--------------------------
+### Adjustment
+* Changed the routine for finding the icons (icons in other EMX-packages are now expected to be found in ext/EnergyModelsGUI/icons). All EMX-packages are assumed to have name starting with EnergyModels.
+* Hide Investment plan, segment and scenarios menus until they are implemented
+* If `idToColorMap` is not provided, a set of colors is created from the default colors to be as distinct as possible
+
+### Bugfix
+* Fixed a bug related to showing results for a Transmission
+* Fixed a bug when dragging a node outside the `gui.axes[:topo]` area
+
+### Enhancement
+* Input data from the case can now be plotted
+* Code readibility was improved for setupGUI.jl
+* The tests now loop through all nodes/areas and their available data to check for errors
+* Improved structure of the examples
+
 Version 0.3.1 (2024-02-14)
 --------------------------
 ### Bugfix
@@ -38,7 +55,6 @@ These changes are mainly:
 ### Bugfix
 * Fix selection such that clicking on icons images results in node selection
 * Fix bug when selecting a node not having parent that is :Toplevel
-
 
 Version 0.1.1 (2024-01-09)
 --------------------------

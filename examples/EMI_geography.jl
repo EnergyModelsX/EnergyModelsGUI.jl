@@ -9,17 +9,6 @@ const EMB = EnergyModelsBase
 const EMG = EnergyModelsGeography
 const EMI = EnergyModelsInvestments
 
-function run_model(case, model, optimizer = nothing)
-    @info "Run model" model optimizer
-
-    m = EMG.create_model(case, model)
-
-    set_optimizer(m, optimizer)
-    optimize!(m)
-    return m
-end
-
-
 function generate_data()
     @debug "Generate case data"
     @info "Generate data coded dummy model for now (Investment Model)"
@@ -366,22 +355,29 @@ end
 # Generate case data
 case, modeltype = generate_data()
 
-if runOptimization
-    # Run the optimization as an investment model.
-    m = run_model(case, modeltype, HiGHS.Optimizer)
+# Run the optimization as an investment model.
+m = EMG.create_model(case, modeltype)
 
-    # Uncomment to print all the constraints set in the model.
-    # print(m)
+set_optimizer(m, optimizer_with_attributes(HiGHS.Optimizer, MOI.Silent() => true))
+optimize!(m)
 
-    solution_summary(m)
-end
+# Uncomment to print all the constraints set in the model.
+# print(m)
 
-## The following variables are set for the GUI
+solution_summary(m)
+
+## Code above identical to the example EnergyModelsBase.jl/examples/network.jl
+##########################################################################################################################
+## Code below for displaying the GUI
+
+using EnergyModelsGUI
+
 # Define colors for all products
 products_color = ["Gas", "Coal", "Electricity", "ResourceEmit"]
-idToColorMap = EnergyModelsGUI.setColors(case[:products], products_color)
+idToColorMap = setColors(case[:products], products_color)
 
-# Do not use icons
-idToIconMap = EnergyModelsGUI.setIcons(case[:nodes], [])
+# Set folder where visualization info is saved and retrieved
+design_path = joinpath(@__DIR__, "..", "design", "EMI", "geography")
 
-design_path::String = joinpath(@__DIR__, "..", "design", "EMI") # folder where visualization info is saved and retrieved
+# Run the GUI
+gui = GUI(case; design_path, idToColorMap, model = m)
