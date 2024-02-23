@@ -1,4 +1,20 @@
 """
+    function installed()
+
+Get a list of installed packages (from the depricated Pkg.installed())
+"""
+function installed()
+    deps = Pkg.dependencies()
+    installs = Dict{String, VersionNumber}()
+    for (uuid, dep) in deps
+        dep.is_direct_dep || continue
+        dep.version === nothing && continue
+        installs[dep.name] = dep.version::VersionNumber
+    end
+    return installs
+end
+
+"""
     squareIntersection(c::Vector{Tc}, x::Vector{Tx}, θ::Tθ, Δ::TΔ) where {Tc<:Real, Tx<:Real, Tθ<:Real, TΔ<:Real}
 
 Calculate the intersection point between a line starting at `x` and direction described by `θ` and a square with half side lengths `Δ` centered at center `c`  	
@@ -82,23 +98,22 @@ function find_min_max_coordinates(design::EnergySystemDesign)
 end
 
 """
-    facingWalls(component_design_from::EnergySystemDesign, component_design_to::EnergySystemDesign)
+    angle(component_design_from::EnergySystemDesign, component_design_to::EnergySystemDesign)
 
-Based on the location of node1 and node2, return the respective walls that face eachother
+Based on the location of node1 and node2, return the angle between the x_axis and node2 (when node1 is the origin)
 """
-function facingWalls(node1::EnergySystemDesign, node2::EnergySystemDesign)
-    xy_from::Tuple{Real, Real} = node1.xy[]
-    xy_to::Tuple{Real, Real} = node2.xy[]
-    θ::Float64 = atan(xy_to[2]-xy_from[2], xy_to[1]-xy_from[1])
-    if -π/4 <= θ && θ < π/4 
-        return (:E, :W)
-    elseif π/4 <= θ && θ < 3π/4 
-        return (:N, :S)
-    elseif -3π/4 <= θ && θ < -π/4 
-        return (:S, :N)
-    else
-        return (:W, :E)
-    end
+function angle(node1::EnergySystemDesign, node2::EnergySystemDesign)
+    return atan(node2.xy[][2]-node1.xy[][2], node2.xy[][1]-node1.xy[][1])
+end
+
+"""
+    angle_difference(angle1, angle2)
+
+Compute the difference between two angles
+"""
+function angle_difference(angle1, angle2)
+    diff = abs(angle1 - angle2) % (2π)
+    return min(diff, 2π - diff)
 end
 
 """
@@ -135,7 +150,6 @@ get_text_alignment(::Val{:N}) = (:center, :bottom)
 Get the coordinates of a box with half side lengths Δ and centered at (x,y) starting at the upper right corner.
 """
 function box(x::Real, y::Real, Δ::Real)
-
     xs::Vector{Real} = [x + Δ, x - Δ, x - Δ, x + Δ, x + Δ]
     ys::Vector{Real} = [y + Δ, y + Δ, y - Δ, y - Δ, y + Δ]
 
@@ -153,26 +167,26 @@ function stepify(x::Vector{S}, y::Vector{T}; startAtZero::Bool = true) where {S 
 end
 
 """
-    extractCombinations!(availableData::Vector{Vector{Any}}, dict::Any, node::Nothing, model::JuMP.Model)
+    extractCombinations!(availableData::Vector{Dict}, dict::Any, node::Nothing, model::JuMP.Model)
 
 Extract all available resources in `model[dict]`
 """
-function extractCombinations!(availableData::Vector{Vector{Any}}, dict::Any, node::Nothing, model::JuMP.Model)
+function extractCombinations!(availableData::Vector{Dict}, dict::Any, node::Nothing, model::JuMP.Model)
     resources::Vector{Resource} = unique([key[2] for key in keys(model[dict].data)]) 
     for res ∈ resources
-        push!(availableData, [dict, res, node])
+        push!(availableData, Dict(:name => dict, :isJuMPdata => true, :selection => [res]))
     end
 end
 
 """
-    extractCombinations!(availableData::Vector{Vector{Any}}, dict::Any, node::EMB.Node, model::JuMP.Model)
+    extractCombinations!(availableData::Vector{Dict}, dict::Any, node::EMB.Node, model::JuMP.Model)
 
 Extract all available resources in `model[dict]` for a given `node`
 """
-function extractCombinations!(availableData::Vector{Vector{Any}}, dict::Any, node::Union{EMB.Node, EMB.Link, EMG.Area, EMG.Transmission}, model::JuMP.Model)
+function extractCombinations!(availableData::Vector{Dict}, dict::Any, node::Union{EMB.Node, EMB.Link, EMG.Area, EMG.Transmission}, model::JuMP.Model)
     resources = unique([key[2] for key in keys(model[dict][node,:,:].data)]) 
     for res ∈ resources
-        push!(availableData, [dict, res, node])
+        push!(availableData, Dict(:name => dict, :isJuMPdata => true, :selection => [node, res]))
     end
 end
 
@@ -195,17 +209,19 @@ Returns a dictionary idToColorMap with id from products and colors from productC
 Color can be represented as a hex (i.e. #a4220b2) or a symbol (i.e. :green), but also a string of the identifier for default colors in the src/colors.toml file
 """
 function setColors(products::Vector{S}, productsColors::Vector{T}) where {S <: EMB.Resource, T <: Any}
+    idToColorMap::Dict{Any,Any} = Dict{Any, Any}() # Initialize dictionary for colors map
+    if isempty(productsColors)
+        return idToColorMap
+    end
     if length(products) != length(productsColors)
         @error "The input vectors must have same lengths."
     end
-    idToColorMap::Dict{Any,Any} = Dict{Any, Any}() # Initialize dictionary for colors map
-    colorsFile::String = joinpath(@__DIR__,"..","src", "colors.toml")
-    resourceColors::Dict{String, Any} = TOML.parsefile(colorsFile)["Resource"]
     for (i, product) ∈ enumerate(products)
-        if productsColors[i] isa Symbol || productsColors[i][1] == '#'
+        if productsColors[i] isa Symbol || productsColors[i] isa RGB || productsColors[i][1] == '#'
             idToColorMap[product.id] = productsColors[i] 
         else
             try
+                resourceColors::Dict{String, Any} = getDefaultColors()
                 idToColorMap[product.id] = resourceColors[productsColors[i]]
             catch
                 @warn("Color identifier $(productsColors[i]) is not represented in the colors file $colorsFile. " 
@@ -215,6 +231,16 @@ function setColors(products::Vector{S}, productsColors::Vector{T}) where {S <: E
         end
     end
     return idToColorMap
+end
+
+"""
+    getDefaultColors()
+
+Get the default colors in the EnergyModelsGUI repository at src/colors.toml
+"""
+function getDefaultColors()
+    colorsFile::String = joinpath(@__DIR__,"..","src", "colors.toml")
+    return TOML.parsefile(colorsFile)["Resource"]
 end
 
 """
@@ -233,23 +259,23 @@ function setIcons(nodes::Vector{S}, icons::Vector{T}) where {S <: EMB.Node, T <:
         @error "The input vectors must have same lengths."
     end
     for (i, node) ∈ enumerate(nodes)
+        idToIconMap[node.id] = "" # if not found
         if isfile(icons[i])
             idToIconMap[node.id] = icons[i] * ".png"
         elseif isfile(joinpath(@__DIR__,"..","icons", icons[i] * ".png"))
             idToIconMap[node.id] = joinpath(@__DIR__,"..","icons", icons[i] * ".png")
         else
+            # Get a dictionary of installed packages
+            installed_packages = installed()
+
+            # Filter packages with names matching the pattern "EnergyModels*"
+            EMXpackages = filter(pkg -> occursin(r"EnergyModels", pkg), keys(installed_packages))
+
             # Search through EMX packages if icons are available there
-            for package ∈ ["EnergyModelsGUI", 
-                           "EnergyModelsGeography", 
-                           "EnergyModelsInvestments", 
-                           "EnergyModelsCO2",
-                           "EnergyModelsHydrogen",
-                           "EnergyModelsRenewableProducers",
-                           "EnergyModelsSDDP",
-                           "EnergyModelsBase"]
+            for package ∈ EMXpackages
                 packagePath::Union{String, Nothing} = Base.find_package(package)
                 if !isnothing(packagePath)
-                    colorsFile::String = joinpath(packagePath, "..", "..", "icons", icons[i]) * ".png"
+                    colorsFile::String = joinpath(packagePath, "..", "..", "ext", "EnergyModelsGUI", "icons", icons[i]) * ".png"
                     if isfile(colorsFile)
                         idToIconMap[node.id] = colorsFile 
                         break
@@ -317,6 +343,10 @@ end
 Save the x,y-coordinates of `design` to a .toml file at design.file
 """
 function save_design(design::EnergySystemDesign)
+    if isempty(design.file)
+        @error "Path not specified for saving; use GUI(case; design_path)"
+        return
+    end
 
     design_dict::Dict = Dict()
 

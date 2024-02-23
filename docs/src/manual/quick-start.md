@@ -5,11 +5,7 @@
 >     ```
 >     ] registry add git@gitlab.sintef.no:clean_export/registrycleanexport.git
 >     ```
->  3. Add the [SINTEF internal Julia registry](https://gitlab.sintef.no/julia-one-sintef/onesintef):
->     ```
->     ] registry add git@gitlab.sintef.no:julia-one-sintef/onesintef.git
->     ```
->  4. Install the base package [`EnergyModelsGUI.jl`](https://clean_export.pages.sintef.no/energymodelsgui.jl/) by running:
+>  3. Install the package [`EnergyModelsGUI.jl`](https://clean_export.pages.sintef.no/energymodelsgui.jl/) by running:
 >     ```
 >     ] add EnergyModelsGUI
 >     ```

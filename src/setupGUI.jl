@@ -6,7 +6,7 @@ const Plotable = Union{Nothing, EMB.Node, EMB.Link, EMG.Area, EMG.Transmission} 
 
 Initialize the EnergyModelsGUI window and visualize the topology of a EnergySystemDesign object (and optionally visualize its results in the JuMP object model).
 """
-function GUI(case::Dict; design_path::String, idToColorMap::Dict{Any,Any}, idToIconMap::Dict{Any,Any}, model::JuMP.Model = JuMP.Model())
+function GUI(case::Dict; design_path::String = "", idToColorMap::Dict{Any,Any} = Dict{Any,Any}(), idToIconMap::Dict{Any,Any} = Dict{Any,Any}(), model::JuMP.Model = JuMP.Model())
     # Generate the system topology:
     @info raw"Setting up the topology design structure"
     root_design::EnergySystemDesign = EnergySystemDesign(case; design_path, idToColorMap, idToIconMap)
@@ -47,7 +47,6 @@ function GUI(case::Dict; design_path::String, idToColorMap::Dict{Any,Any}, idToI
     vars[:ylimits] = Observable(Vector{Float64}([0.0,1.0]))
 
     vars[:availableData_menu_history] = Ref(Vector{String}(undef, 0))
-    vars[:resultsAvailable] = Observable(termination_status(model) == MOI.OPTIMAL) # Check if the model is solved
     vars[:selected_systems] = []
     vars[:selected_system] = []
     vars[:prev_selection] = []
@@ -59,8 +58,10 @@ function GUI(case::Dict; design_path::String, idToColorMap::Dict{Any,Any}, idToI
                         "\tright-click and drag: to pan\n",
                         "\tscroll wheel: zoom in or out\n",
                         "\tspace: Enter the selected system\n",
+                        "\tctrl+s: Save\n",
+                        "\tctrl+r: Reset view\n",
                         "\tEsc: Exit the current system and into the parent system\n\n",
-                        "Clicking/hovering a component will put information about this component here")
+                        "Left-clicking a component will put information about this component here")
     dragging::Ref{Bool} = Ref(false)
     is_ctrl_pressed::Ref{Bool} = Ref(false)
 
@@ -165,31 +166,28 @@ function GUI(case::Dict; design_path::String, idToColorMap::Dict{Any,Any}, idToI
     Makie.Label(gridlayout_buttons[1, 7], ""; tellwidth = false) 
 
     # Add buttons related to the axResults object (where the optimization results are plotted) 
-    investmentPlan_label    = Makie.Label(gridlayout_buttons[1, 8], "Investment plan:"; halign = :left, fontsize = vars[:fontsize], justification = :left)
-    investmentPlan_menu     = Makie.Menu(gridlayout_buttons[1, 9], halign = :left, width=100, fontsize = vars[:fontsize])
+    #investmentPlan_label    = Makie.Label(gridlayout_buttons[1, 8], "Investment plan:"; halign = :left, fontsize = vars[:fontsize], justification = :left)
+    #investmentPlan_menu     = Makie.Menu(gridlayout_buttons[1, 9], halign = :left, width=100, fontsize = vars[:fontsize])
     period_label            = Makie.Makie.Label(gridlayout_buttons[1, 10], "Period:"; halign = :right, fontsize = vars[:fontsize], justification = :right)
     period_menu             = Makie.Menu(gridlayout_buttons[1, 11], options = zip(periods_labels, periods), default = periods_labels[1], halign = :left, width=100, fontsize = vars[:fontsize])
-    segment_label           = Makie.Label(gridlayout_buttons[1, 12], "Segment:"; halign = :right, fontsize = vars[:fontsize], justification = :right)
-    segment_menu            = Makie.Menu(gridlayout_buttons[1, 13], halign = :left, width=100, fontsize = vars[:fontsize])
-    scenario_label          = Makie.Label(gridlayout_buttons[1, 14], "Scenario:"; halign = :left, fontsize = vars[:fontsize], justification = :left)
-    scenario_menu           = Makie.Menu(gridlayout_buttons[1, 15], halign = :left, width=200, fontsize = vars[:fontsize])
-    availableData_label     = Makie.Label(gridlayout_buttons[1, 16], "Available data:"; halign = :right, fontsize = vars[:fontsize], justification = :right)
-    availableData_menu      = Makie.Menu(gridlayout_buttons[1, 17], halign = :left, width=300, fontsize = vars[:fontsize])
+    #segment_label           = Makie.Label(gridlayout_buttons[1, 12], "Segment:"; halign = :right, fontsize = vars[:fontsize], justification = :right)
+    #segment_menu            = Makie.Menu(gridlayout_buttons[1, 13], halign = :left, width=100, fontsize = vars[:fontsize])
+    #scenario_label          = Makie.Label(gridlayout_buttons[1, 14], "Scenario:"; halign = :left, fontsize = vars[:fontsize], justification = :left)
+    #scenario_menu           = Makie.Menu(gridlayout_buttons[1, 15], halign = :left, width=200, fontsize = vars[:fontsize])
+    availableData_label     = Makie.Label(gridlayout_buttons[1, 12], "Available data:"; halign = :right, fontsize = vars[:fontsize], justification = :right)
+    availableData_menu      = Makie.Menu(gridlayout_buttons[1, 13], halign = :left, width=300, fontsize = vars[:fontsize])
 
     # Collect all menus into a dictionary
     buttons::Dict{Symbol, Makie.Button} = Dict(:align_horizontal => align_horizontal_button, 
-                                           :align_vertical => align_vertical_button, 
-                                           :open => open_button, 
-                                           :up => up_button, 
-                                           :save => save_button,
-                                           :resetView => resetView_button,
-                                           )
+                                               :align_vertical => align_vertical_button, 
+                                               :open => open_button, 
+                                               :up => up_button, 
+                                               :save => save_button,
+                                               :resetView => resetView_button,
+                                               )
 
     # Collect all menus into a dictionary
-    menus::Dict{Symbol, Makie.Menu} = Dict(:investment => investmentPlan_menu, 
-                                           :period => period_menu, 
-                                           :segment => segment_menu, 
-                                           :scenario => scenario_menu, 
+    menus::Dict{Symbol, Makie.Menu} = Dict(:period => period_menu, 
                                            :availableData => availableData_menu
                                            )
 
@@ -214,9 +212,7 @@ function GUI(case::Dict; design_path::String, idToColorMap::Dict{Any,Any}, idToI
     # Update limits based on the location of the nodes
     adjustLimits!(gui)
         
-    if gui.vars[:resultsAvailable][] # Plot results if available
-        update!(gui, nothing)
-    end
+    update!(gui, nothing)
 
     # Create a function that notifies all components (and thus updates graphics when the observables are notified)
     notifyComponents = () -> begin
@@ -250,7 +246,7 @@ function GUI(case::Dict; design_path::String, idToColorMap::Dict{Any,Any}, idToI
 
     # Handle case when user is pressing/releasing any ctrl key (in order to select multiple components)
     on(events(gui.axes[:topo].scene).keyboardbutton, priority=3) do event
-        # Check out typeof(key) for more integers
+        # For more integers: using GLMakie; typeof(events(gui.axes[:topo].scene).keyboardbutton[].key) 
 
         isCtrl(key::Makie.Keyboard.Button) = Int(key) == 341 || Int(key) == 345 # any of the ctrl buttons is clicked
         if event.action == Keyboard.press
@@ -280,6 +276,14 @@ function GUI(case::Dict; design_path::String, idToColorMap::Dict{Any,Any}, idToI
                 notify(up_button.clicks)
             elseif Int(event.key) == 32 # Space used to open up a sub-system
                 notify(open_button.clicks)
+            elseif Int(event.key) == 82 # ctrl+r: Reset view
+                if is_ctrl_pressed[]
+                    notify(resetView_button.clicks)
+                end
+            elseif Int(event.key) == 83 # ctrl+s: Save
+                if is_ctrl_pressed[]
+                    notify(save_button.clicks)
+                end
             #elseif Int(event.key) == 340 # Shift
             #elseif Int(event.key) == 342 # Alt
             end
@@ -342,12 +346,6 @@ function GUI(case::Dict; design_path::String, idToColorMap::Dict{Any,Any}, idToI
             if !isempty(gui.vars[:selected_systems]) && gui.vars[:selected_systems][1] isa EnergySystemDesign # Only nodes/area can be moved (connections will update correspondinlgy)
                 sub_design::EnergySystemDesign = gui.vars[:selected_systems][1]
 
-                # Make sure box is within the x- and y-limits
-                outOfSceneMin::BitVector = xy .< xy_origin
-                outOfSceneMax::BitVector = xy .> xy_origin .+ xy_widths
-
-                xy[outOfSceneMin] = xy_origin[outOfSceneMin]
-                xy[outOfSceneMax] = xy_origin[outOfSceneMax] .+ xy_widths[outOfSceneMax]
                 updateSubSystemLocations!(sub_design, Tuple(xy .- sub_design.xy[]))
                 sub_design.xy[] = Tuple(xy)
             end
@@ -411,13 +409,6 @@ function GUI(case::Dict; design_path::String, idToColorMap::Dict{Any,Any}, idToI
         notify(gui.axes[:topo].finallimits)
     end
     
-    # Investment menu: Handle menu selection (selecting investment plan)
-    on(investmentPlan_menu.selection, priority=10) do _
-        if !isempty(gui.vars[:selected_systems])
-            updatePlot!(gui, gui.vars[:selected_systems][end])
-        end
-    end
-
     # Period menu: Handle menu selection (selecting period)
     on(period_menu.selection, priority=10) do _
         if isempty(gui.vars[:selected_systems])
@@ -585,23 +576,21 @@ function connect!(gui::GUI)
         linkedToComponent::Vector{Connection} = filter(x -> component.system[:node].id == x[3][:connection].to.id, gui.design.connections)
         linkedFromComponent::Vector{Connection} = filter(x -> component.system[:node].id == x[3][:connection].from.id, gui.design.connections)
         on(component.xy, priority=4) do _
-            wallCounter = Dict(:E => 0, :N => 0, :W => 0, :S => 0)
-            for linkedComponent in linkedToComponent
-                wall_from, wall_to = facingWalls(component, linkedComponent[1])
-                wallCounter[wall_from] += 1
+            angles::Vector{Float64} = vcat(
+                [angle(component, linkedComponent[1]) for linkedComponent ∈ linkedToComponent],
+                [angle(component, linkedComponent[2]) for linkedComponent ∈ linkedFromComponent]
+            ) 
+            min_angleDiff::Vector{Float64} = fill(Inf, 4)
+            for i ∈ eachindex(min_angleDiff)
+                for angle ∈ angles
+                    Δθ = angle_difference(angle, (i-1)*π/2)
+                    if min_angleDiff[i] > Δθ
+                        min_angleDiff[i] = Δθ
+                    end
+                end
             end
-            for linkedComponent in linkedFromComponent
-                wall_from, wall_to = facingWalls(component, linkedComponent[2])
-                wallCounter[wall_from] += 1
-            end
-            minConnections, min_wall = findmin(wallCounter)
-            maxConnections, max_wall = findmax(wallCounter)
-            opposite_max_wall = getOppositeWall(max_wall)
-            if wallCounter[opposite_max_wall] == minConnections
-                component.wall[] = opposite_max_wall
-            else
-                component.wall[] = min_wall
-            end
+            walls::Vector{Symbol} = [:E, :N, :W, :S]
+            component.wall[] = walls[argmax(min_angleDiff)]
         end
         notify(component.xy)
     end
@@ -951,7 +940,7 @@ function draw_label!(gui::GUI, component::EnergySystemDesign)
     end
     if haskey(component.system,:node)
         label_text = text!(gui.axes[:topo], xo, yo; text = "$(string(component.system[:node]))\n($(nameof(typeof(component.system[:node]))))", align = alignment, fontsize=gui.vars[:fontsize])
-        Makie.translate!(label_text, 0,0,1007)
+        Makie.translate!(label_text, 0,0,2001)
         push!(component.plotObj, label_text)
     end
 end
@@ -1125,11 +1114,9 @@ Based on `node`, update the text in `gui.axes[:info]` and update plot in `gui.ax
 """
 function update!(gui::GUI, node::Plotable; updateplot::Bool = true)
     updateInfoBox!(gui, node)
-    if gui.vars[:resultsAvailable][]
-        updateAvailableDataMenu!(gui,node)
-        if updateplot
-            updatePlot!(gui, node)
-        end
+    updateAvailableDataMenu!(gui,node)
+    if updateplot
+        updatePlot!(gui, node)
     end
 end
 
@@ -1152,61 +1139,80 @@ function update!(gui::GUI, design::EnergySystemDesign; updateplot::Bool = true)
 end
 
 """
-    updateAvailableDataMenu!(gui::GUI, node)
+    updateAvailableDataMenu!(gui::GUI, node::Plotable)
 
 Update the `gui.menus[:availableData]` with the available data of `node`.
 """
-function updateAvailableDataMenu!(gui::GUI, node)
+function updateAvailableDataMenu!(gui::GUI, node::Plotable)
     # Find appearances of node/area/link/transmission in the model
-    availableData = Vector{Vector{Any}}(undef,0)
-    for dict ∈ collect(keys(object_dictionary(gui.model))) 
-        if typeof(gui.model[dict]) <: JuMP.Containers.DenseAxisArray
-            if any([eltype(a) <: Union{EMB.Node, EMG.Area} for a in axes(gui.model[dict])]) # nodes/areas found in structure 
-                if node ∈ gui.model[dict].axes[1] # only add dict if used by node (assume node are located at first Dimension)
-                    if length(axes(gui.model[dict])) > 2
-                        for res ∈ gui.model[dict].axes[3]
-                            push!(availableData, [dict, res, node])
+    availableData = Vector{Dict}(undef,0)
+    if !isempty(gui.model) # Plot results if available
+        for dict ∈ collect(keys(object_dictionary(gui.model))) 
+            if typeof(gui.model[dict]) <: JuMP.Containers.DenseAxisArray
+                if any([eltype(a) <: Union{EMB.Node, EMG.Area} for a in axes(gui.model[dict])]) # nodes/areas found in structure 
+                    if node ∈ gui.model[dict].axes[1] # only add dict if used by node (assume node are located at first Dimension)
+                        if length(axes(gui.model[dict])) > 2
+                            for res ∈ gui.model[dict].axes[3]
+                                push!(availableData, Dict(:name => dict, :isJuMPdata => true, :selection => [node, res]))
+                            end
+                        else
+                            push!(availableData, Dict(:name => dict, :isJuMPdata => true, :selection => [node]))
+                        end
+                    end
+                elseif any([eltype(a) <: EMG.TransmissionMode for a in axes(gui.model[dict])]) # nodes found in structure 
+                    if node isa EMG.Transmission
+                        for mode ∈ node.modes 
+                            push!(availableData, Dict(:name => dict, :isJuMPdata => true, :selection => [mode])) # do not include node (<: EMG.Transmission) here as the mode is unique to this transmission
+                        end
+                        
+                    end
+                elseif isnothing(node)
+                    if length(axes(gui.model[dict])) > 1
+                        for res ∈ gui.model[dict].axes[2]
+                            push!(availableData, Dict(:name => dict, :isJuMPdata => true, :selection => [res]))
                         end
                     else
-                        push!(availableData, [dict, node])
+                        push!(availableData, Dict(:name => dict, :isJuMPdata => true, :selection => EMB.Node[]))
                     end
                 end
-            elseif any([eltype(a) <: EMG.TransmissionMode for a in axes(gui.model[dict])]) # nodes found in structure 
-                if node isa EMG.Transmission
-                    for mode ∈ node.modes 
-                        push!(availableData, [dict, mode, node])
+            elseif typeof(gui.model[dict]) <: JuMP.Containers.SparseAxisArray
+                if any([typeof(x) <: Union{EMB.Node, EMB.Link, EMG.Area} for x in first(gui.model[dict].data)[1]]) # nodes/area/links found in structure
+                    if !isnothing(node)
+                        extractCombinations!(availableData, dict, node, gui.model)
                     end
-                    
-                end
-            elseif isnothing(node)
-                if length(axes(gui.model[dict])) > 1
-                    for res ∈ gui.model[dict].axes[2]
-                        push!(availableData, [dict, res, node])
-                    end
-                else
-                    push!(availableData, [dict, node])
-                end
-            end
-        elseif typeof(gui.model[dict]) <: JuMP.Containers.SparseAxisArray
-            if any([typeof(x) <: Union{EMB.Node, EMB.Link, EMG.Area} for x in first(gui.model[dict].data)[1]]) # nodes/area/links found in structure
-                if !isnothing(node)
+                elseif isnothing(node)
                     extractCombinations!(availableData, dict, node, gui.model)
                 end
-            elseif isnothing(node)
-                extractCombinations!(availableData, dict, node, gui.model)
             end
         end
     end
-    availableData_strings::Vector{String} = Vector{String}(undef, length(availableData))
-    for (i, data) ∈ enumerate(availableData)
-        if length(data) == 2
-            availableData_strings[i] = string(data[1])
-        elseif length(data) == 3
-            availableData_strings[i] = "$(data[1]) ($(data[2]))"
-        elseif length(data) == 4
-            availableData_strings[i] = "$(data[1]), $(data[3]) ($(data[2]))"
+
+    # Add timedependent input data (if available)
+    if !isnothing(node)
+        for fieldName ∈ fieldnames(typeof(node))
+            field = getfield(node, fieldName)
+
+            if typeof(field) <: TS.TimeProfile
+                push!(availableData, Dict(:name => fieldName, :isJuMPdata => false, :selection => [node]))
+            elseif field isa Dict
+                for (dictname, dictvalue) ∈ field
+                    if typeof(dictvalue) <: TS.TimeProfile
+                        push!(availableData, Dict(:name => "$fieldName.$dictname", :isJuMPdata => false, :selection => [node]))
+                    end
+                end
+            elseif field isa Vector{<:EMG.TransmissionMode}
+                for mode ∈ field
+                    for mode_fieldName ∈ fieldnames(typeof(mode))
+                        mode_field = getfield(mode, mode_fieldName)
+                        if typeof(mode_field) <: TS.TimeProfile
+                            push!(availableData, Dict(:name => "$mode_fieldName", :isJuMPdata => false, :selection => [mode]))
+                        end
+                    end
+                end
+            end
         end
     end
+    availableData_strings::Vector{String} = createLabel.(availableData)
 
     gui.menus[:availableData].options = zip(availableData_strings, availableData)
 
@@ -1229,6 +1235,131 @@ function updateAvailableDataMenu!(gui::GUI, node)
 end
 
 """
+    getData(model::JuMP.Model, selection::Dict{Symbol, Any}, T::TS.TimeStructure, period::TS.StrategicPeriod)
+
+Get the values from the JuMP `model` or the input data for at `selection` for all times `T` restricted to `period`
+"""
+function getData(model::JuMP.Model, selection::Dict, T::TS.TimeStructure, period::TS.StrategicPeriod)
+    if selection[:isJuMPdata] # Model results
+        return getJuMPvalues(model, selection[:name], selection[:selection], T, period)
+    else
+        if '.' ∈ String(selection[:name])
+            colon_index = findfirst(isequal('.'), selection[:name])
+            field = selection[:name][1:colon_index-1]
+            field_sub = selection[:name][colon_index+1:end]
+            fieldData = getfield(selection[:selection][1], Symbol(field))[Symbol(field_sub)]
+        else
+            fieldData = getfield(selection[:selection][1], Symbol(selection[:name]))
+        end
+        x_values, xIsStrategicPeriod = getTimeValues(T, typeof(fieldData), period)
+        if :vals ∈ fieldnames(typeof(fieldData))
+            if fieldData isa TS.StrategicProfile
+                y_values = fieldData.vals[period.sp].vals
+            else
+                y_values = fieldData.vals
+            end
+        elseif :val ∈ fieldnames(typeof(fieldData))
+            y_values = [fieldData.val]
+        else
+            @error "Could not extract y-data from structure"
+        end
+        return x_values, y_values, xIsStrategicPeriod
+    end
+end
+
+"""
+    getJuMPvalues(model::JuMP.Model, dict::Symbol, selection::Vector{Any}, T::TS.TimeStructure, period::TS.StrategicPeriod)
+
+Get the values from the JuMP `model` for dictionary `dict` at `selection` for all times `T` restricted to `period`
+"""
+function getJuMPvalues(model::JuMP.Model, dict::Symbol, selection::Vector, T::TS.TimeStructure, period::TS.StrategicPeriod)
+    i_T, type = getTimeAxis(model[dict])
+    x_values, xIsStrategicPeriod = getTimeValues(T, type, period)
+    y_values::Vector{Float64} = if xIsStrategicPeriod
+        [value(model[dict][vcat(selection[1:i_T-1], t, selection[i_T:end])...]) for t ∈ TS.strat_periods(T)]
+    else
+        [value(model[dict][vcat(selection[1:i_T-1], t, selection[i_T:end])...]) for t ∈ T if t.sp == period.sp]
+    end
+    return x_values, y_values, xIsStrategicPeriod
+end
+
+"""
+    getTimeValues(T::TS.TimeStructure, type::DataType)
+
+Get the time values for a given time type (TS.StrategicPeriod or TS.OperationalPeriod)
+"""
+function getTimeValues(T::TS.TimeStructure, type::DataType, period::TS.StrategicPeriod)
+    xIsStrategicPeriod = type <: TS.StrategicPeriod
+    if xIsStrategicPeriod
+        return [t.sp for t ∈ TS.strat_periods(T)], xIsStrategicPeriod
+    else
+        return [t.period.op for t ∈ T if t.sp == period.sp], xIsStrategicPeriod
+    end
+end
+
+"""
+    getTimeAxis(data::Union{JuMP.Containers.DenseAxisArray, JuMP.Containers.SparseAxisArray})
+
+Get the index of the axis/column corresponding to TS.TimePeriod and return the specific type
+"""
+function getTimeAxis(data::Union{JuMP.Containers.DenseAxisArray, JuMP.Containers.SparseAxisArray})
+    types::Vector{DataType} = collect(getJumpAxisTypes(data))
+    i_T::Union{Int64, Nothing} = findfirst(x -> x <: TS.TimePeriod, types)
+    if isnothing(i_T)
+        return i_T, nothing
+    else
+        return i_T, types[i_T]
+    end
+end
+
+"""
+    getJumpAxisTypes(data::JuMP.Containers.DenseAxisArray)
+
+Get the types for each axis in the Jump container DenseAxisArray
+"""
+function getJumpAxisTypes(data::JuMP.Containers.DenseAxisArray)
+    return eltype.(axes(data))
+end
+
+"""
+    getJumpAxisTypes(data::JuMP.Containers.SparseAxisArray)
+
+Get the types for each column in the Jump container SparseAxisArray
+"""
+function getJumpAxisTypes(data::JuMP.Containers.SparseAxisArray)
+    return typeof.(first(data.data)[1])
+end
+
+"""
+    createLabel(selection::Vector{Any})
+
+Return a label for a given selection to be used in the gui.menus[:availableData] menu
+"""
+function createLabel(selection::Dict{Symbol, Any})
+    label::String = selection[:isJuMPdata] ? "" : "Input data: "
+    label *= string(selection[:name])
+    otherRes::Bool = false
+    if length(selection) > 1
+        for select ∈ selection[:selection]
+            if !(select isa Plotable)
+                if !otherRes
+                    label *= " ("
+                    otherRes = true
+                end
+                label *= "$(select)"
+                if select != selection[:selection][end]
+                    label *= ", "
+                end
+            end
+        end
+        if otherRes
+            label *= ")"
+        end
+    end
+    return label
+end
+
+"""
     updatePlot!(gui::GUI, node)
 
 Based on `node` update the results in `gui.axes[:opAn]`
@@ -1236,51 +1367,14 @@ Based on `node` update the results in `gui.axes[:opAn]`
 function updatePlot!(gui::GUI, node::Plotable)
     T = gui.root_design.system[:T]
     selection = gui.menus[:availableData].selection[]
-    @debug "selection = $(selection)"
     if !isnothing(selection)
-        xIsStrategicPeriod::Bool = false
-        if typeof(gui.model[selection[1]]) <: JuMP.Containers.DenseAxisArray
-            if any([eltype(a) <: TS.StrategicPeriod for a in axes(gui.model[selection[1]])])
-                xIsStrategicPeriod = true
-            end
-        elseif typeof(gui.model[selection[1]]) <: JuMP.Containers.SparseAxisArray
-            if any([typeof(x) <: TS.StrategicPeriod for x in first(gui.model[selection[1]].data)[1]]) # nodes/area/links found in structure
-                xIsStrategicPeriod = true
-            end
-        end
-        if xIsStrategicPeriod
-            x_values = [t.sp for t ∈ TS.strat_periods(T)]
-        else
-            x_values = [t.period.op for t ∈ T if t.sp == gui.menus[:period].selection[].sp]
-        end
-        @debug "Computed y_values based on $(selection[1])"
-        label = string(selection[1])
         xlabel = "Time"
-        ylabel = string(selection[1])
-        @debug "period = $(gui.menus[:period].selection[])"
+        ylabel = string(selection[:name])
+        period = gui.menus[:period].selection[]
 
-        if length(selection) == 2
-            if xIsStrategicPeriod
-                if isnothing(node); return; end
-                y_values = [value(gui.model[selection[1]][node,t]) for t ∈ TS.strat_periods(T)]
-            else
-                if isnothing(node); return; end
-                y_values = [value(gui.model[selection[1]][node,t]) for t ∈ T if t.sp == gui.menus[:period].selection[].sp]
-            end
-        elseif length(selection) == 3
-            if isnothing(selection[end])
-                if xIsStrategicPeriod
-                    y_values = [value(gui.model[selection[1]][t,selection[2]]) for t ∈ TS.strat_periods(T)]
-                else
-                    y_values = [value(gui.model[selection[1]][t,selection[2]]) for t ∈ T if t.sp == gui.menus[:period].selection[].sp]
-                end
-            else
-                y_values = [value(gui.model[selection[1]][node,t,selection[2]]) for t ∈ T if t.sp == gui.menus[:period].selection[].sp]
-            end
-        end
-        if length(selection) > 1
-            label *= " ($(selection[2]))"
-        end
+        x_values, y_values, xIsStrategicPeriod = getData(gui.model, selection, T, period)
+
+        label::String = createLabel(selection)
         if !isnothing(node)
             label *= " for $node"
         end 
@@ -1288,14 +1382,13 @@ function updatePlot!(gui::GUI, node::Plotable)
             xlabel *= " (StrategicPeriod)"
         else
             xlabel *= " (OperationalPeriod)"
-            label *= " for strategic period $(gui.menus[:period].selection[])"
+            label *= " for strategic period $period"
         end
 
         if xIsStrategicPeriod
             points = [Point{2, Float64}(x, y) for (x, y) ∈ zip(x_values,y_values)]
         else
-            @debug "Stepifying x = $x_values, and y = $y_values"
-            x_valuesStep, y_valuesStep = stepify(x_values,y_values)
+            x_valuesStep, y_valuesStep = stepify(vec(x_values),vec(y_values))
             points = [Point{2, Float64}(x, y) for (x, y) ∈ zip(x_valuesStep,y_valuesStep)]
         end
         plotObjs = gui.axes[:opAn].scene.plots
@@ -1304,14 +1397,13 @@ function updatePlot!(gui::GUI, node::Plotable)
             @debug "First plot generated"
             barplot!(gui.axes[:opAn], points, strokecolor = :black, strokewidth = 1)
             lines!(gui.axes[:opAn], points)
-            gui.vars[:opAnLegend] = axislegend(gui.axes[:opAn], [plotObjs[i_plot]], [label], labelsize = gui.vars[:fontsize]) # Add legends inside axes[:opAn] area
         else
             @debug "Updating results plot"
             plotObjs[1][1][] = points
             plotObjs[2][1][] = points
             delete!(gui.vars[:opAnLegend])
-            gui.vars[:opAnLegend] = axislegend(gui.axes[:opAn], [plotObjs[i_plot]], [label], labelsize = gui.vars[:fontsize]) # Add legends inside axes[:opAn] area
         end
+        gui.vars[:opAnLegend] = axislegend(gui.axes[:opAn], [plotObjs[i_plot]], [label], labelsize = gui.vars[:fontsize]) # Add legends inside axes[:opAn] area
         plotObjs[1].visible = xIsStrategicPeriod
         plotObjs[2].visible = !xIsStrategicPeriod
         @debug "Creating legend"
@@ -1342,7 +1434,6 @@ Based on `design.system[:node]` update the results in `gui.axes[:opAn]`
 function updatePlot!(gui::GUI, design::EnergySystemDesign)
     updatePlot!(gui, design.system[:node])
 end
-
 
 """
     updateInfoBox!(gui::GUI, node; indent::Int64 = 0)
