@@ -15,6 +15,34 @@ function installed()
 end
 
 """
+    getRepresentativePeriodIndices(T::TS.TimeStructure, sp::Int64, sc::Int64)
+
+Return indices of the representative periods for strategic period number sp and scenario sc
+"""
+function getRepresentativePeriodIndices(T::TS.TimeStructure, sp::Int64, sc::Int64)
+    if eltype(T.operational) <: TS.OperationalScenarios 
+        if eltype(T.operational[sp].scenarios) <: TS.RepresentativePeriods 
+            return (1:T.operational[sp].scenarios[sc].len)
+        else
+            return (1:T.operational[sp].len)
+        end
+    elseif eltype(T.operational) <: TS.RepresentativePeriods 
+        return (1:T.operational[sp].len)
+    else
+        return [1]
+    end
+end
+
+"""
+    getScenarioIndices(T::TS.TimeStructure, sp::Int64)
+
+Return indices of the scenarios for stratigic period number sp
+"""
+function getScenarioIndices(T::TS.TimeStructure, sp::Int64)
+    return eltype(T.operational) <: TS.OperationalScenarios ? (1:T.operational[sp].len) : [1]
+end
+
+"""
     squareIntersection(c::Vector{Tc}, x::Vector{Tx}, θ::Tθ, Δ::TΔ) where {Tc<:Real, Tx<:Real, Tθ<:Real, TΔ<:Real}
 
 Calculate the intersection point between a line starting at `x` and direction described by `θ` and a square with half side lengths `Δ` centered at center `c`  	
@@ -215,6 +243,7 @@ function setColors(products::Vector{S}, productsColors::Vector{T}) where {S <: E
     end
     if length(products) != length(productsColors)
         @error "The input vectors must have same lengths."
+        return
     end
     for (i, product) ∈ enumerate(products)
         if productsColors[i] isa Symbol || productsColors[i] isa RGB || productsColors[i][1] == '#'
@@ -257,6 +286,7 @@ function setIcons(nodes::Vector{S}, icons::Vector{T}) where {S <: EMB.Node, T <:
     end
     if length(nodes) != length(icons)
         @error "The input vectors must have same lengths."
+        return
     end
     for (i, node) ∈ enumerate(nodes)
         idToIconMap[node.id] = "" # if not found
@@ -476,3 +506,18 @@ EMB.inputs(n::Availability, p::Resource) = 1
 EMB.outputs(::Sink) = []
 EMB.outputs(n::Availability, p::Resource) = 1
 EMB.outputs(n::Sink, p::Resource) = nothing
+
+"""
+    addInspectorToPoly!(p::Makie.AbstractPlot, inspector_label::Function)
+
+Add inspector_label for Poly and Mesh plots in Makie
+"""
+function addInspectorToPoly!(p::Makie.AbstractPlot, inspector_label::Function)
+    for p_sub ∈ p.plots
+        if :plots ∈ fieldnames(typeof(p_sub))
+            addInspectorToPoly!(p_sub, inspector_label)
+        end
+        p_sub.inspector_label = inspector_label
+        p_sub.inspectable[] = true
+    end
+end

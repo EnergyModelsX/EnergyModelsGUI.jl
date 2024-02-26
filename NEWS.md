@@ -1,5 +1,18 @@
 # Release notes
 
+Version 0.3.3 (2024-02-26)
+--------------------------
+### Adjustment
+* The labels now only show the node `id` and only used the Base.show function if `id` is a `Number`. Moreover, the type (in parantheses) was removed (this info is now shown on hovering)
+
+### Bugfix
+* Fixed legends not properly updating (old legend was not deleted) for `gui.axes[:results]`
+
+### Enhancement
+* Support for RepresentativePeriods added
+* Support for Scenarios added
+* Added Makie inspector functionality such that hovering results axis displays coordinate and hovering topology shows type information
+
 Version 0.3.2 (2024-02-23)
 --------------------------
 ### Adjustment
