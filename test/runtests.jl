@@ -81,8 +81,8 @@ end
         availableData = [x[1] for x in collect(gui.menus[:availableData].options[])]
         i_selected = findfirst(x -> x == "flow_out (CO2)", availableData)
         gui.menus[:availableData].i_selected = i_selected # Select flow_out (CO2)
-        println("Value is $(gui.axes[:opAn].scene.plots[2][1][][10][2])")
-        gui.axes[:opAn].scene.plots[2][1][][10][2] ≈ 6.378697 # Check a value (flow_out (CO2)) plotted at axes[:opAn]
+        println("Value is $(gui.axes[:results].scene.plots[2][1][][10][2])")
+        gui.axes[:results].scene.plots[2][1][][10][2] ≈ 6.378697 # Check a value (flow_out (CO2)) plotted at axes[:opAn]
     end
 
     # EnergyModulesRenewableProducers examples

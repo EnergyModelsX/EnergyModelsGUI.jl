@@ -1,5 +1,5 @@
 # Create a type for all Clickable objects in the gui.axes[:topo]
-const Plotable = Union{Nothing, EMB.Node, EMB.Link, EMG.Area, EMG.Transmission} # Types that can trigger an update in the gui.axes[:opAn] plot
+const Plotable = Union{Nothing, EMB.Node, EMB.Link, EMG.Area, EMG.Transmission} # Types that can trigger an update in the gui.axes[:results] plot
 
 """
     GUI(case, path; idToColorMap, idToIconMap, model::JuMP.Model = JuMP.Model())
@@ -96,7 +96,7 @@ function GUI(case::Dict; design_path::String = "", idToColorMap::Dict{Any,Any} =
         )
 
         if vars[:coarseCoastLines] # Use low resolution coast lines
-            lines!(ax, GeoMakie.coastlines())
+            coastlns = lines!(ax, GeoMakie.coastlines(), inspectable = false)
         else # Use high resolution coast lines
 
             # Define the URL and the local file path
@@ -113,11 +113,12 @@ function GUI(case::Dict; design_path::String = "", idToColorMap::Dict{Any,Any} =
 
             # Now read the data from the file
             countries::GeoJSON.FeatureCollection{2, Float32} = GeoJSON.read(read(local_file_path, String))
-            poly!(ax, countries; 
+            coastlns = poly!(ax, countries; 
                 color = :honeydew, 
                 colormap = :dense,
                 strokecolor = :gray50, 
                 strokewidth = 0.5,
+                inspectable = false,
             )
         end
     else # The root_design does not use the EnergyModelsGeography package: Create a simple Makie axis
@@ -132,10 +133,19 @@ function GUI(case::Dict; design_path::String = "", idToColorMap::Dict{Any,Any} =
     axResults::Axis = Axis(gridlayout_resultsAx[1,1], alignmode=Outside(), tellheight=false, tellwidth=false)
 
     # Collect all strategic periods
-    periods::Vector{TimeStruct.StrategicPeriod} = [t for t in TS.strat_periods(root_design.system[:T])]
+    T = root_design.system[:T]
+    periods::Vector{Int64} = 1:T.len
 
-    # If no periods_labels are given, simply convert values to strings
+    # Initialize representativePeriods to be the representativePeriod of the first strategic period
+    representativePeriods::Vector{Int64} = getRepresentativePeriodIndices(T, 1, 1)
+
+    # Initialize scenarios to be the scenario of the first strategic period
+    scenarios::Vector{Int64} = getScenarioIndices(T, 1)
+
+    # Create labels
     periods_labels::Vector{String} = string.(periods)
+    scenarios_labels::Vector{String} = string.(scenarios)
+    representativePeriods_labels::Vector{String} = string.(representativePeriods)
 
     # Create legend to explain the available resources in the root_design model
     markers::Vector{Makie.Scatter}   = Vector{Makie.Scatter}(undef,0)
@@ -162,40 +172,45 @@ function GUI(case::Dict; design_path::String = "", idToColorMap::Dict{Any,Any} =
     save_button             = Makie.Button(gridlayout_buttons[1, 5]; label = "save", fontsize = vars[:fontsize])
     resetView_button        = Makie.Button(gridlayout_buttons[1, 6]; label = "reset view", fontsize = vars[:fontsize])
 
-    # Add the following to separate the buttons (related to axes[:topo]) to the left and the menus (related to axes[:opAn]) to the right
+    # Add the following to separate the buttons (related to axes[:topo]) to the left and the menus (related to axes[:results]) to the right
     Makie.Label(gridlayout_buttons[1, 7], ""; tellwidth = false) 
 
     # Add buttons related to the axResults object (where the optimization results are plotted) 
     #investmentPlan_label    = Makie.Label(gridlayout_buttons[1, 8], "Investment plan:"; halign = :left, fontsize = vars[:fontsize], justification = :left)
     #investmentPlan_menu     = Makie.Menu(gridlayout_buttons[1, 9], halign = :left, width=100, fontsize = vars[:fontsize])
-    period_label            = Makie.Makie.Label(gridlayout_buttons[1, 10], "Period:"; halign = :right, fontsize = vars[:fontsize], justification = :right)
-    period_menu             = Makie.Menu(gridlayout_buttons[1, 11], options = zip(periods_labels, periods), default = periods_labels[1], halign = :left, width=100, fontsize = vars[:fontsize])
-    #segment_label           = Makie.Label(gridlayout_buttons[1, 12], "Segment:"; halign = :right, fontsize = vars[:fontsize], justification = :right)
-    #segment_menu            = Makie.Menu(gridlayout_buttons[1, 13], halign = :left, width=100, fontsize = vars[:fontsize])
-    #scenario_label          = Makie.Label(gridlayout_buttons[1, 14], "Scenario:"; halign = :left, fontsize = vars[:fontsize], justification = :left)
-    #scenario_menu           = Makie.Menu(gridlayout_buttons[1, 15], halign = :left, width=200, fontsize = vars[:fontsize])
-    availableData_label     = Makie.Label(gridlayout_buttons[1, 12], "Available data:"; halign = :right, fontsize = vars[:fontsize], justification = :right)
-    availableData_menu      = Makie.Menu(gridlayout_buttons[1, 13], halign = :left, width=300, fontsize = vars[:fontsize])
+    period_label               = Makie.Label(gridlayout_buttons[1, 10], "Period:"; halign = :right, fontsize = vars[:fontsize], justification = :right)
+    period_menu                = Makie.Menu( gridlayout_buttons[1, 11], options = zip(periods_labels, periods), default = periods_labels[1], halign = :left, width=40, fontsize = vars[:fontsize])
+    scenario_label             = Makie.Label(gridlayout_buttons[1, 12], "Scenario:"; halign = :left, fontsize = vars[:fontsize], justification = :left)
+    scenario_menu              = Makie.Menu( gridlayout_buttons[1, 13], options = zip(scenarios_labels, scenarios), default = scenarios_labels[1], halign = :left, width=40, fontsize = vars[:fontsize])
+    representativePeriod_label = Makie.Label(gridlayout_buttons[1, 14], "Representative period:"; halign = :right, fontsize = vars[:fontsize], justification = :right)
+    representativePeriod_menu  = Makie.Menu( gridlayout_buttons[1, 15], options = zip(representativePeriods_labels, representativePeriods), default = representativePeriods_labels[1], halign = :left, width=40, fontsize = vars[:fontsize])
+    availableData_label        = Makie.Label(gridlayout_buttons[1, 16], "Available data:"; halign = :right, fontsize = vars[:fontsize], justification = :right)
+    availableData_menu         = Makie.Menu( gridlayout_buttons[1, 17], halign = :left, width=300, fontsize = vars[:fontsize])
 
     # Collect all menus into a dictionary
-    buttons::Dict{Symbol, Makie.Button} = Dict(:align_horizontal => align_horizontal_button, 
-                                               :align_vertical => align_vertical_button, 
-                                               :open => open_button, 
-                                               :up => up_button, 
-                                               :save => save_button,
-                                               :resetView => resetView_button,
-                                               )
+    buttons::Dict{Symbol, Makie.Button} = Dict(
+        :align_horizontal => align_horizontal_button, 
+        :align_vertical => align_vertical_button, 
+        :open => open_button, 
+        :up => up_button, 
+        :save => save_button,
+        :resetView => resetView_button,
+    )
 
     # Collect all menus into a dictionary
-    menus::Dict{Symbol, Makie.Menu} = Dict(:period => period_menu, 
-                                           :availableData => availableData_menu
-                                           )
+    menus::Dict{Symbol, Makie.Menu} = Dict(
+        :period => period_menu, 
+        :scenario => scenario_menu,
+        :representativePeriod => representativePeriod_menu,
+        :availableData => availableData_menu,
+    )
 
     # Collect all axes into a dictionary
-    axes::Dict{Symbol, Makie.Block} = Dict(:topo => ax, 
-                                           :opAn => axResults,
-                                           :info => axInfo
-                                           )
+    axes::Dict{Symbol, Makie.Block} = Dict(
+        :topo => ax, 
+        :results => axResults,
+        :info => axInfo,
+    )
 
     ## Create the main structure for the EnergyModelsGUI
     gui::GUI = GUI(fig, axes, buttons, menus, root_design, design, model, vars)
@@ -411,6 +426,42 @@ function GUI(case::Dict; design_path::String = "", idToColorMap::Dict{Any,Any} =
     
     # Period menu: Handle menu selection (selecting period)
     on(period_menu.selection, priority=10) do _
+        # Initialize representativePeriods to be the representativePeriods of the first operational period
+        currentRepresentativePeriod = gui.menus[:representativePeriod].selection[]
+        representativePeriodsInPeriod = getRepresentativePeriodIndices(T, gui.menus[:period].selection[], gui.menus[:scenario].selection[])
+        gui.menus[:representativePeriod].options = zip(string.(representativePeriodsInPeriod), representativePeriodsInPeriod)
+
+        # If previously chosen representativePeriod is out of range, update it to be the largest number available
+        if length(representativePeriodsInPeriod) < currentRepresentativePeriod
+            gui.menus[:representativePeriod].i_selection = length(representativePeriodsInPeriod)
+        end
+        if isempty(gui.vars[:selected_systems])
+            updatePlot!(gui, nothing)
+        else
+            updatePlot!(gui, gui.vars[:selected_systems][end])
+        end
+    end
+    
+    # Scenario menu: Handle menu selection
+    on(scenario_menu.selection, priority=10) do _
+        # Initialize representativePeriods to be the representativePeriods of the first operational period
+        currentScenario = gui.menus[:representativePeriod].selection[]
+        scenariosInPeriod = getScenarioIndices(T, gui.menus[:period].selection[])
+        gui.menus[:scenario].options = zip(string.(scenariosInPeriod), scenariosInPeriod)
+
+        # If previously chosen representativePeriod is out of range, update it to be the largest number available
+        if length(scenariosInPeriod) < currentScenario
+            gui.menus[:scenario].i_selection = length(scenariosInPeriod)
+        end
+        if isempty(gui.vars[:selected_systems])
+            updatePlot!(gui, nothing)
+        else
+            updatePlot!(gui, gui.vars[:selected_systems][end])
+        end
+    end
+    
+    # Representative period menu: Handle menu selection
+    on(representativePeriod_menu.selection, priority=10) do _
         if isempty(gui.vars[:selected_systems])
             updatePlot!(gui, nothing)
         else
@@ -435,6 +486,9 @@ function GUI(case::Dict; design_path::String = "", idToColorMap::Dict{Any,Any} =
     # make sure all graphics is adapted to the spawned figure sizes
     notify(pixelarea(gui.axes[:topo].scene))
     update_distances!(gui)
+
+    # Enable inspector (such that hovering objects shows information)
+    DataInspector(fig, range = 10, indicator_linewidth = 0) # Linewidth set to zero as this boundary is slightly laggy on movement
 
     # display the figure
     display(gui.fig)
@@ -687,8 +741,8 @@ function connect!(gui::GUI, connection::Tuple{EnergySystemDesign,EnergySystemDes
             ys::Vector{Float64} = [xy_start[2], parm*sinθ + xy_start[2]]
                 
             if length(halfArrows[]) < j
-                sctr = scatter!(gui.axes[:topo], xy_midpoint[1], xy_midpoint[2], marker = arrowParts[j], markersize = gui.vars[:markersize], rotations = θ, color=colors[j])
-                lns = lines!(gui.axes[:topo], xs, ys; color = colors[j], linewidth = gui.vars[:connectionLinewidth], linestyle = get_style(gui,connection))
+                sctr = scatter!(gui.axes[:topo], xy_midpoint[1], xy_midpoint[2], marker = arrowParts[j], markersize = gui.vars[:markersize], rotations = θ, color=colors[j], inspectable = false)
+                lns = lines!(gui.axes[:topo], xs, ys; color = colors[j], linewidth = gui.vars[:connectionLinewidth], linestyle = get_style(gui,connection), inspector_label = (self, i, p) -> getHoverString(connection[3][:connection]), inspectable = true)
                 Makie.translate!(sctr, 0,0,1001)
                 Makie.translate!(lns, 0,0,1000)
                 push!(halfArrows[], sctr)
@@ -790,7 +844,8 @@ function draw_box!(gui::GUI, design::EnergySystemDesign)
     vertices::Vector{Tuple{Real,Real}} = [(x, y) for (x, y) in zip(xo[][1:end-1], yo[][1:end-1])]
     whiteRect = Observable(Makie.GeometryBasics.HyperRectangle{2, Int64})
 
-    whiteRect = poly!(gui.axes[:topo], vertices, color=:white,strokewidth=0) # Create a white background rectangle to hide lines from connections
+    whiteRect = poly!(gui.axes[:topo], vertices, color=:white,strokewidth=0, inspectable = false) # Create a white background rectangle to hide lines from connections
+    addInspectorToPoly!(whiteRect, (self, i, p) -> getHoverString(design.system[:node]))
     Makie.translate!(whiteRect, 0,0,1004)
     push!(design.plotObj, whiteRect)
 
@@ -811,7 +866,8 @@ function draw_box!(gui::GUI, design::EnergySystemDesign)
         yo2::Observable{Vector{Real}} = Observable(zeros(5))
         vertices2::Vector{Tuple{Real,Real}} = [(x, y) for (x, y) in zip(xo2[][1:end-1], yo2[][1:end-1])]
         
-        whiteRect2 = poly!(gui.axes[:topo], vertices2, color=:white,strokewidth=0) # Create a white background rectangle to hide lines from connections
+        whiteRect2 = poly!(gui.axes[:topo], vertices2, color=:white,strokewidth=0, inspectable = false) # Create a white background rectangle to hide lines from connections
+        addInspectorToPoly!(whiteRect2, (self, i, p) -> getHoverString(design.system[:node]))
         Makie.translate!(whiteRect2, 0,0,1001)
         push!(design.plotObj, whiteRect2)
 
@@ -825,12 +881,12 @@ function draw_box!(gui::GUI, design::EnergySystemDesign)
         end
 
 
-        boxBoundary2 = lines!(gui.axes[:topo], xo2, yo2; color = design.color, linewidth=gui.vars[:linewidth],linestyle = style)
+        boxBoundary2 = lines!(gui.axes[:topo], xo2, yo2; color = design.color, linewidth=gui.vars[:linewidth],linestyle = style, inspectable = false)
         Makie.translate!(boxBoundary2, 0,0,1002)
         push!(design.plotObj, boxBoundary2)
     end
 
-    boxBoundary = lines!(gui.axes[:topo], xo, yo; color = design.color, linewidth=gui.vars[:linewidth],linestyle = style)
+    boxBoundary = lines!(gui.axes[:topo], xo, yo; color = design.color, linewidth=gui.vars[:linewidth],linestyle = style, inspectable = false)
     Makie.translate!(boxBoundary, 0,0,1005)
     push!(design.plotObj, boxBoundary)
 end
@@ -875,8 +931,9 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
                 end
                 sector = getSectorPoints()
 
-                networkPoly = poly!(gui.axes[:topo], sector, color=color)
-                Makie.translate!(networkPoly, 0,0,2000)
+                networkPoly = poly!(gui.axes[:topo], sector, color=color, inspectable = false)
+                addInspectorToPoly!(networkPoly, (self, i, p) -> getHoverString(design.system[:node]))
+                Makie.translate!(networkPoly, 0,0,2001)
                 push!(design.plotObj, networkPoly)
                 on(design.xy, priority = 3) do c
                     Δ = gui.vars[:Δh][] * gui.vars[:icon_scale]/2
@@ -888,8 +945,8 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
 
         if node isa EMB.NetworkNode
             # Add a vertical white separation line to distinguis input resources from output resources
-            separationLine = lines!(gui.axes[:topo],[0.0,1.0],[0.0,1.0],color=:white,linewidth=gui.vars[:Δh_px]/25)
-            Makie.translate!(separationLine, 0,0,2001)
+            separationLine = lines!(gui.axes[:topo],[0.0,1.0],[0.0,1.0],color=:white,linewidth=gui.vars[:Δh_px]/25, inspector_label = (self, i, p) -> getHoverString(design.system[:node]), inspectable = true)
+            Makie.translate!(separationLine, 0,0,2002)
             push!(design.plotObj, separationLine)
             on(design.xy, priority = 3) do center
                 radius = gui.vars[:Δh][] * gui.vars[:icon_scale]/2
@@ -898,7 +955,7 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
         end
     else
         @debug "$(design.icon)"
-        icon_image = image!(gui.axes[:topo], xo, yo, rotr90(load(design.icon)))
+        icon_image = image!(gui.axes[:topo], xo, yo, rotr90(load(design.icon)), inspectable = false)
         Makie.translate!(icon_image, 0,0,2000)
         push!(design.plotObj, icon_image)
     end
@@ -939,7 +996,9 @@ function draw_label!(gui::GUI, component::EnergySystemDesign)
 
     end
     if haskey(component.system,:node)
-        label_text = text!(gui.axes[:topo], xo, yo; text = "$(string(component.system[:node]))\n($(nameof(typeof(component.system[:node]))))", align = alignment, fontsize=gui.vars[:fontsize])
+        node = component.system[:node]
+        label = node.id isa Number ? string(node) : string(node.id)
+        label_text = text!(gui.axes[:topo], xo, yo; text = label, align = alignment, fontsize=gui.vars[:fontsize], inspectable = false)
         Makie.translate!(label_text, 0,0,2001)
         push!(component.plotObj, label_text)
     end
@@ -1110,7 +1169,7 @@ end
 """
     update!(gui::GUI, node::Plotable; updateplot::Bool = true)
 
-Based on `node`, update the text in `gui.axes[:info]` and update plot in `gui.axes[:opAn]` if `updateplot = true`
+Based on `node`, update the text in `gui.axes[:info]` and update plot in `gui.axes[:results]` if `updateplot = true`
 """
 function update!(gui::GUI, node::Plotable; updateplot::Bool = true)
     updateInfoBox!(gui, node)
@@ -1123,7 +1182,7 @@ end
 """
     update!(gui::GUI, connection::Dict{Symbol, Any}; updateplot::Bool = true)
 
-Based on `connection[:connection]`, update the text in `gui.axes[:info]` and update plot in `gui.axes[:opAn]` if `updateplot = true`
+Based on `connection[:connection]`, update the text in `gui.axes[:info]` and update plot in `gui.axes[:results]` if `updateplot = true`
 """
 function update!(gui::GUI, connection::Dict{Symbol, Any}; updateplot::Bool = true)
     update!(gui, connection[:connection]; updateplot)
@@ -1132,7 +1191,7 @@ end
 """
     update!(gui::GUI, design::EnergySystemDesign; updateplot::Bool = true)
 
-Based on `design.system[:node]`, update the text in `gui.axes[:info]` and update plot in `gui.axes[:opAn]` if `updateplot = true`
+Based on `design.system[:node]`, update the text in `gui.axes[:info]` and update plot in `gui.axes[:results]` if `updateplot = true`
 """
 function update!(gui::GUI, design::EnergySystemDesign; updateplot::Bool = true)
     update!(gui, design.system[:node]; updateplot)
@@ -1235,13 +1294,13 @@ function updateAvailableDataMenu!(gui::GUI, node::Plotable)
 end
 
 """
-    getData(model::JuMP.Model, selection::Dict{Symbol, Any}, T::TS.TimeStructure, period::TS.StrategicPeriod)
+    getData(model::JuMP.Model, selection::Dict{Symbol, Any}, T::TS.TimeStructure, period::Int64, scenario::Int64, representativePeriod::Int64)
 
 Get the values from the JuMP `model` or the input data for at `selection` for all times `T` restricted to `period`
 """
-function getData(model::JuMP.Model, selection::Dict, T::TS.TimeStructure, period::TS.StrategicPeriod)
+function getData(model::JuMP.Model, selection::Dict, T::TS.TimeStructure, period::Int64, scenario::Int64, representativePeriod::Int64)
     if selection[:isJuMPdata] # Model results
-        return getJuMPvalues(model, selection[:name], selection[:selection], T, period)
+        return getJuMPvalues(model, selection[:name], selection[:selection], T, period, scenario, representativePeriod)
     else
         if '.' ∈ String(selection[:name])
             colon_index = findfirst(isequal('.'), selection[:name])
@@ -1251,10 +1310,14 @@ function getData(model::JuMP.Model, selection::Dict, T::TS.TimeStructure, period
         else
             fieldData = getfield(selection[:selection][1], Symbol(selection[:name]))
         end
-        x_values, xIsStrategicPeriod = getTimeValues(T, typeof(fieldData), period)
+        x_values, xIsStrategicPeriod = getTimeValues(T, typeof(fieldData), period, scenario, representativePeriod)
         if :vals ∈ fieldnames(typeof(fieldData))
             if fieldData isa TS.StrategicProfile
-                y_values = fieldData.vals[period.sp].vals
+                y_values = fieldData.vals[period].vals
+            elseif fieldData isa TS.ScenarioProfile
+                y_values = fieldData.vals[scenario].vals
+            elseif fieldData isa TS.RepresentativeProfile
+                y_values = fieldData.vals[representativePeriod].vals
             else
                 y_values = fieldData.vals
             end
@@ -1268,32 +1331,52 @@ function getData(model::JuMP.Model, selection::Dict, T::TS.TimeStructure, period
 end
 
 """
-    getJuMPvalues(model::JuMP.Model, dict::Symbol, selection::Vector{Any}, T::TS.TimeStructure, period::TS.StrategicPeriod)
+    getJuMPvalues(model::JuMP.Model, dict::Symbol, selection::Vector{Any}, T::TS.TimeStructure, period::Int64, scenario::Int64, representativePeriod::Int64)
 
 Get the values from the JuMP `model` for dictionary `dict` at `selection` for all times `T` restricted to `period`
 """
-function getJuMPvalues(model::JuMP.Model, dict::Symbol, selection::Vector, T::TS.TimeStructure, period::TS.StrategicPeriod)
+function getJuMPvalues(model::JuMP.Model, dict::Symbol, selection::Vector, T::TS.TimeStructure, period::Int64, scenario::Int64, representativePeriod::Int64)
     i_T, type = getTimeAxis(model[dict])
-    x_values, xIsStrategicPeriod = getTimeValues(T, type, period)
+    x_values, xIsStrategicPeriod = getTimeValues(T, type, period, scenario, representativePeriod)
     y_values::Vector{Float64} = if xIsStrategicPeriod
         [value(model[dict][vcat(selection[1:i_T-1], t, selection[i_T:end])...]) for t ∈ TS.strat_periods(T)]
     else
-        [value(model[dict][vcat(selection[1:i_T-1], t, selection[i_T:end])...]) for t ∈ T if t.sp == period.sp]
+        if eltype(T.operational) <: TS.RepresentativePeriods
+            [value(model[dict][vcat(selection[1:i_T-1], t, selection[i_T:end])...]) for t ∈ T if t.sp == period && t.period.rp == representativePeriod]
+        elseif eltype(T.operational) <: TS.OperationalScenarios
+            if eltype(T.operational[period].scenarios) <: TS.RepresentativePeriods
+                [value(model[dict][vcat(selection[1:i_T-1], t, selection[i_T:end])...]) for t ∈ T if t.sp == period && t.period.sc == scenario && t.period.period.rp == representativePeriod]
+            else
+                [value(model[dict][vcat(selection[1:i_T-1], t, selection[i_T:end])...]) for t ∈ T if t.sp == period && t.period.sc == scenario]
+            end
+        else
+            [value(model[dict][vcat(selection[1:i_T-1], t, selection[i_T:end])...]) for t ∈ T if t.sp == period]
+        end
     end
     return x_values, y_values, xIsStrategicPeriod
 end
 
 """
-    getTimeValues(T::TS.TimeStructure, type::DataType)
+    getTimeValues(T::TS.TimeStructure, type::DataType, period::Int64, scenario::Int64, representativePeriod::Int64)
 
 Get the time values for a given time type (TS.StrategicPeriod or TS.OperationalPeriod)
 """
-function getTimeValues(T::TS.TimeStructure, type::DataType, period::TS.StrategicPeriod)
+function getTimeValues(T::TS.TimeStructure, type::DataType, period::Int64, scenario::Int64, representativePeriod::Int64)
     xIsStrategicPeriod = type <: TS.StrategicPeriod
-    if xIsStrategicPeriod
+    if type <: TS.StrategicPeriod
         return [t.sp for t ∈ TS.strat_periods(T)], xIsStrategicPeriod
     else
-        return [t.period.op for t ∈ T if t.sp == period.sp], xIsStrategicPeriod
+        if eltype(T.operational) <: TS.RepresentativePeriods
+            return [t.period.period.op for t ∈ T if t.sp == period && t.period.rp == representativePeriod], xIsStrategicPeriod
+        elseif eltype(T.operational) <: TS.OperationalScenarios
+            if eltype(T.operational[period].scenarios) <: TS.RepresentativePeriods
+                return [t.period.period.period.op for t ∈ T if t.sp == period && t.period.sc == scenario && t.period.period.rp == representativePeriod], xIsStrategicPeriod
+            else
+                return [t.period.period.op for t ∈ T if t.sp == period && t.period.sc == scenario], xIsStrategicPeriod
+            end
+        else
+            return [t.period.op for t ∈ T if t.sp == period], xIsStrategicPeriod
+        end
     end
 end
 
@@ -1362,7 +1445,7 @@ end
 """
     updatePlot!(gui::GUI, node)
 
-Based on `node` update the results in `gui.axes[:opAn]`
+Based on `node` update the results in `gui.axes[:results]`
 """
 function updatePlot!(gui::GUI, node::Plotable)
     T = gui.root_design.system[:T]
@@ -1371,8 +1454,10 @@ function updatePlot!(gui::GUI, node::Plotable)
         xlabel = "Time"
         ylabel = string(selection[:name])
         period = gui.menus[:period].selection[]
+        representativePeriod = gui.menus[:representativePeriod].selection[]
+        scenario = gui.menus[:scenario].selection[]
 
-        x_values, y_values, xIsStrategicPeriod = getData(gui.model, selection, T, period)
+        x_values, y_values, xIsStrategicPeriod = getData(gui.model, selection, T, period, scenario, representativePeriod)
 
         label::String = createLabel(selection)
         if !isnothing(node)
@@ -1382,7 +1467,12 @@ function updatePlot!(gui::GUI, node::Plotable)
             xlabel *= " (StrategicPeriod)"
         else
             xlabel *= " (OperationalPeriod)"
-            label *= " for strategic period $period"
+
+            if eltype(T.operational) <: TS.RepresentativePeriods
+                label *= " for strategic period $period and representative period $representativePeriod"
+            else
+                label *= " for strategic period $period"
+            end
         end
 
         if xIsStrategicPeriod
@@ -1391,36 +1481,40 @@ function updatePlot!(gui::GUI, node::Plotable)
             x_valuesStep, y_valuesStep = stepify(vec(x_values),vec(y_values))
             points = [Point{2, Float64}(x, y) for (x, y) ∈ zip(x_valuesStep,y_valuesStep)]
         end
-        plotObjs = gui.axes[:opAn].scene.plots
+        plotObjs = gui.axes[:results].scene.plots
         i_plot::Int64 = xIsStrategicPeriod ? 1 : 2
         if length(plotObjs) < 1
             @debug "First plot generated"
-            barplot!(gui.axes[:opAn], points, strokecolor = :black, strokewidth = 1)
-            lines!(gui.axes[:opAn], points)
+            barplot!(gui.axes[:results], points, strokecolor = :black, strokewidth = 1)
+            lines!(gui.axes[:results], points)
+            gui.vars[:resultsLegend] = axislegend(gui.axes[:results], [plotObjs[i_plot]], [label], labelsize = gui.vars[:fontsize]) # Add legends inside axes[:results] area
         else
             @debug "Updating results plot"
             plotObjs[1][1][] = points
             plotObjs[2][1][] = points
-            delete!(gui.vars[:opAnLegend])
+            gui.vars[:resultsLegend].entrygroups[] = [
+                (nothing, [
+                    LegendEntry(label, plotObjs[i_plot], gui.vars[:resultsLegend]),
+                ])
+            ]
         end
-        gui.vars[:opAnLegend] = axislegend(gui.axes[:opAn], [plotObjs[i_plot]], [label], labelsize = gui.vars[:fontsize]) # Add legends inside axes[:opAn] area
         plotObjs[1].visible = xIsStrategicPeriod
         plotObjs[2].visible = !xIsStrategicPeriod
         @debug "Creating legend"
-        gui.axes[:opAn].xlabel = xlabel
-        gui.axes[:opAn].ylabel = ylabel
-        autolimits!(gui.axes[:opAn])
-        reset_limits!(gui.axes[:opAn])
-        yorigin::Float32 = gui.axes[:opAn].finallimits[].origin[2]
-        ywidth::Float32 = gui.axes[:opAn].finallimits[].widths[2]
-        ylims!(gui.axes[:opAn], yorigin, yorigin + ywidth*1.1) # ensure that the legend box does not overlap the data
+        gui.axes[:results].xlabel = xlabel
+        gui.axes[:results].ylabel = ylabel
+        autolimits!(gui.axes[:results])
+        reset_limits!(gui.axes[:results])
+        yorigin::Float32 = gui.axes[:results].finallimits[].origin[2]
+        ywidth::Float32 = gui.axes[:results].finallimits[].widths[2]
+        ylims!(gui.axes[:results], yorigin, yorigin + ywidth*1.1) # ensure that the legend box does not overlap the data
     end
 end
 
 """
     updatePlot!(gui::GUI, design::EnergySystemDesign)
 
-Based on `connection[:connection]` update the results in `gui.axes[:opAn]`
+Based on `connection[:connection]` update the results in `gui.axes[:results]`
 """
 function updatePlot!(gui::GUI, connection::Dict{Symbol,Any})
     updatePlot!(gui, connection[:connection])
@@ -1429,7 +1523,7 @@ end
 """
     updatePlot!(gui::GUI, design::EnergySystemDesign)
 
-Based on `design.system[:node]` update the results in `gui.axes[:opAn]`
+Based on `design.system[:node]` update the results in `gui.axes[:results]`
 """
 function updatePlot!(gui::GUI, design::EnergySystemDesign)
     updatePlot!(gui, design.system[:node])
@@ -1476,4 +1570,13 @@ function updateInfoBox!(gui::GUI, node; indent::Int64 = 0)
             end
         end
     end
+end
+
+"""
+    getHoverString(node::Plotable)
+
+Return the string for a Node/Area/Link/Transmission to be shown on hovering
+"""
+function getHoverString(node::Plotable)
+    return string(typeof(node))
 end

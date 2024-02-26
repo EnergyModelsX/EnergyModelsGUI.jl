@@ -247,9 +247,9 @@ end
 case, model = read_data()
 m = EMG.create_model(case, model)
 
+
 set_optimizer(m, optimizer_with_attributes(HiGHS.Optimizer, MOI.Silent() => true))
 optimize!(m)
-
 solution_summary(m)
 
 ## Code above identical to the example EnergyModelsBase.jl/examples/network.jl
