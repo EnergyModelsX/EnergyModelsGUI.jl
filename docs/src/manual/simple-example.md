@@ -24,5 +24,5 @@ Pkg.activate(exdir)
 Pkg.instantiate()
 
 # Include the code into the Julia REPL to run the following example
-include(joinpath(exdir, "EMG_geography.jl"))
+include(joinpath(exdir, "EMI_geography.jl"))
 ```
