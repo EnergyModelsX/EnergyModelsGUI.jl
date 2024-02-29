@@ -5,12 +5,12 @@ Version 0.3.4 (2024-02-29)
 ### Adjustment
 * Alter description on how examples should be run (use a seperate Project.toml file from the examples folder instead of the test folder)
 
+### Bugfix
+* Fixed bug for investments in transition cables not being dashed"
+
 ### Enhancement
 * Improved component movements responsitivity
 * Added internal types and methods to the documentation
-
-### Bugfix
-* Fixed bug for investments in transition cables not being dashed"
 
 Version 0.3.3 (2024-02-26)
 --------------------------
