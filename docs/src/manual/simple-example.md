@@ -13,13 +13,16 @@ pkg> add EnergyModelsGUI            # Install the package EnergyModelsBase to th
 From the Julia REPL, run
 ```julia
 # Starts the Julia REPL
-julia> using EnergyModelsGUI
+using Pkg 
+using EnergyModelsGUI
+
 # Get the path of the examples directory
-julia> exdir = joinpath(pkgdir(EnergyModelsGUI), "examples")
-# Choose if you want to run the optimization part of the examples
-julia> runOptimization::Bool = true
+exdir = joinpath(pkgdir(EnergyModelsGUI), "examples")
+
+# Activate project for the examples in the EnergyModelsGUI repository
+Pkg.activate(exdir) 
+Pkg.instantiate()
+
 # Include the code into the Julia REPL to run the following example
-julia> include(joinpath(exdir, "generate_EMG.jl"))
-# Start the GUI:
-julia> gui = GUI(case; design_path, idToColorMap, idToIconMap, model = m)
+include(joinpath(exdir, "EMG_geography.jl"))
 ```
