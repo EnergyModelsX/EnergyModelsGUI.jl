@@ -1,10 +1,7 @@
 # EnergyModelsGUI
+[![Pipeline: passing](https://gitlab.sintef.no/clean_export/energymodelsgui.jl/badges/main/pipeline.svg)](https://gitlab.sintef.no/clean_export/energymodelsgui.jl/-/jobs)
+[![Docs: in development](https://img.shields.io/badge/docs-in%20development-ff69b4.svg)](https://clean_export.pages.sintef.no/energymodelsgui.jl)
 
-<!---
-[![Pipeline: passing](https://gitlab.sintef.no/clean_export/energymodelsbase.jl/badges/main/pipeline.svg)](https://gitlab.sintef.no/clean_export/energymodelsgui.jl/-/jobs)
-[![Docs: stable](https://img.shields.io/badge/docs-stable-4495d1.svg)](https://clean_export.pages.sintef.no/energymodelsgui.jl)
-[![Code Style: Blue](https://img.shields.io/badge/code%20style-blue-4495d1.svg)](https://github.com/invenia/BlueStyle)
---->
 EnergyModelsGUI enables a graphical user interface for the [EnergyModelsBase](https://gitlab.sintef.no/clean_export/energymodelsbase.jl) package and other packages building upon this package (like [EnergyModelsInvestments](https://gitlab.sintef.no/clean_export/energymodelsinvestments.jl) and [EnergyModelsGeography](https://gitlab.sintef.no/clean_export/energymodelsgeography.jl)). It is designed to give a simple visualization of the topology of the model and enable the user to interactively navigate through the different layers of the model design. Visualization of the results after simulations will be added at a later stage.
 
 The EnergyModelsGUI package has taken inspiration from the source code of [ModelingToolkitDesigner](https://github.com/bradcarman/ModelingToolkitDesigner.jl) as a starting point for development.

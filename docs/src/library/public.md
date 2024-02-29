@@ -20,3 +20,8 @@ EnergyModelsGUI.setColors
 ```@docs
 EnergyModelsGUI.setIcons
 ```
+
+## Update Methods
+```@docs
+EnergyModelsGUI.update!(::GUI)
+```

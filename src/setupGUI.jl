@@ -313,18 +313,20 @@ function GUI(case::Dict; design_path::String = "", idToColorMap::Dict{Any,Any} =
 
     # Handle cases for mousebutton input
     on(events(gui.axes[:topo]).mousebutton, priority = 4) do event
-        mouse_pos::Tuple{Float64, Float64} = events(gui.axes[:topo]).mouseposition[]
-
-        plot_origin::Vec2{Int64} = pixelarea(gui.axes[:topo].scene)[].origin
-        plot_widths::Vec2{Int64} = pixelarea(gui.axes[:topo].scene)[].widths
-        mouse_pos_loc::Vec2{Float64} = mouse_pos .- plot_origin
-
-        # Check if mouseclick is outside the gui.axes[:topo] area (and return if so)
-        if any(mouse_pos_loc .< 0.0) || any(mouse_pos_loc .- plot_widths .> 0.0)
-            return
-        end
         if event.button == Mouse.left
             if event.action == Mouse.press
+                # Make sure selections are not removed when left-clicking outside axes[:topo]
+                mouse_pos::Tuple{Float64, Float64} = events(gui.axes[:topo]).mouseposition[]
+
+                plot_origin::Vec2{Int64} = pixelarea(gui.axes[:topo].scene)[].origin
+                plot_widths::Vec2{Int64} = pixelarea(gui.axes[:topo].scene)[].widths
+                mouse_pos_loc::Vec2{Float64} = mouse_pos .- plot_origin
+
+                # Check if mouseclick is outside the gui.axes[:topo] area (and return if so)
+                if any(mouse_pos_loc .< 0.0) || any(mouse_pos_loc .- plot_widths .> 0.0)
+                    return Consume(false)
+                end
+
                 if !is_ctrl_pressed[] && !isempty(gui.vars[:selected_systems])
                     clear_selection(gui)
                 end
@@ -332,10 +334,11 @@ function GUI(case::Dict; design_path::String = "", idToColorMap::Dict{Any,Any} =
                 pickComponent!(gui)
                 dragging[] = true
             elseif event.action == Mouse.release
-                dragging[] = false
-                update!(gui::GUI)
-                empty!(gui.vars[:selected_system])
-
+                if dragging[]
+                    dragging[] = false
+                    update!(gui::GUI)
+                    empty!(gui.vars[:selected_system])
+                end
             end
             return Consume(true)
         elseif event.button == Mouse.right
@@ -792,7 +795,6 @@ function get_style(gui::GUI, system::Dict)
                 return gui.vars[:investment_lineStyle]
             end
         end
-    
     elseif haskey(system,:connection) && hasproperty(system[:connection],:modes)
         system_modes = system[:connection].modes
         for mode in eachindex(system_modes)
@@ -829,7 +831,11 @@ function get_style(gui::GUI, connection::Connection)
     if style == gui.vars[:investment_lineStyle]
         return style
     end
-    return get_style(gui, connection[2])
+    style = get_style(gui, connection[2])
+    if style == gui.vars[:investment_lineStyle]
+        return style
+    end
+    return get_style(gui, connection[3])
 end
 
 """

@@ -1,5 +1,8 @@
 using Documenter
+using EnergyModelsBase
+using EnergyModelsGeography
 using EnergyModelsGUI
+const EMB = EnergyModelsBase
 const EMGUI = EnergyModelsGUI
 
 cd(dirname(@__FILE__)) # Make sure to be in the docs folder
@@ -38,10 +41,13 @@ makedocs(
         ],
         "Library" => Any[
             "Public" => "library/public.md",
+            "Internals" => Any[
+                "Reference" => "library/internals/reference.md",
+            ]
         ]
 
     ],
-    checkdocs=:export
+    checkdocs=:all
 )
 
 # Documenter can also automatically deploy documentation to gh-pages.
