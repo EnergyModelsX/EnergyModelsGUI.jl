@@ -29,11 +29,11 @@ function generate_data()
     # Creation of the time structure and global data
     T = TwoLevel(4, 1, operational_periods; op_per_strat)
     model = OperationalModel(
-        Dict(   # Emission cap for CO₂ in t/8h and for NG in MWh/8h
+        Dict(   # Emission cap for CO2 in t/8h and for NG in MWh/8h
             CO2 => StrategicProfile([160, 140, 120, 100]),
             NG => FixedProfile(1e6)
         ),
-        Dict(   # Emission price for CO₂ in EUR/t and for NG in EUR/MWh
+        Dict(   # Emission price for CO2 in EUR/t and for NG in EUR/MWh
             CO2 => FixedProfile(0),
             NG => FixedProfile(0),
         ),
@@ -45,7 +45,7 @@ function generate_data()
     emission_data = EmissionsEnergy()
 
     # Create the individual test nodes, corresponding to a system with an electricity demand/sink,
-    # coal and nautral gas sources, coal and natural gas (with CCS) power plants and CO₂ storage.
+    # coal and nautral gas sources, coal and natural gas (with CCS) power plants and CO2 storage.
     nodes = [
         GenAvailability(1, products),
         RefSource(
@@ -71,7 +71,7 @@ function generate_data()
             Dict(Power => 1, CO2 => 1), # Output from the node with output ratio
             # Line above: CO2 is required as output for variable definition, but the
             # value does not matter
-            [capture_data],             # Additonal data for emissions and CO₂ capture
+            [capture_data],             # Additonal data for emissions and CO2 capture
         ),
         RefNetworkNode(
             5,                          # Node id
@@ -90,9 +90,9 @@ function generate_data()
             FixedProfile(0),            # Storage fixed OPEX for the rate in EUR/(t/h 8h)
             CO2,                        # Stored resource
             Dict(CO2 => 1, Power => 0.02), # Input resource with input ratio
-            # Line above: This implies that storing CO₂ requires Power
+            # Line above: This implies that storing CO2 requires Power
             Dict(CO2 => 1),             # Output from the node with output ratio
-            # In practice, for CO₂ storage, this is never used.
+            # In practice, for CO2 storage, this is never used.
         ),
         RefSink(
             7,                          # Node id
@@ -154,18 +154,22 @@ pretty_table(
 ## Code below for displaying the GUI
 
 using EnergyModelsGUI
+const EMB = EnergyModelsBase
 
-# Define colors for all products
-products_color = ["Gas", "Coal", "Electricity", "ResourceEmit"]
-idToColorMap = EnergyModelsGUI.setColors(case[:products], products_color)
+# Set a special icon only for last node and the other icons based on type
+idToIconMap = Dict(
+    EMB.Source => "Source", 
+    EMB.NetworkNode => "Network", 
+    EMB.Sink => "Sink", 
+    7 => "factoryEmissions"
+)
 
-# Set a special icon only for last node
-icon_names = ["", "", "", "", "", "", "factoryEmissions"]
-idToIconMap = setIcons(case[:nodes], icon_names)
+# Update idToIconMap with full paths for the icons
+idToIconMap = set_icons(idToIconMap)
 
 # Set folder where visualization info is saved and retrieved
 design_path = joinpath(@__DIR__, "..", "design", "EMB", "network")
 
 # Run the GUI
-gui = GUI(case; design_path, idToColorMap, idToIconMap, model = m)
+gui = GUI(case; design_path, idToIconMap, model = m)
 

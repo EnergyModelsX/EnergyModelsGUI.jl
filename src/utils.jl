@@ -15,11 +15,11 @@ function installed()
 end
 
 """
-    getRepresentativePeriodIndices(T::TS.TimeStructure, sp::Int64, sc::Int64)
+    get_representative_period_indices(T::TS.TimeStructure, sp::Int64, sc::Int64)
 
 Return indices of the representative periods for strategic period number sp and scenario sc
 """
-function getRepresentativePeriodIndices(T::TS.TimeStructure, sp::Int64, sc::Int64)
+function get_representative_period_indices(T::TS.TimeStructure, sp::Int64, sc::Int64)
     if eltype(T.operational) <: TS.OperationalScenarios 
         if eltype(T.operational[sp].scenarios) <: TS.RepresentativePeriods 
             return (1:T.operational[sp].scenarios[sc].len)
@@ -34,20 +34,20 @@ function getRepresentativePeriodIndices(T::TS.TimeStructure, sp::Int64, sc::Int6
 end
 
 """
-    getScenarioIndices(T::TS.TimeStructure, sp::Int64)
+    get_scenario_indices(T::TS.TimeStructure, sp::Int64)
 
 Return indices of the scenarios for stratigic period number sp
 """
-function getScenarioIndices(T::TS.TimeStructure, sp::Int64)
+function get_scenario_indices(T::TS.TimeStructure, sp::Int64)
     return eltype(T.operational) <: TS.OperationalScenarios ? (1:T.operational[sp].len) : [1]
 end
 
 """
-    squareIntersection(c::Vector{Tc}, x::Vector{Tx}, θ::Tθ, Δ::TΔ) where {Tc<:Real, Tx<:Real, Tθ<:Real, TΔ<:Real}
+    square_intersection(c::Vector{Tc}, x::Vector{Tx}, θ::Tθ, Δ::TΔ) where {Tc<:Real, Tx<:Real, Tθ<:Real, TΔ<:Real}
 
 Calculate the intersection point between a line starting at `x` and direction described by `θ` and a square with half side lengths `Δ` centered at center `c`  	
 """
-function squareIntersection(c::Vector{Tc}, x::Vector{Tx}, θ::Tθ, Δ::TΔ) where {Tc<:Real, Tx<:Real, Tθ<:Real, TΔ<:Real}
+function square_intersection(c::Vector{Tc}, x::Vector{Tx}, θ::Tθ, Δ::TΔ) where {Tc<:Real, Tx<:Real, Tθ<:Real, TΔ<:Real}
     # Ensure that -π ≤ θ ≤ π
     θ = θ > π ? θ-2π : θ
     θ = θ < -π ? θ+2π : θ
@@ -69,13 +69,23 @@ function squareIntersection(c::Vector{Tc}, x::Vector{Tx}, θ::Tθ, Δ::TΔ) wher
         return [c[1]-Δ, x[2] + (c[1]-Δ-x[1])*tan(θ)]
     end
 end
+
 """
-    squareIntersection(c::Tuple{Tc, Tc}, x::Tuple{Tx, Tx}, θ::Tθ, Δ::TΔ) where {Tc<:Real, Tx<:Real, Tθ<:Real, TΔ<:Real}
+    square_intersection(c::Tuple{Tc, Tc}, x::Tuple{Tx, Tx}, θ::Tθ, Δ::TΔ) where {Tc<:Real, Tx<:Real, Tθ<:Real, TΔ<:Real}
 
 Calculate the intersection point between a line starting at `x` and direction described by `θ` and a square with half side lengths `Δ` centered at center `c`  	
 """
-function squareIntersection(c::Tuple{Tc, Tc}, x::Tuple{Tx, Tx}, θ::Tθ, Δ::TΔ) where {Tc<:Real, Tx<:Real, Tθ<:Real, TΔ<:Real}
-    return squareIntersection(collect(c), collect(x), θ, Δ)
+function square_intersection(c::Tuple{Tc, Tc}, x::Tuple{Tx, Tx}, θ::Tθ, Δ::TΔ) where {Tc<:Real, Tx<:Real, Tθ<:Real, TΔ<:Real}
+    return square_intersection(collect(c), collect(x), θ, Δ)
+end
+
+"""
+    square_intersection(c::Tuple{Tc, Tc}, θ::Tθ, Δ::TΔ) where {Tc<:Real, Tx<:Real, Tθ<:Real, TΔ<:Real}
+
+Calculate the intersection point between a line starting at `c` and direction described by `θ` and a square with half side lengths `Δ` centered at center `c`  	
+"""
+function square_intersection(c::Tuple{Tc, Tc}, θ::Tθ, Δ::TΔ) where {Tc<:Real, Tθ<:Real, TΔ<:Real}
+    return square_intersection(collect(c), collect(c), θ, Δ)
 end
 
 """
@@ -145,23 +155,6 @@ function angle_difference(angle1, angle2)
 end
 
 """
-    getOppositeWall(wall::Symbol)
-
-return the oposite wall of the input argument
-"""
-function getOppositeWall(wall::Symbol)
-    if wall == :E
-        return :W
-    elseif wall == :N
-        return :S
-    elseif wall == :W
-        return :E
-    else
-        return :N
-    end
-end
-
-"""
     get_text_alignment(wall::Symbol)
 
 Get the text alignment for a label attached to a wall
@@ -195,26 +188,36 @@ function stepify(x::Vector{S}, y::Vector{T}; startAtZero::Bool = true) where {S 
 end
 
 """
-    extractCombinations!(availableData::Vector{Dict}, dict::Any, node::Nothing, model::JuMP.Model)
+    extract_combinations!(gui::GUI, availableData::Vector{Dict}, dict::Any, node::Nothing, model)
 
 Extract all available resources in `model[dict]`
 """
-function extractCombinations!(availableData::Vector{Dict}, dict::Any, node::Nothing, model::JuMP.Model)
+function extract_combinations!(gui::GUI, availableData::Vector{Dict}, dict::Any, node::Nothing, model)
     resources::Vector{Resource} = unique([key[2] for key in keys(model[dict].data)]) 
     for res ∈ resources
-        push!(availableData, Dict(:name => dict, :isJuMPdata => true, :selection => [res]))
+        container = Dict(
+            :name => string(dict), 
+            :isJuMPdata => true, 
+            :selection => [res],
+        )
+        add_description!(availableData, container, gui, dict)
     end
 end
 
 """
-    extractCombinations!(availableData::Vector{Dict}, dict::Any, node::EMB.Node, model::JuMP.Model)
+    extract_combinations!(availableData::Vector{Dict}, dict::Any, node::EMB.Node, model)
 
 Extract all available resources in `model[dict]` for a given `node`
 """
-function extractCombinations!(availableData::Vector{Dict}, dict::Any, node::Union{EMB.Node, EMB.Link, EMG.Area, EMG.Transmission}, model::JuMP.Model)
+function extract_combinations!(gui::GUI, availableData::Vector{Dict}, dict::Any, node, model)
     resources = unique([key[2] for key in keys(model[dict][node,:,:].data)]) 
     for res ∈ resources
-        push!(availableData, Dict(:name => dict, :isJuMPdata => true, :selection => [node, res]))
+        container = Dict(
+            :name => string(dict), 
+            :isJuMPdata => true, 
+            :selection => [node, res],
+        )
+        add_description!(availableData, container, gui, dict)
     end
 end
 
@@ -231,12 +234,12 @@ function place_nodes_in_circle(n::Int, i::Int, r::Real, xₒ::Real, yₒ::Real)
 end
 
 """
-    setColors(idToColorMap::Dict{Any,Any}, products::Vector{S}, productsColors::Vector{T})
+    set_colors(idToColorMap::Dict{Any,Any}, products::Vector{S}, productsColors::Vector{T})
 
 Returns a dictionary idToColorMap with id from products and colors from productColors (which is a vector of any combinations of String and Symbol).
-Color can be represented as a hex (i.e. #a4220b2) or a symbol (i.e. :green), but also a string of the identifier for default colors in the src/colors.toml file
+Color can be represented as a hex (i.e. #a4220b2) or a symbol (i.e. :green), but also a string of the identifier for default colors in the src/colors.yml file
 """
-function setColors(products::Vector{S}, productsColors::Vector{T}) where {S <: EMB.Resource, T <: Any}
+function set_colors(products::Vector{S}, productsColors::Vector{T}) where {S <: EMB.Resource, T <: Any}
     idToColorMap::Dict{Any,Any} = Dict{Any, Any}() # Initialize dictionary for colors map
     if isempty(productsColors)
         return idToColorMap
@@ -250,7 +253,7 @@ function setColors(products::Vector{S}, productsColors::Vector{T}) where {S <: E
             idToColorMap[product.id] = productsColors[i] 
         else
             try
-                resourceColors::Dict{String, Any} = getDefaultColors()
+                resourceColors::Dict{String, Any} = get_default_colors()
                 idToColorMap[product.id] = resourceColors[productsColors[i]]
             catch
                 @warn("Color identifier $(productsColors[i]) is not represented in the colors file $colorsFile. " 
@@ -263,23 +266,66 @@ function setColors(products::Vector{S}, productsColors::Vector{T}) where {S <: E
 end
 
 """
-    getDefaultColors()
+    set_colors(idToColorMap::Dict{Any,Any}, products::Vector{S}, productsColors::Vector{T})
 
-Get the default colors in the EnergyModelsGUI repository at src/colors.toml
+Returns a dictionary that completes the dictionary `idToColorMap` with default color values for standard names (like Power, NG, Coal, CO2) collected from `src/colors.yml`.
+Color can be represented as a hex (i.e. #a4220b2) or a symbol (i.e. :green), but also a string of the identifier for default colors in the src/colors.yml file
 """
-function getDefaultColors()
-    colorsFile::String = joinpath(@__DIR__,"..","src", "colors.toml")
-    return TOML.parsefile(colorsFile)["Resource"]
+function set_colors(products::Vector{S}, idToColorMap::Dict) where {S <: EMB.Resource}
+    complete_idToColorMap::Dict = Dict()
+    defaultColors::Dict = get_default_colors()
+    for product ∈ products
+        if haskey(defaultColors, product.id)
+            complete_idToColorMap[product.id] = defaultColors[product.id]
+        end
+    end
+    for (key, val) ∈ idToColorMap
+        complete_idToColorMap[string(key)] = val
+    end
+    seed::Vector{RGB} = [parse(Colorant, hex_color) for hex_color ∈ values(complete_idToColorMap)]
+    productsColors::Vector{RGB} = distinguishable_colors(length(products), seed, dropseed=false)
+    for product ∈ products
+        if !haskey(complete_idToColorMap, product.id)
+            complete_idToColorMap[product.id] = productsColors[length(complete_idToColorMap)+1]
+        end
+    end
+    return complete_idToColorMap
 end
 
 """
-    setIcons(products::Vector{S}, productsColors::Vector{T})
+    get_default_colors()
+
+Get the default colors in the EnergyModelsGUI repository at src/colors.yml
+"""
+function get_default_colors()
+    return YAML.load_file(joinpath(@__DIR__,"..","src", "colors.yml"))
+end
+
+"""
+    set_icons(idToIconMap::Dict)
 
 Return a dictionary idToIconMap with id from nodes and icon paths based on provided paths (or name of .png icon file which will be found in the icons folder of any of the EMX packages). 
 
 The icon images are assumed to be in .png format, and the strings should not contain this file ending.
 """
-function setIcons(nodes::Vector{S}, icons::Vector{T}) where {S <: EMB.Node, T <: Any}
+function set_icons(idToIconMap::Dict)
+    if isempty(idToIconMap)
+        return idToIconMap
+    end
+    for (key, val) ∈ idToIconMap
+        idToIconMap[key] = find_icon_path(val)
+    end
+    return idToIconMap
+end
+
+"""
+    set_icons(products::Vector{S}, productsColors::Vector{T})
+
+Return a dictionary idToIconMap with id from nodes and icon paths based on provided paths (or name of .png icon file which will be found in the icons folder of any of the EMX packages). 
+
+The icon images are assumed to be in .png format, and the strings should not contain this file ending.
+"""
+function set_icons(nodes::Vector{S}, icons::Vector{T}) where {S <: EMB.Node, T <: Any}
     idToIconMap::Dict{Any,Any} = Dict{Any, Any}() # Initialize dictionary for icons map
     if isempty(icons)
         return idToIconMap
@@ -289,40 +335,51 @@ function setIcons(nodes::Vector{S}, icons::Vector{T}) where {S <: EMB.Node, T <:
         return
     end
     for (i, node) ∈ enumerate(nodes)
-        idToIconMap[node.id] = "" # if not found
-        if isfile(icons[i])
-            idToIconMap[node.id] = icons[i] * ".png"
-        elseif isfile(joinpath(@__DIR__,"..","icons", icons[i] * ".png"))
-            idToIconMap[node.id] = joinpath(@__DIR__,"..","icons", icons[i] * ".png")
-        else
-            # Get a dictionary of installed packages
-            installed_packages = installed()
-
-            # Filter packages with names matching the pattern "EnergyModels*"
-            EMXpackages = filter(pkg -> occursin(r"EnergyModels", pkg), keys(installed_packages))
-
-            # Search through EMX packages if icons are available there
-            for package ∈ EMXpackages
-                packagePath::Union{String, Nothing} = Base.find_package(package)
-                if !isnothing(packagePath)
-                    colorsFile::String = joinpath(packagePath, "..", "..", "ext", "EnergyModelsGUI", "icons", icons[i]) * ".png"
-                    if isfile(colorsFile)
-                        idToIconMap[node.id] = colorsFile 
-                        break
-                    end
-                end
-            end
-        end
+        idToIconMap[node.id] = find_icon_path(icons[i])
     end
     return idToIconMap
 end
 
 """
-    updateSubSystemLocations!(design::EnergySystemDesign, Δ::Tuple{Real,Real})
+    function find_icon_path(icon::String)
+
+Search for path to icon based on icon name `icon`
+"""
+
+function find_icon_path(icon::String)
+    icon_path = "" # in case not found
+    if isfile(icon)
+        icon_path = icon * ".png"
+    elseif isfile(joinpath(@__DIR__,"..","icons", icon * ".png"))
+        icon_path = joinpath(@__DIR__,"..","icons", icon * ".png")
+    else
+        # Get a dictionary of installed packages
+        installed_packages = installed()
+
+        # Filter packages with names matching the pattern "EnergyModels*"
+        EMXpackages = filter(pkg -> occursin(r"EnergyModels", pkg), keys(installed_packages))
+
+        # Search through EMX packages if icons are available there
+        for package ∈ EMXpackages
+            packagePath::Union{String, Nothing} = Base.find_package(package)
+            if !isnothing(packagePath)
+                colorsFile::String = joinpath(packagePath, "ext", "EnergyModelsGUI", "icons", icon) * ".png"
+                if isfile(colorsFile)
+                    icon_path = colorsFile 
+                    break
+                end
+            end
+        end
+    end
+    return icon_path
+end
+
+"""
+    update_sub_system_locations!(design::EnergySystemDesign, Δ::Tuple{Real,Real})
 
 Update the coordinates of a subsystem of design based on the movement of design
 """
-function updateSubSystemLocations!(design::EnergySystemDesign, Δ::Tuple{Real,Real})
+function update_sub_system_locations!(design::EnergySystemDesign, Δ::Tuple{Real,Real})
     for component ∈ design.components
         component.xy[] = component.xy[] .+ Δ
     end
@@ -331,7 +388,7 @@ end
 """
     design_file(system::Dict, path::String)
 
-Construct the path for the .toml file for `system` in the folder `path`
+Construct the path for the .yml file for `system` in the folder `path`
 """
 function design_file(system::Dict, path::String)
     if isempty(path)
@@ -345,32 +402,64 @@ function design_file(system::Dict, path::String)
     else
         string(system[:node])
     end
-    file::String = joinpath(path, "$(systemName).toml")
+    file::String = joinpath(path, "$(systemName).yml")
 
     return file
 end
 
 """
-    find_icon(system::Dict, idToIconMap::Dict{Any,Any})
+    find_icon(system::Dict, idToIconMap::Dict)
 
 Find the icon associated with a given system's node id.
 """
-function find_icon(system::Dict, idToIconMap::Dict{Any,Any})
+function find_icon(system::Dict, idToIconMap::Dict)
     icon::String = ""
     if haskey(system,:node) && !isempty(idToIconMap)
-        try
+        supertype::DataType = find_type_field(idToIconMap, system[:node])
+        if haskey(idToIconMap, system[:node].id)
             icon = idToIconMap[system[:node].id]
-        catch
-            @warn("Could not find $(system[:node].id) in idToIconMap")
+        elseif supertype != Nothing
+            icon = idToIconMap[supertype]
+        else
+            @warn("Could not find $(system[:node].id) in idToIconMap nor the type $(typeof(system[:node])). Using default setup instead")
         end
     end
     return icon
 end
 
 """
+    get_supertypes(x::Any)
+    
+Return the vector of the supertypes of x
+"""
+function get_supertypes(x::Any)
+    T = typeof(x)
+    supertypes = [T]
+    while T != Any
+        T = supertype(T)
+        push!(supertypes, T)
+    end
+    return supertypes
+end
+
+"""
+    find_type_field(dict::Dict, x::Any)
+
+Return closest supertype of a key being of same type as x
+"""
+function find_type_field(dict::Dict, x::Any)
+    for supertype ∈ get_supertypes(x)
+        if haskey(dict, supertype)
+            return supertype
+        end
+    end
+    return Nothing
+end
+
+"""
     save_design(design::EnergySystemDesign)
 
-Save the x,y-coordinates of `design` to a .toml file at design.file
+Save the x,y-coordinates of `design` to a .yml file at design.file
 """
 function save_design(design::EnergySystemDesign)
     if isempty(design.file)
@@ -397,24 +486,18 @@ end
 """
     save_design(design::EnergySystemDesign, file::String)
 
-Save the x,y-coordinates of `design_dict` to a .toml file at location given by `file`
+Save the x,y-coordinates of `design_dict` to a .yml file at location given by `file`
 """
 function save_design(design_dict::Dict, file::String)
-    open(file, "w") do io
-        TOML.print(io, design_dict) do val
-            if val isa Symbol
-                return string(val)
-            end
-        end
-    end
+    YAML.write_file(file, design_dict)
 end
 
 """
-    getLinkedNodes!(node::EMB.Node, system::Dict{Symbol, Any}, links::Vector{EMB.Link}, nodes::Vector{EMB.Node}, indices::Vector{Int})
+    get_linked_nodes!(node::EMB.Node, system::Dict{Symbol, Any}, links::Vector{EMB.Link}, nodes::Vector{EMB.Node}, indices::Vector{Int})
 
 Recursively find all nodes connected (directly or indirectly) to `node` in a system `system` and store the found links in `links` and nodes in `nodes`. Here, `indices` contains the indices where the next link and node is to be stored, repsectively.
 """
-function getLinkedNodes!(node::EMB.Node, system::Dict{Symbol, Any}, links::Vector{EMB.Link}, nodes::Vector{EMB.Node}, indices::Vector{Int})
+function get_linked_nodes!(node::EMB.Node, system::Dict{Symbol, Any}, links::Vector{EMB.Link}, nodes::Vector{EMB.Node}, indices::Vector{Int})
     for link ∈ system[:links]
         if node ∈ [link.from, link.to] && (indices[1] == 1 || !(link ∈ links[1:indices[1]-1]))
             links[indices[1]] = link
@@ -432,92 +515,312 @@ function getLinkedNodes!(node::EMB.Node, system::Dict{Symbol, Any}, links::Vecto
             # Recursively add other nodes
             if newNodeAdded
                 indices[2] += 1
-                getLinkedNodes!(nodes[indices[2]-1], system, links, nodes, indices)
+                get_linked_nodes!(nodes[indices[2]-1], system, links, nodes, indices)
             end
         end
     end
 end
 
 """
-    getSectorPoints(;center::Tuple{Real,Real} = (0.0, 0.0), Δ::Real = 1.0, θ₁::Real = 0, θ₂::Real = π/4, steps::Int=200, type::Symbol = :circle)
+    get_sector_points(;center::Tuple{Real,Real} = (0.0, 0.0), Δ::Real = 1.0, θ₁::Real = 0, θ₂::Real = π/4, steps::Int=200, type::Symbol = :circle)
     
-Get points for the boundary of a sector defined by the center `c`, radius/halfsidelength `Δ`, and angles `θ₁` and `θ₂` for a square (type = :rect) or a circle (type = :circle)
+Get points for the boundary of a sector defined by the center `c`, radius/halfsidelength `Δ`, and angles `θ₁` and `θ₂` for a square (type = :rect), a circle (type = :circle) or a triangle (type = :triangle)
 """
-function getSectorPoints(;c::Tuple{Real,Real} = (0.0, 0.0), Δ::Real = 1.0, θ₁::Real = 0.0, θ₂::Real = π/4, steps::Int=200, type::Symbol = :circle)
-    θ::Vector{Float64} = LinRange(θ₁, θ₂, Int(round(steps*(θ₂-θ₁)/(2π))))
+function get_sector_points(;c::Tuple{Real,Real} = (0.0, 0.0), Δ::Real = 1.0, θ₁::Real = 0.0, θ₂::Real = π/4, steps::Int=200, type::Symbol = :circle)
     if type == :circle
-        x::Vector{Float64} = Δ * cos.(θ) .+ c[1]
-        y::Vector{Float64} = Δ * sin.(θ) .+ c[2]
+        θ::Vector{Float64} = LinRange(θ₁, θ₂, Int(round(steps*(θ₂-θ₁)/(2π))))
+        xCoords::Vector{Float64} = Δ * cos.(θ) .+ c[1]
+        yCoords::Vector{Float64} = Δ * sin.(θ) .+ c[2]
     
         # Include the center and close the polygon
-        return [c; collect(zip(x, y)); c]
+        return [c; collect(zip(xCoords, yCoords)); c]
     elseif type == :rect
         if θ₁ == 0 && θ₂ ≈ 2π
-            x, y = box(c[1], c[2], Δ)
-            return collect(zip(x, y))
+            xCoords, yCoords = box(c[1], c[2], Δ)
+            return collect(zip(xCoords, yCoords))
         else
-            xy1::Vector{Float64} = squareIntersection(c, c, θ₁, Δ)
-            xy2::Vector{Float64} = squareIntersection(c, c, θ₂, Δ)
+            xy1 = square_intersection(c, θ₁, Δ)
+            xy2 = square_intersection(c, θ₂, Δ)
             return [c; Tuple(xy1); Tuple(xy2); c]
         end
+    elseif type == :triangle
+        input::Bool = θ₂ > π/2
+        if input                        # input resources on a triangle to the left
+            f = θ -> -2Δ*θ/π + 2Δ
+        else                          # output resources on a triangle to the right
+            f = θ -> 2Δ*θ/π 
+        end
+        d::Float64 = Δ/2
+        x::Tuple{Float64, Float64}   = input ? c .- (d/2, 0) : c .+ (d/2, 0)
+        x_side::Float64 = input ? -Δ : Δ
+        xy1 = c .+ (x_side, f(θ₁))
+        xy2 = c .+ (x_side, f(θ₂))
+        return [x; xy1; xy2; x]
     else
         @error "Type $type is not implemented."
     end
 end
-            
+
 """
-    getResourceColors(resources::Vector{EMB.Resource}, idToColorMap::Dict{Any,Any})
+    get_resource_colors(resources::Vector{EMB.Resource}, idToColorMap::Dict{Any,Any})
 
 Get the colors linked the the resources in `resources` based on the mapping `idToColorMap`
 """
-function getResourceColors(resources::Vector{T}, idToColorMap::Dict{Any,Any}) where T <: EMB.Resource
-    hexColors::Vector{Any} = [haskey(idToColorMap,resource.id) ? idToColorMap[resource.id] : missingColor for resource ∈ resources]
+function get_resource_colors(resources::Vector{T}, idToColorMap::Dict{Any,Any}) where T <: EMB.Resource
+    hexColors::Vector{Any} = [idToColorMap[resource.id] for resource ∈ resources]
     return [parse(Colorant, hex_color) for hex_color ∈ hexColors]
 end
 
 """
-    getResourceColors(resources::Vector{EMG.TransmissionMode}, idToColorMap::Dict{Any,Any})
+    get_resource_colors(resources::Dict{EMB.Resource, Real}, idToColorMap::Dict{Any,Any})
+
+Get the colors linked the the resources in `resources` based on the mapping `idToColorMap`
+"""
+function get_resource_colors(resources::Dict{T, S}, idToColorMap::Dict{Any,Any}) where {T <: EMB.Resource, S <: Real}
+    return get_resource_colors(collect(keys(resources)), idToColorMap)
+end
+
+"""
+    get_resource_colors(resources::Vector{EMG.TransmissionMode}, idToColorMap::Dict{Any,Any})
 
 Get the colors linked the the resources in `modes` (from Transmission.modes) based on the mapping `idToColorMap`
 """
-function getResourceColors(modes::Vector{T}, idToColorMap::Dict{Any,Any}) where T <: EMG.TransmissionMode
-    hexColors::Vector{Any} = [haskey(idToColorMap, mode.resource.id) ? idToColorMap[mode.resource.id] : missingColor for mode ∈ modes]
+function get_resource_colors(modes::Vector{T}, idToColorMap::Dict{Any,Any}) where T <: EMG.TransmissionMode
+    hexColors::Vector{Any} = [idToColorMap[map_trans_resource(mode).id] for mode ∈ modes]
     return [parse(Colorant, hex_color) for hex_color ∈ hexColors]
 end
-            
-"""
-    getResourceColors(resources::Dict{EMB.Resource, Real}, idToColorMap::Dict{Any,Any})
 
-Get the colors linked the the resources in `resources` based on the mapping `idToColorMap`
 """
-function getResourceColors(resources::Dict{T, S}, idToColorMap::Dict{Any,Any}) where {T <: EMB.Resource, S <: Real}
-    return getResourceColors(collect(keys(resources)), idToColorMap)
+    toggle_inspector!(p::Makie.AbstractPlot, toggle::Bool)
+
+Toggle the inspector of a Makie plot
+"""
+function toggle_inspector!(p::Makie.AbstractPlot, toggle::Bool)
+    for p_sub ∈ p.plots
+        if :plots ∈ fieldnames(typeof(p_sub))
+            toggle_inspector!(p_sub, toggle)
+        end
+        p_sub.inspectable[] = toggle
+    end
 end
 
 """
-    getResourceColors(resources::Vector{Any}, idToColorMap::Dict{Any,Any})
-
-Return empty vector for empty input
-"""
-function getResourceColors(resources::Vector{Any}, idToColorMap::Dict{Any,Any})
-    return Vector{RGB}(undef,0)
-end
-EMB.inputs(n::Availability, p::Resource) = 1
-EMB.outputs(::Sink) = []
-EMB.outputs(n::Availability, p::Resource) = 1
-EMB.outputs(n::Sink, p::Resource) = nothing
-
-"""
-    addInspectorToPoly!(p::Makie.AbstractPlot, inspector_label::Function)
+    add_inspector_to_poly!(p::Makie.AbstractPlot, inspector_label::Function)
 
 Add inspector_label for Poly and Mesh plots in Makie
 """
-function addInspectorToPoly!(p::Makie.AbstractPlot, inspector_label::Function)
+function add_inspector_to_poly!(p::Makie.AbstractPlot, inspector_label::Function)
     for p_sub ∈ p.plots
         if :plots ∈ fieldnames(typeof(p_sub))
-            addInspectorToPoly!(p_sub, inspector_label)
+            add_inspector_to_poly!(p_sub, inspector_label)
         end
         p_sub.inspector_label = inspector_label
         p_sub.inspectable[] = true
+    end
+end
+
+"""
+    showdecorations!(ax)
+
+Show all decorations of the ax input object
+"""
+showdecorations!(ax) = begin
+    ax.xlabelvisible = true
+    ax.ylabelvisible = true
+    ax.xticklabelsvisible = true
+    ax.yticklabelsvisible = true
+    ax.xticksvisible = true
+    ax.yticksvisible = true
+    ax.yticklabelsvisible = true
+    ax.yticklabelsvisible = true
+end
+
+"""
+    get_resource_colors(::Vector{Any}, ::Dict{Any,Any})
+
+Return empty vector for empty input
+"""
+function get_resource_colors(::Vector{Any}, ::Dict{Any,Any})
+    return Vector{RGB}(undef,0)
+end
+
+"""
+    showspines!(ax)
+
+Show all four spines (frame) of the ax input object
+"""
+showspines!(ax) = begin
+    ax.topspinevisible = true
+    ax.bottomspinevisible = true
+    ax.leftspinevisible = true
+    ax.rightspinevisible = true
+end
+
+"""
+    hidesplots!(plotObjs::Vector)
+
+Hide all plots in plotObjs
+"""
+hideplots!(plotObjs::Vector) = begin
+    for plot in values(plotObjs)
+        plot.visible = false
+    end
+end
+
+"""
+    showplots!(plotObjs::Vector)
+
+Show all plots in plotObjs
+"""
+showplots!(plotObjs::Vector) = begin
+    for plot in values(plotObjs)
+        plot.visible = true
+    end
+end
+
+"""
+    getfirst(f::Function, a::Vector)
+
+Return the first elemnt of a satisfying the requirement of f.
+"""
+function getfirst(f::Function, a::Vector)
+    index = findfirst(f, a)
+    return isnothing(index) ? nothing : a[index]
+end
+
+"""
+    export_svg(ax::Makie.Block, filename::String)
+
+Export the `ax` to an svg file with path given by `filename`
+"""
+function export_svg(ax::Makie.Block, filename::String)
+    bb = ax.layoutobservables.suggestedbbox[]
+    protrusions = ax.layoutobservables.reporteddimensions[].outer
+
+    axis_bb = Rect2f(
+        bb.origin .- (protrusions.left, protrusions.bottom),
+        bb.widths .+ (protrusions.left + protrusions.right, protrusions.bottom + protrusions.top)
+    )
+
+    pad = 0
+
+    axis_bb_pt = axis_bb * 0.75
+    ws = axis_bb_pt.widths
+    o = axis_bb_pt.origin
+    width = "$(ws[1] + 2 * pad)pt"
+    height = "$(ws[2] + 2 * pad)pt"
+    viewBox = "$(o[1] - pad) $(o[2] + ws[2] - pad) $(ws[1] + 2 * pad) $(ws[2] + 2 * pad)"
+
+    svgstring = repr(MIME"image/svg+xml"(), ax.blockscene)
+
+    svgstring = replace(svgstring, r"""(?<=width=")[^"]*(?=")""" => width, count = 1)
+    svgstring = replace(svgstring, r"""(?<=height=")[^"]*(?=")""" => height, count = 1)
+    svgstring = replace(svgstring, r"""(?<=viewBox=")[^"]*(?=")""" => viewBox, count = 1)
+    open(filename, "w") do io
+        print(io, svgstring)
+    end
+    return 0
+end
+
+"""
+    export_xlsx(plotObjs, filename::String, xlabel::Symbol)
+
+Export the `plotObjs` to an xlsx file with path given by `filename`
+"""
+function export_xlsx(plotObjs, filename::String, xlabel::Symbol)
+    if isempty(plotObjs)
+        @warn "No data to be exported"
+        return 1
+    end
+    # Create a new Excel file and write data
+    XLSX.openxlsx(filename, mode="w") do xf
+        sheet = xf[1] # Access the first sheet
+
+        x = [xy[1] for xy in plotObjs[1][1][]]
+        noColumns = length(plotObjs)+1
+        data = Vector{Vector{Float64}}(undef,noColumns)
+        data[1] = x
+        for (i, plotObj) ∈ enumerate(plotObjs)
+            data[i+1] = [xy[2] for xy in plotObj[1][]]
+        end
+        labels::Vector{String} = [plotObj.label[] for plotObj in plotObjs]
+
+        headers::Vector{String} = vcat(string(xlabel), labels)
+
+        #XLSX.rename!(sheet, "My Data Sheet")
+        XLSX.writetable!(sheet, data, headers)
+    end
+    return 0
+end
+
+"""
+    export_svg(ax::Makie.Block, filename::String)
+
+Export results based on the state of `gui`
+"""
+function export_to_file(gui::GUI)
+    axesStr::String = gui.menus[:axes].selection[]
+    fileEnding = gui.menus[:saveResults].selection[]
+    filename::String = gui.vars[:pathToResults] * "/" * axesStr * "." * fileEnding
+    if fileEnding ∈ ["bmp", "tiff", "tif", "jpg", "jpeg", "svg", "png"]
+        CairoMakie.activate!() # Set CairoMakie as backend for proper export quality
+        carioMakieActivated = true
+    else
+        carioMakieActivated = false
+    end
+    if axesStr == "Figure"
+        axisTimeType = :topo
+        if fileEnding ∈ ["bmp", "tiff", "tif", "jpg", "jpeg", "xlsx"]
+            @warn "Exporting the figure to an $fileEnding file is not implemented"
+            flag = 1
+        else
+            try
+                save(filename,gui.fig)
+                flag = 0
+            catch
+                flag = 2
+            end
+        end
+    else
+        axisTimeType = gui.menus[:time].selection[]
+        if fileEnding == "svg"
+            flag = export_svg(gui.axes[axisTimeType], filename)
+        elseif fileEnding == "xlsx"
+            if axisTimeType == :topo
+                @warn "Exporting the topology to an xlsx file is not implemented"
+                flag = 1
+            else
+                plotObjs = gui.vars[:visiblePlots][axisTimeType]
+                flag = export_xlsx(plotObjs, filename, axisTimeType)
+            end
+        else
+            try
+                save(filename,colorbuffer(gui.axes[axisTimeType]))
+                flag = 0
+            catch
+                flag = 2
+            end
+        end
+    end
+    if carioMakieActivated 
+        GLMakie.activate!() # Return to GLMakie as a backend
+    end
+    if flag == 0
+        @info "Exported results to $filename"
+    elseif flag == 2
+        @info "An error occured, no file exported"
+    end
+end
+
+"""
+    get_op(x::TS.TimePeriod)
+
+Get the operational time of `x`
+"""
+function get_op(x::TS.TimePeriod)
+    if :period in fieldnames(typeof(x))
+        return get_op(x.period)
+    else
+        return x.op
     end
 end

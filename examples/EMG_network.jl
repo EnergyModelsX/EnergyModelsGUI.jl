@@ -31,11 +31,11 @@ function read_data()
     T = TwoLevel(4, 1, operational_periods; op_per_strat)
     model = OperationalModel(
         Dict(
-            CO2 => StrategicProfile([160, 140, 120, 100]),  # CO₂ emission cap in t/24h
+            CO2 => StrategicProfile([160, 140, 120, 100]),  # CO2 emission cap in t/24h
             NG  => FixedProfile(1e6),                       # NG cap in MWh/24h
         ),
         Dict(
-            CO2 => FixedProfile(0),                         # CO₂ emission cost in EUR/t
+            CO2 => FixedProfile(0),                         # CO2 emission cost in EUR/t
             NG  => FixedProfile(0),                         # NG emission cost in EUR/t
         ),
         CO2,
@@ -169,7 +169,7 @@ function get_sub_system_data(
     end
 
     # Create the individual test nodes, corresponding to a system with an electricity demand/sink,
-    # coal and nautral gas sources, coal and natural gas (with CCS) power plants and CO₂ storage.
+    # coal and nautral gas sources, coal and natural gas (with CCS) power plants and CO2 storage.
     j=(i-1)*100
     nodes = [
             GeoAvailability(j+1, products),
@@ -196,7 +196,7 @@ function get_sub_system_data(
                 Dict(Power => 1, CO2 => 1), # Output from the node with output ratio
                 # Line above: CO2 is required as output for variable definition, but the
                 # value does not matter
-                [CaptureEnergyEmissions(0.9)], # Additonal data for emissions and CO₂ capture
+                [CaptureEnergyEmissions(0.9)], # Additonal data for emissions and CO2 capture
             ),
             RefNetworkNode(
                 j+5,                        # Node id
@@ -217,7 +217,7 @@ function get_sub_system_data(
                 Dict(CO2 => 1, Power => 0.02), # Input resource with input ratio
                 # Line above: This implies that storing CO2 requires Power
                 Dict(CO2 => 1),             # Output from the node with output ratio
-                # In practice, for CO₂ storage, this is never used.
+                # In practice, for CO2 storage, this is never used.
                 Data[]
             ),
             RefSink(
@@ -258,9 +258,10 @@ solution_summary(m)
 
 using EnergyModelsGUI
 
-# Define colors for all products
-products_color = ["Gas", "Coal", "Electricity", "ResourceEmit"]
-idToColorMap = setColors(case[:products], products_color)
+NG = case[:products][1]
+Power = case[:products][3]
+
+idToColorMap = Dict(Power.id => :cyan, NG.id => "#FF9876")
 
 # Set folder where visualization info is saved and retrieved
 design_path = joinpath(@__DIR__, "..", "design", "EMG", "network")

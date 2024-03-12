@@ -372,12 +372,8 @@ solution_summary(m)
 
 using EnergyModelsGUI
 
-# Define colors for all products
-products_color = ["Gas", "Coal", "Electricity", "ResourceEmit"]
-idToColorMap = setColors(case[:products], products_color)
-
 # Set folder where visualization info is saved and retrieved
 design_path = joinpath(@__DIR__, "..", "design", "EMI", "geography")
 
 # Run the GUI
-gui = GUI(case; design_path, idToColorMap, model = m)
+gui = GUI(case; design_path, model = m)
