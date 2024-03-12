@@ -14,11 +14,11 @@ EnergyModelsGUI.GUI
 
 ## Utilities
 ```@docs
-EnergyModelsGUI.setColors
+EnergyModelsGUI.set_colors
 ```
 
 ```@docs
-EnergyModelsGUI.setIcons
+EnergyModelsGUI.set_icons
 ```
 
 ## Update Methods

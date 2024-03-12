@@ -30,9 +30,10 @@ end
 
 # Fields
 - **`fig::Figure`** is the figure handle to the main figure (window).\n
-- **`axes::Dict{Symbol,Axis}`** is a collection of axes: :topo (axis for visualizing the topology), :opAn (axis for plotting operation analaysis), :info (axis for displaying information).\n
+- **`axes::Dict{Symbol,Axis}`** is a collection of axes: :topo (axis for visualizing the topology), :results (axis for plotting operation analaysis), :info (axis for displaying information).\n
 - **`buttons::Dict{Symbol,Makie.Button}`** is a dictionary of the GLMakie buttons linked to the gui.axes[:topo] object.\n
-- **`menus::Dict{Symbol,Makie.Menu}`** is a dictionary of the GLMakie menus linked to the gui.axes[:opAn] object.\n
+- **`menus::Dict{Symbol,Makie.Menu}`** is a dictionary of the GLMakie menus linked to the gui.axes[:results] object.\n
+- **`toggles::Dict{Symbol,Makie.Toggle}`** is a dictionary of the GLMakie toggles linked to the gui.axes[:results] object.\n
 - **`root_design::EnergySystemDesign`** is the data structure used for the root topology.\n
 - **`design::EnergySystemDesign`** is the data structure used for visualizing the topology.\n
 - **`model::Model`** contains the optimization results.
@@ -43,6 +44,7 @@ mutable struct GUI
     axes::Dict{Symbol, Makie.Block}
     buttons::Dict{Symbol, Makie.Button}
     menus::Dict{Symbol, Makie.Menu}
+    toggles::Dict{Symbol, Makie.Toggle}
     root_design::EnergySystemDesign
     design::EnergySystemDesign
     model::Model

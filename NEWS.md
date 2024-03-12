@@ -1,5 +1,41 @@
 # Release notes
 
+Version 0.4.0 (2024-03-12)
+--------------------------
+### Adjustment
+* For `StrategicPeriods` and `RepresentativePeriods`, plot the object string from the `Base.Show()` function instead of the corresponding integers
+* Removed redundant dependencies in the `Project.toml` file
+* One can now hide decorations (gridlines and ticks) in `axes[:topo]` by using the `GUI` input argument `hideTopoAxDecorations` (default is set to true)
+* Use two triangles connected by a juncture for `NetworkNode`s to make the shape different from the circle used for `Sink`s. The left triangle represent input `Resource`s and the right triangle represents output `Resource`s
+* Breaking: Avoided CamelCase naming convention for function to be more alligned with the EMX naming convention
+* Plots are no longer auto selected (user must manually pick from `Available data`) to improve performance
+* Adjusted the tags `Electricity` and `Gas` to be `Power` and `NG` in the `colors.toml` file to be more in line with the EMX exampels.
+* Added option to use coarse coastlines (the `coarseCoastlines` is by default set to `true`) for performance.
+
+### Bugfix
+* Fix zooming bug in `gui.axes[:info]`
+* Fix issue plotting results over `RepresentativePeriods`
+* Fix bug for modes of type PipeSimple
+* Fixed bug of collapsed lines when a connection is not twoWay
+* Fixed bug that did not toggle back highlighting of the "open" button after click
+* Corrected path to EMX packages for icon location (ext/EnergyModelsGUI/icons)
+* Fixed 404 issue for high resolution geographical land data
+
+### Enhancement
+* Colors can now be provided as a dict for selected `Resource`s and if not provided the GUI will look through the colors.toml file for colors if same keys are used (otherwise an algorithm will fill in the missing colors based on the provided colors in order to be optimally distinct)
+* By default, colors are now extracted automatically from the `src/colors.toml` file based on the `id` of the Resource (effectively removing the need of providing the `idToColorMap` input argument to get decent colors for most examples)
+* Icons can now be provided in the form of a `Dict` that enables the user to only provide icons for a selected number of nodes. Moreover, the user can provide links for types (like `Sink` or `NetworkNode`). An example of this is provided in `examples/EMB_network.jl`
+* Documentation on how to customize icons and colors was added
+
+### Feature
+* You can now use Button4 (used in i.e. browsers to go back to previous page) to go back to the `TopLevel` of the design (as an alternative to the `Esc` button)
+* Double-clicking a node now opens its sub-system
+* Customized labels can now be provided for the different time structures
+* Plot data can now be exported to bit-map formats and to vector formats (.svg and .pdf)
+* For `Area`s, an "Expand all" toggle functionality has been added to visualize all sub-systems. All of the topology are drawn in the initializing process of the GUI which optimizes the performance in runtime.
+* Added the file `descriptiveNames.yml` which provides more descriptive names for the variables (used in the `ylabel`, `legend` and the Data menu)
+* Added functionality to print plotted values to a table in the REPL using the package `PrettyTables`
+
 Version 0.3.4 (2024-02-29)
 --------------------------
 ### Adjustment

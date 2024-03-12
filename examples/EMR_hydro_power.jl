@@ -121,13 +121,9 @@ pretty_table(
 
 using EnergyModelsGUI
 
-# Define colors forGas", "Coal", " all products
-products_color = ["ResourceEmit", "Electricity"]
-idToColorMap = EnergyModelsGUI.setColors(case[:products], products_color)
-
 # Set folder where visualization info is saved and rBtrieved
 design_path = joinpath(@__DIR__, "..", "design", "EMR", "hydro_power")
 
 # Run the GUIidToIconMap, 
-gui = GUI(case; design_path, idToColorMap, model = m)
+gui = GUI(case; design_path, model = m)
 

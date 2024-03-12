@@ -1,9 +1,6 @@
 # Create convenient alias for connections
 const Connection = Tuple{EnergySystemDesign, EnergySystemDesign, Dict{Symbol,Any}}
 
-# Set default color when color is not provided through idToColorMap
-missingColor::Symbol = :black
-
 """
 Create and initialize an instance of the `EnergySystemDesign` struct, representing energy system designs.
 
@@ -23,8 +20,8 @@ and processes connections and wall values. It constructs and returns an `EnergyS
 function EnergySystemDesign(
     system::Dict;
     design_path::String = "",
-    idToColorMap::Dict{Any,Any} = Dict{Any, Any}(),
-    idToIconMap::Dict{Any,Any} = Dict{Any, Any}(),
+    idToColorMap::Dict = Dict(),
+    idToIconMap::Dict = Dict(),
     x::Real = 0.0,
     y::Real = 0.0,
     icon::String = "",
@@ -34,15 +31,12 @@ function EnergySystemDesign(
 )
     file::String = design_file(system, design_path)
     design_dict::Dict = if isfile(file)
-        TOML.parsefile(file)
+        YAML.load_file(file)
     else
         Dict()
     end
-    if isempty(idToColorMap)
-        products = system[:products]
-        seed::Vector{RGB} = [parse(Colorant, hex_color) for hex_color ∈ values(getDefaultColors())]
-        productsColors = distinguishable_colors(length(products), seed, dropseed=false)
-        idToColorMap = setColors(products, productsColors)
+    if haskey(system, :products) && !(length(system[:products]) == length(idToColorMap))
+        idToColorMap = set_colors(system[:products], idToColorMap)
     end
 
     components::Vector{EnergySystemDesign} = EnergySystemDesign[]
@@ -74,34 +68,34 @@ function EnergySystemDesign(
 
     if haskey(system,:areas) && haskey(system,:transmission)
         for transmission ∈ system[:transmission]
-            connector_design_from::EnergySystemDesign = filtersingle(
+            connector_design_from::EnergySystemDesign = getfirst(
                             x -> x.system[:node].node == transmission.from.node,
                             components,
                         )
-            connector_design_to::EnergySystemDesign = filtersingle(
+            connector_design_to::EnergySystemDesign = getfirst(
                             x -> x.system[:node].node == transmission.to.node,
                             components,
                         )
             
             if !isnothing(connector_design_from) && !isnothing(connector_design_to)
-                colors::Vector{RGB} = getResourceColors(transmission.modes, idToColorMap)
+                colors::Vector{RGB} = get_resource_colors(transmission.modes, idToColorMap)
                 connection_sys::Dict{Symbol, Any} = Dict(:connection => transmission, :colors => colors, :plotObj => [])
                 push!(connections, (connector_design_from, connector_design_to, connection_sys))
             end
         end
     elseif haskey(system,:nodes) && haskey(system,:links)
         for link ∈ system[:links]
-            connector_design_from::EnergySystemDesign = filtersingle(
+            connector_design_from::EnergySystemDesign = getfirst(
                             x -> x.system[:node] == link.from,
                             components,
                         )
-            connector_design_to::EnergySystemDesign = filtersingle(
+            connector_design_to::EnergySystemDesign = getfirst(
                             x -> x.system[:node] == link.to,
                             components,
                         )
             if !isnothing(connector_design_from) && !isnothing(connector_design_to)
                 resources::Vector{EMB.Resource} = EMB.link_res(link)
-                colors::Vector{RGB} = getResourceColors(resources, idToColorMap)
+                colors::Vector{RGB} = get_resource_colors(resources, idToColorMap)
                 connection_sys::Dict{Symbol, Any} = Dict(:connection => link, :colors => colors, :plotObj => [])
     
                 push!(connections, (connector_design_from, connector_design_to, connection_sys))
@@ -144,8 +138,8 @@ function process_children!(
     systems::Dict,
     design_dict::Dict,
     design_path::String,
-    idToColorMap::Dict{Any,Any},
-    idToIconMap::Dict{Any,Any},
+    idToColorMap::Dict,
+    idToIconMap::Dict,
     parent::Symbol,
     parent_xy::Observable{Tuple{T,T}},
     plotObj::Vector{AbstractPlot},
@@ -221,7 +215,7 @@ function process_children!(
 
                 indices::Vector{Int} = [1,2] # Create counting indeces for area_links and area_nodes respectively
 
-                getLinkedNodes!(area_An, systems, area_links, area_nodes, indices)
+                get_linked_nodes!(area_An, systems, area_links, area_nodes, indices)
                 resize!(area_links, indices[1]-1)
                 resize!(area_nodes, indices[2]-1)
                 this_sys = Dict(:node => system,:links => area_links, :nodes => area_nodes)

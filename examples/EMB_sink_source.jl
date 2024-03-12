@@ -27,9 +27,9 @@ function generate_data()
     # Creation of the time structure and global data
     T = TwoLevel(2, 1, operational_periods; op_per_strat)
     model = OperationalModel(
-        Dict(CO2 => FixedProfile(10)),  # Emission cap for CO₂ in t/8h
-        Dict(CO2 => FixedProfile(0)),   # Emission price for CO₂ in EUR/t
-        CO2,                            # CO₂ instance
+        Dict(CO2 => FixedProfile(10)),  # Emission cap for CO2 in t/8h
+        Dict(CO2 => FixedProfile(0)),   # Emission price for CO2 in EUR/t
+        CO2,                            # CO2 instance
     )
 
     # Create the individual test nodes, corresponding to a system with an electricity
@@ -89,16 +89,12 @@ pretty_table(
 
 using EnergyModelsGUI
 
-# Define colors for all products
-products_color = ["Electricity", "ResourceEmit"]
-idToColorMap = setColors(case[:products], products_color)
-
 # Set custom icons
-icon_names = ["hydroPowerPlant", "factoryEmissions"]
-idToIconMap = setIcons(case[:nodes], icon_names)
+icon_names = Dict(1 => "hydroPowerPlant", 2 => "factoryEmissions")
+idToIconMap = set_icons(icon_names)
 
 # Set folder where visualization info is saved and retrieved
 design_path = joinpath(@__DIR__, "..", "design", "EMB", "sink_source")
 
 # Run the GUI
-gui = GUI(case; design_path, idToColorMap, idToIconMap, model = m)
+gui = GUI(case; design_path, idToIconMap, model = m)
