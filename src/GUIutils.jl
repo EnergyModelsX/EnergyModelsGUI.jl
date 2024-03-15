@@ -8,8 +8,8 @@ Convert pixel size to data widths (in x- and y-direction)
 """
 function pixel_to_data(gui::GUI, pixel_size::Real)
     # Calculate the range in data coordinates
-    x_range::Float64 = gui.vars[:xlimits][][2] - gui.vars[:xlimits][][1]
-    y_range::Float64 = gui.vars[:ylimits][][2] - gui.vars[:ylimits][][1]
+    x_range::Float64 = gui.vars[:xlimits][2] - gui.vars[:xlimits][1]
+    y_range::Float64 = gui.vars[:ylimits][2] - gui.vars[:ylimits][1]
 
     # Get the widths of the axis
     plot_widths::Vec2{Int64} = pixelarea(gui.axes[:topo].scene)[].widths
@@ -475,13 +475,13 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
 
         if node isa EMB.NetworkNode
             # Add a vertical white separation line to distinguis input resources from output resources
-            separationLine = lines!(gui.axes[:topo],zeros(4),zeros(4),color=:black,linewidth=gui.vars[:linewidth], inspector_label = (self, i, p) -> get_hover_string(design.system[:node]), inspectable = true)
-            Makie.translate!(separationLine, 0,0,2002)
-            push!(design.plotObj, separationLine)
+            centerBox = lines!(gui.axes[:topo],zeros(4),zeros(4),color=:black,linewidth=gui.vars[:linewidth], inspector_label = (self, i, p) -> get_hover_string(design.system[:node]), inspectable = true)
+            Makie.translate!(centerBox, 0,0,2002)
+            push!(design.plotObj, centerBox)
             on(design.xy, priority = 3) do center
                 radius = gui.vars[:Δh][] * gui.vars[:icon_scale]/2
                 xCoords, yCoords = box(center[1], center[2], radius/4)
-                separationLine[1][] = Vector{Point{2, Float32}}([[x,y] for (x,y) ∈ zip(xCoords, yCoords)])
+                centerBox[1][] = Vector{Point{2, Float32}}([[x,y] for (x,y) ∈ zip(xCoords, yCoords)])
             end
         end
     else
@@ -582,9 +582,9 @@ function adjust_limits!(gui::GUI)
     max_x = x_center + Δ_lim_x/2
     min_y = y_center - Δ_lim_y/2
     max_y = y_center + Δ_lim_y/2
-    gui.vars[:xlimits][] = [min_x, max_x]
-    gui.vars[:ylimits][] = [min_y, max_y]
-    limits!(gui.axes[:topo], gui.vars[:xlimits][], gui.vars[:ylimits][])
+    gui.vars[:xlimits] = [min_x, max_x]
+    gui.vars[:ylimits] = [min_y, max_y]
+    limits!(gui.axes[:topo], gui.vars[:xlimits], gui.vars[:ylimits])
 
     gui.axes[:topo].autolimitaspect = nothing # Fix the axis limits (needed to avoid resetting limits when adding objects along connection lines upon zoom)
 end
@@ -1221,18 +1221,22 @@ function update_plot!(gui::GUI, node::Plotable)
         end
         notify(gui.menus[:time].selection) # In case the new plot is on an other time type
         axisTimeType = gui.menus[:time].selection[]
-        plotObjs = filter(x -> x isa Combined || x isa Lines, gui.axes[axisTimeType].scene.plots) # Only extract Lines and Combined (bars). Done to avoid Wireframe-objects
+        pinnedPlots = [x[:plotObj] for x ∈ gui.vars[:pinnedPlots][axisTimeType]]
+        visiblePlots = [x[:plotObj] for x ∈ gui.vars[:visiblePlots][axisTimeType]]
+        plotObjs = filter(x -> (x isa Combined || x isa Lines) && !(x ∈ pinnedPlots), gui.axes[axisTimeType].scene.plots) # Extract non-pinned plots. Only extract Lines and Combined (bars). Done to avoid Wireframe-objects
         
-        plotObj = getfirst(x -> !(x ∈ [x[:plotObj] for x ∈ gui.vars[:pinnedPlots][axisTimeType]]) && !(x isa Wireframe), plotObjs) # check if there are any non-pinned plots that can be overwritten
+        plotObj = getfirst(x -> x ∈ visiblePlots, plotObjs) # get first non-pinned visible plots
         if isnothing(plotObj)
-            plotObj = getfirst(x -> !x.visible[] && !(x isa Wireframe), plotObjs) # Overwrite a hidden plots
-            if !isnothing(plotObj)
+            @debug "Could not find a visible plot to overwrite, try to find a hidden plot to overwrite"
+            plotObj = getfirst(x -> !x.visible[], plotObjs)
+            if !isnothing(plotObj) # Overwrite a hidden plots
+                @debug "Found a hidden plot to overwrite"
                 push!(gui.vars[:visiblePlots][axisTimeType], Dict(:plotObj => plotObj, :name => selection[:name], :selection => selection[:selection], :t => t_values, :y => y_values))
             end
-        else # overwrite non-pinned plot
-            if !(plotObj ∈ [x[:plotObj] for x ∈ gui.vars[:visiblePlots][axisTimeType]])
-                push!(gui.vars[:visiblePlots][axisTimeType], Dict(:plotObj => plotObj, :name => selection[:name], :selection => selection[:selection], :t => t_values, :y => y_values))
-            end
+        else # Overwrite the non-pinned visible plot
+            @debug "Found a visible plot to overwrite"
+            filter!(x -> x[:plotObj] != plotObj, gui.vars[:visiblePlots][axisTimeType]) # remove the plot to be overwritten
+            push!(gui.vars[:visiblePlots][axisTimeType], Dict(:plotObj => plotObj, :name => selection[:name], :selection => selection[:selection], :t => t_values, :y => y_values))
         end
 
         if !isnothing(plotObj)
@@ -1240,6 +1244,7 @@ function update_plot!(gui::GUI, node::Plotable)
             plotObj.visible = true # If it has been hidden after a "Remove Plot" action
             plotObj.label = label
         else
+            @debug "Could not find anything to overwrite, creating new plot instead"
             if xType == :OperationalPeriod
                 plotObj = lines!(gui.axes[axisTimeType], points, label = label)
             else

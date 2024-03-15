@@ -14,7 +14,7 @@ function GUI(
         periods_labels::Vector = [],
         scenarios_labels::Vector = [],
         representativePeriods_labels::Vector = [],
-        pathToResults::String = "../plots",
+        pathToResults::String = "",
         coarseCoastLines::Bool = true,
     )
     # Generate the system topology:
@@ -65,12 +65,12 @@ function GUI(
     vars[:boxTextSep_px] = 5               # Separation between rectangles for colors and text
     vars[:descriptiveNames] = YAML.load_file(joinpath(@__DIR__,"descriptiveNames.yml"); dicttype=Dict{Symbol,Any})
 
-    vars[:plot_widths] = Observable((1920, 1080))
+    vars[:plot_widths] = (1920, 1080)
     vars[:hideTopoAxDecorations] = hideTopoAxDecorations
     vars[:expandAll] = expandAll
 
-    vars[:xlimits] = Observable(Vector{Float64}([0.0,1.0]))
-    vars[:ylimits] = Observable(Vector{Float64}([0.0,1.0]))
+    vars[:xlimits] = Vector{Float64}([0.0,1.0])
+    vars[:ylimits] = Vector{Float64}([0.0,1.0])
 
     #vars[:availableData_menu_history] = Ref(Vector{String}(undef, 0))
     vars[:selected_systems] = []
@@ -96,7 +96,7 @@ function GUI(
     # Create a figure (the main window)
     backgroundcolor = RGBf(0.99, 0.99, 0.99)
     GLMakie.activate!() # use GLMakie as backend
-    fig::Figure = Figure(resolution = vars[:plot_widths][], backgroundcolor = backgroundcolor)
+    fig::Figure = Figure(resolution = vars[:plot_widths], backgroundcolor = backgroundcolor)
 
     # Create grid layout structure of the window
     gridlayout_taskbar::GridLayout        = fig[1,1:2] = GridLayout()
@@ -112,7 +112,7 @@ function GUI(
 
     # Get the current limits of the axis
     colsize!(fig.layout, 2, Auto(1))
-    vars[:axAspectRatio] = vars[:plot_widths][][1]/(vars[:plot_widths][][2]-taskbarHeight)/2
+    vars[:axAspectRatio] = vars[:plot_widths][1]/(vars[:plot_widths][2]-taskbarHeight)/2
 
     # Check whether or not to use lat-lon coordinates to construct the axis used for visualizing the topology
     if haskey(root_design.system,:areas) # The root_design uses the EnergyModelsGeography package: Thus use GeoMakie 
@@ -237,7 +237,7 @@ function GUI(
     save_button             = Makie.Button(gridlayout_taskbar[1, 5]; label = "save", fontsize = vars[:fontsize])
     resetView_button        = Makie.Button(gridlayout_taskbar[1, 6]; label = "reset view", fontsize = vars[:fontsize])
     expandAll_label         = Makie.Label( gridlayout_taskbar[1, 7], "Expand all:"; halign = :right, fontsize = vars[:fontsize], justification = :right)
-    expandAll_toggle        = Makie.Toggle(gridlayout_taskbar[1, 8]; active = false)
+    expandAll_toggle        = Makie.Toggle(gridlayout_taskbar[1, 8]; active = vars[:expandAll])
 
     # Add the following to separate the buttons (related to axes[:topo]) to the left and the menus (related to axes[:results]) to the right
     #Makie.Label(gridlayout_taskbar[1, 7], ""; tellwidth = false) 
@@ -261,12 +261,11 @@ function GUI(
     time_label        = Makie.Label( gridlayout_resultsTaskbar[1, 2], "Plot:"; halign = :right, fontsize = vars[:fontsize], justification = :right)
     time_menu         = Makie.Menu(  gridlayout_resultsTaskbar[1, 3], options = zip(axisTimeTypes_labels, axisTimeTypes), halign = :left, width=120, fontsize = vars[:fontsize])
     pinPlot_button    = Makie.Button(gridlayout_resultsTaskbar[1, 4]; label = "pin current data", fontsize = vars[:fontsize])
-    printTable_button = Makie.Button(gridlayout_resultsTaskbar[1, 5]; label = "print table", fontsize = vars[:fontsize])
-    removePlot_button = Makie.Button(gridlayout_resultsTaskbar[1, 6]; label = "remove selected data", fontsize = vars[:fontsize])
-    saveResults_label = Makie.Label( gridlayout_resultsTaskbar[1, 7], "Save plot:"; halign = :right, fontsize = vars[:fontsize], justification = :right)
-    axes_menu         = Makie.Menu(  gridlayout_resultsTaskbar[1, 8], options = ["Figure", "Plots"], default = "Plots", halign = :left, width=80, fontsize = vars[:fontsize])
-    saveResults_menu  = Makie.Menu(  gridlayout_resultsTaskbar[1, 9], options = ["bmp", "tiff", "tif", "jpg", "jpeg", "svg", "xlsx", "png"], default = "png", halign = :left, width=50, fontsize = vars[:fontsize])
-    export_button     = Makie.Button(gridlayout_resultsTaskbar[1, 10]; label = "export", fontsize = vars[:fontsize])
+    removePlot_button = Makie.Button(gridlayout_resultsTaskbar[1, 5]; label = "remove selected data", fontsize = vars[:fontsize])
+    saveResults_label = Makie.Label( gridlayout_resultsTaskbar[1, 6], "Export:"; halign = :right, fontsize = vars[:fontsize], justification = :right)
+    axes_menu         = Makie.Menu(  gridlayout_resultsTaskbar[1, 7], options = ["All", "Plots"], default = "Plots", halign = :left, width=80, fontsize = vars[:fontsize])
+    saveResults_menu  = Makie.Menu(  gridlayout_resultsTaskbar[1, 8], options = ["bmp", "tiff", "tif", "jpg", "jpeg", "svg", "xlsx", "png", "REPL"], default = "REPL", halign = :left, width=60, fontsize = vars[:fontsize])
+    export_button     = Makie.Button(gridlayout_resultsTaskbar[1, 9]; label = "export", fontsize = vars[:fontsize])
 
     # Collect all menus into a dictionary
     buttons::Dict{Symbol, Makie.Button} = Dict(
@@ -278,7 +277,6 @@ function GUI(
         :resetView => resetView_button,
         :export => export_button,
         :pinPlot => pinPlot_button,
-        :printTable => printTable_button,
     )
 
     # Collect all menus into a dictionary
@@ -335,18 +333,13 @@ function GUI(
         end
     end
 
-    # Update the size of the legend box when the title is updated
-    on(gui.vars[:title], priority = 3) do val
-        notify(gui.vars[:topoLegend].entrygroups)
-        return Consume(false)
-    end
-
     # On zooming, make sure all graphics are adjusted acordingly
     on(gui.axes[:topo].finallimits, priority = 10) do finallimits
+        @debug "Changes in finallimits"
         widths::Vec{2, Float32} = finallimits.widths
         origin::Vec{2, Float32} = finallimits.origin
-        gui.vars[:xlimits][] = [origin[1], origin[1] + widths[1]]
-        gui.vars[:ylimits][] = [origin[2], origin[2] + widths[2]]
+        gui.vars[:xlimits] = [origin[1], origin[1] + widths[1]]
+        gui.vars[:ylimits] = [origin[2], origin[2] + widths[2]]
         update_distances!(gui)
         notifyComponents()
         topoTitleLocX[] = origin[1] + widths[1]/100
@@ -356,8 +349,9 @@ function GUI(
 
     # If the window is resized, make sure all graphics are adjusted acordingly
     on(gui.fig.scene.events.window_area, priority = 3) do val
-        gui.vars[:plot_widths][] = Tuple(gui.fig.scene.px_area.val.widths)
-        gui.vars[:axAspectRatio] = gui.vars[:plot_widths][][1]/(vars[:plot_widths][][2]-taskbarHeight)/2
+        @debug "Changes in window_area"
+        gui.vars[:plot_widths] = Tuple(gui.fig.scene.px_area.val.widths)
+        gui.vars[:axAspectRatio] = gui.vars[:plot_widths][1]/(vars[:plot_widths][2]-taskbarHeight)/2
         notify(gui.axes[:topo].finallimits)
         return Consume(false)
     end
@@ -534,10 +528,8 @@ function GUI(
                     gui.design = component
                     plot_design!(gui, gui.design; visible = true, expandAll = gui.vars[:expandAll])
                     update_title!(gui)
-                    update_distances!(gui)
+                    #update_distances!(gui)
                     clear_selection(gui)
-
-                    notifyComponents()
                     notify(resetView_button.clicks)
                 end
             end
@@ -554,8 +546,8 @@ function GUI(
             plot_design!(gui, gui.design; visible = true, expandAll = gui.vars[:expandAll])
             update_title!(gui)
             adjust_limits!(gui)
-            notifyComponents()
-            update_distances!(gui)
+            #notifyComponents()
+            #update_distances!(gui)
         end
         return Consume(false)
     end
@@ -566,33 +558,11 @@ function GUI(
         axisTimeType = axisTimeTypes[gui.menus[:time].i_selected[]]
         plotObjs = gui.axes[axisTimeType].scene.plots
         if !isempty(plotObjs) # Check if any plots exist
-            plotObj = getfirst(x -> !(x[:plotObj] ∈ gui.vars[:pinnedPlots][axisTimeType]) && (x[:plotObj] isa Lines || x[:plotObj] isa Combined), gui.vars[:visiblePlots][axisTimeType])
+            pinnedPlots = [x[:plotObj] for x ∈ gui.vars[:pinnedPlots][axisTimeType]]
+            plotObj = getfirst(x -> !(x[:plotObj] ∈ pinnedPlots) && (x[:plotObj] isa Lines || x[:plotObj] isa Combined), gui.vars[:visiblePlots][axisTimeType])
             if !isnothing(plotObj)
                 push!(gui.vars[:pinnedPlots][axisTimeType], plotObj)
             end
-        end
-        return Consume(false)
-    end
-
-    # Print plots (or selected plot) to the REPL with prettyTables
-    on(printTable_button.clicks, priority=10) do _
-        axisTimeType = axisTimeTypes[gui.menus[:time].i_selected[]]
-        visPlots = gui.vars[:visiblePlots][axisTimeType]
-        if !isempty(visPlots) # Check if any plots exist
-            t = visPlots[1][:t]
-            data = Matrix{Any}(undef,length(t),length(visPlots)+1)
-            data[:,1] = t
-            header = (Vector{Any}(undef, length(visPlots)+1),
-                      Vector{Any}(undef, length(visPlots)+1))
-            header[1][1] = "t"
-            header[2][1] = "(" * string(nameof(eltype(t))) * ")"
-            for (j, visPlot) ∈ enumerate(visPlots)
-                data[:, j+1] = visPlot[:y]
-                header[1][j+1] = visPlots[j][:name]
-                header[2][j+1] = join([string(x) for x ∈ visPlots[j][:selection]], ", ")
-            end
-            println("\n")  # done in order to avoid the promt shifting the topspline of the table
-            pretty_table(data, header = header)
         end
         return Consume(false)
     end
@@ -606,8 +576,8 @@ function GUI(
         for plotObj_selected ∈ gui.vars[:selected_plots]
             plotObj_selected.visible = false
             toggle_selection_color!(gui, plotObj_selected, false)
-            filter!(x -> x != plotObj_selected, gui.vars[:visiblePlots][axisTimeType][:plots])
-            filter!(x -> x != plotObj_selected, gui.vars[:pinnedPlots][axisTimeType])
+            filter!(x -> x[:plotObj] != plotObj_selected, gui.vars[:visiblePlots][axisTimeType])
+            filter!(x -> x[:plotObj] != plotObj_selected, gui.vars[:pinnedPlots][axisTimeType])
             @info "Removing plot with label: $(plotObj_selected.label[])"
 
         end
@@ -643,7 +613,52 @@ function GUI(
 
     # Export button: Export gui.axes[:results] to file (format given by saveResults_menu.selection[])
     on(export_button.clicks, priority=10) do _
-        export_to_file(gui)
+        if gui.menus[:saveResults].selection[] == "REPL"
+            axesStr::String = gui.menus[:axes].selection[]
+            if axesStr == "Plots"
+                axisTimeType = axisTimeTypes[gui.menus[:time].i_selected[]]
+                visPlots = gui.vars[:visiblePlots][axisTimeType]
+                if !isempty(visPlots) # Check if any plots exist
+                    t = visPlots[1][:t]
+                    data = Matrix{Any}(undef,length(t),length(visPlots)+1)
+                    data[:,1] = t
+                    header = (Vector{Any}(undef, length(visPlots)+1),
+                            Vector{Any}(undef, length(visPlots)+1))
+                    header[1][1] = "t"
+                    header[2][1] = "(" * string(nameof(eltype(t))) * ")"
+                    for (j, visPlot) ∈ enumerate(visPlots)
+                        data[:, j+1] = visPlot[:y]
+                        header[1][j+1] = visPlots[j][:name]
+                        header[2][j+1] = join([string(x) for x ∈ visPlots[j][:selection]], ", ")
+                    end
+                    println("\n")  # done in order to avoid the promt shifting the topspline of the table
+                    pretty_table(data, header = header)
+                end
+            elseif axesStr == "All"
+                for dict ∈ collect(keys(object_dictionary(gui.model))) 
+                    @info "Results for $dict"
+                    container = gui.model[dict]
+                    if isempty(container)
+                        continue
+                    end
+                    if typeof(container) <: JuMP.Containers.DenseAxisArray
+                        axisTypes = nameof.([eltype(a) for a in JuMP.axes(gui.model[dict])])
+                    elseif typeof(container) <: JuMP.Containers.SparseAxisArray
+                        axisTypes = collect(nameof.(typeof.(first(container.data)[1])))
+                    end
+                    header = vcat(axisTypes, [:value])
+                    pretty_table(
+                        JuMP.Containers.rowtable(
+                            value,
+                            container;
+                            header=header,
+                        ),
+                    )
+                end
+            end
+        else
+            export_to_file(gui)
+        end
         return Consume(false)
     end
     
@@ -729,8 +744,8 @@ function GUI(
 
     # make sure all graphics is adapted to the spawned figure sizes
     notify(gui.toggles[:expandAll].active)
-    notify(pixelarea(gui.axes[:topo].scene))
-    update_distances!(gui)
+    #notify(pixelarea(gui.axes[:topo].scene))
+    #update_distances!(gui)
 
     # Enable inspector (such that hovering objects shows information)
     DataInspector(fig, range = 10, indicator_linewidth = 0, enable_indicator = false) # Linewidth set to zero as this boundary is slightly laggy on movement
