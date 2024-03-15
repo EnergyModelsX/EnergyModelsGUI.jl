@@ -723,11 +723,11 @@ function export_svg(ax::Makie.Block, filename::String)
 end
 
 """
-    export_xlsx(plotObjs::Makie.AbstractPlot, filename::String, xlabel::Symbol)
+    export_xlsx(plotObjs, filename::String, xlabel::Symbol)
 
 Export the `plotObjs` to an xlsx file with path given by `filename`
 """
-function export_xlsx(plotObjs::Makie.AbstractPlot, filename::String, xlabel::Symbol)
+function export_xlsx(plotObjs, filename::String, xlabel::Symbol)
     if isempty(plotObjs)
         @warn "No data to be exported"
         return 1
@@ -736,62 +736,19 @@ function export_xlsx(plotObjs::Makie.AbstractPlot, filename::String, xlabel::Sym
     XLSX.openxlsx(filename, mode="w") do xf
         sheet = xf[1] # Access the first sheet
 
+        x = [xy[1] for xy in plotObjs[1][1][]]
         noColumns = length(plotObjs)+1
-        data = Vector{Any}(undef,noColumns)
-        data[1] = string.(plotObjs[1][:t])
+        data = Vector{Vector{Float64}}(undef,noColumns)
+        data[1] = x
         for (i, plotObj) ∈ enumerate(plotObjs)
-            data[i+1] = plotObj[:y]
+            data[i+1] = [xy[2] for xy in plotObj[1][]]
         end
-        labels::Vector{String} = [plotObj[:name] for plotObj in plotObjs]
+        labels::Vector{String} = [plotObj.label[] for plotObj in plotObjs]
 
-        headers::Vector{Any} = vcat(xlabel, labels)
+        headers::Vector{String} = vcat(string(xlabel), labels)
 
         #XLSX.rename!(sheet, "My Data Sheet")
         XLSX.writetable!(sheet, data, headers)
-    end
-    return 0
-end
-
-"""
-    export_xlsx(plotObjs::Makie.AbstractPlot, filename::String)
-
-Export the `plotObjs` to an xlsx file with path given by `filename`
-"""
-function export_xlsx(model::JuMP.Model, filename::String)
-    if isempty(model)
-        @warn "No data to be exported"
-        return 1
-    end
-    # Create a new Excel file and write data
-    XLSX.openxlsx(filename, mode="w") do xf
-        for (i, dict) ∈ enumerate(collect(keys(object_dictionary(model))))
-            sheet = XLSX.addsheet!(xf, string(dict))
-            container = model[dict]
-            if isempty(container)
-                continue
-            end
-            if typeof(container) <: JuMP.Containers.DenseAxisArray
-                axisTypes = nameof.([eltype(a) for a in axes(model[dict])])
-            elseif typeof(container) <: JuMP.Containers.SparseAxisArray
-                axisTypes = collect(nameof.(typeof.(first(container.data)[1])))
-            end
-            header = vcat(axisTypes, [:value])
-            dataJuMP = JuMP.Containers.rowtable(
-                    value,
-                    container;
-                    header=header,
-            )
-            noColumns = length(fieldnames(eltype(dataJuMP)))
-            num_tuples = length(dataJuMP)
-            data = [Vector{Any}(undef,num_tuples) for i ∈ range(1,noColumns)]
-            for (i, nt) in enumerate(dataJuMP)
-                for (j, field) in enumerate(fieldnames(typeof(nt)))
-                    data[j][i] = string(getfield(nt, field))
-                end
-            end
-
-            XLSX.writetable!(sheet, data, header)
-        end
     end
     return 0
 end
@@ -802,30 +759,20 @@ end
 Export results based on the state of `gui`
 """
 function export_to_file(gui::GUI)
-    path = gui.vars[:pathToResults]
-    if isempty(path)
-        @error "Path not specified for exporting results; use GUI(case; pathToResults = \"<path to exporting folder>\")"
-        return
-    end
-    if !isdir(path)
-        mkpath(path)
-    end
     axesStr::String = gui.menus[:axes].selection[]
     fileEnding = gui.menus[:saveResults].selection[]
-    filename::String = joinpath(path, axesStr * "." * fileEnding)
+    filename::String = gui.vars[:pathToResults] * "/" * axesStr * "." * fileEnding
     if fileEnding ∈ ["bmp", "tiff", "tif", "jpg", "jpeg", "svg", "png"]
         CairoMakie.activate!() # Set CairoMakie as backend for proper export quality
         carioMakieActivated = true
     else
         carioMakieActivated = false
     end
-    if axesStr == "All"
+    if axesStr == "Figure"
         axisTimeType = :topo
-        if fileEnding ∈ ["bmp", "tiff", "tif", "jpg", "jpeg"]
+        if fileEnding ∈ ["bmp", "tiff", "tif", "jpg", "jpeg", "xlsx"]
             @warn "Exporting the figure to an $fileEnding file is not implemented"
             flag = 1
-        elseif fileEnding == "xlsx"
-            flag = export_xlsx(gui.model, filename)
         else
             try
                 save(filename,gui.fig)

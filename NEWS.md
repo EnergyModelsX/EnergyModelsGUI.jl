@@ -1,19 +1,5 @@
 # Release notes
 
-Version 0.4.1 (2024-03-14)
---------------------------
-### Adjustment
-* The `print table` functionality is now available through the `export` button with the `REPL` option
-
-### Bugfix
-* Fixed issue with pinned and visible plots not being properly overwritten
-* Fixed issue with setting `expandAll = true` in the input argument for `GUI`
-* Fix issuewith non-existing export folder
-
-### Feature
-* Added functionality to export all JuMP variables to an excel file.
-* Added functionality to export all JuMP variables to the REPL using PrettyTables
-
 Version 0.4.0 (2024-03-12)
 --------------------------
 ### Adjustment
@@ -54,9 +40,6 @@ Version 0.3.4 (2024-02-29)
 --------------------------
 ### Adjustment
 * Alter description on how examples should be run (use a seperate Project.toml file from the examples folder instead of the test folder)
-
-### Bugfix
-* Fixed bug for investments in transition cables not being dashed"
 
 ### Bugfix
 * Fixed bug for investments in transition cables not being dashed"

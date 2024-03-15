@@ -6,9 +6,9 @@ using Test
 
 Loop through all components of gui.root_design and display all available data
 """
-function run_through_all(gui::GUI; breakAfterFirst::Bool = true)
+function run_through_all(gui::GUI)
     @info "Running through all components"
-    run_through_all(gui, gui.root_design, breakAfterFirst)
+    run_through_all(gui, gui.root_design)
 end
 
 """
@@ -16,7 +16,7 @@ end
 
 Loop through all components of design and display all available data
 """
-function run_through_all(gui::GUI, design::EnergySystemDesign, breakAfterFirst::Bool)
+function run_through_all(gui::GUI, design::EnergySystemDesign)
     for component ∈ design.components
         empty!(gui.vars[:selected_systems])
         push!(gui.vars[:selected_systems], component)
@@ -26,16 +26,10 @@ function run_through_all(gui::GUI, design::EnergySystemDesign, breakAfterFirst::
             update!(gui)
             for i_selected ∈ 1:length(gui.menus[:availableData].options[])
                 gui.menus[:availableData].i_selected = i_selected # Select flow_out (CO2)
-                if breakAfterFirst
-                    break
-                end
                 #sleep(0.1)
             end
         else
-            run_through_all(gui, component, breakAfterFirst)
-        end
-        if breakAfterFirst
-            break
+            run_through_all(gui, component)
         end
     end
     for connection ∈ design.connections
@@ -46,12 +40,6 @@ function run_through_all(gui::GUI, design::EnergySystemDesign, breakAfterFirst::
         for i_selected ∈ 1:length(gui.menus[:availableData].options[])
             gui.menus[:availableData].i_selected = i_selected # Select flow_out (CO2)
             #sleep(0.1)
-            if breakAfterFirst
-                break
-            end
-        end
-        if breakAfterFirst
-            break
         end
     end
 end
@@ -104,14 +92,14 @@ end
         value = gui.axes[axisTimeType].scene.plots[1][1][][10][2]
         println("Value is $value")
         notify(gui.buttons[:up].clicks) # navigate back to top level
-        run_through_all(gui; breakAfterFirst = false)
+        run_through_all(gui)
         value ≈ 6.378697 # Check a value (flow_out (CO2)) plotted at axes[:opAn]
     end
 
     # EnergyModulesRenewableProducers examples
     @test begin
         include("../examples/EMR_simple_nondisres.jl")
-        run_through_all(gui; breakAfterFirst = false)
+        run_through_all(gui)
         true
     end
     @test begin
