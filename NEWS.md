@@ -1,9 +1,23 @@
 # Release notes
 
+Version 0.4.2 (2024-03-19)
+--------------------------
+### Bugfix
+* Fix issue when aligning selections of node including links/transmissions
+* Fix issue for plotting the topology having `Area`s with only the availability node present
+
+### Enhancement
+* Improved documentation of the `GUI` constructor and provided more optional arguments
+* Improved performance be precomputing the available data for all objects such that choosing from the `Data` menu now performs better
+
+### Feature
+* The fontsize can now be adjusted as an input argument to the `GUI` constructor
+
 Version 0.4.1 (2024-03-15)
 --------------------------
 ### Adjustment
 * The `print table` functionality is now available through the `export` button with the `REPL` option
+* The `Save` functionality also loops through sub-systems (since changing coordinates of sub-components is enabled through the `Expand all` toggle)
 
 ### Bugfix
 * Fixed issue with pinned and visible plots not being properly overwritten

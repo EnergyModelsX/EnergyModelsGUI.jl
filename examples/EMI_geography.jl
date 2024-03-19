@@ -373,7 +373,7 @@ solution_summary(m)
 using EnergyModelsGUI
 
 # Set folder where visualization info is saved and retrieved
-design_path = joinpath(@__DIR__, "..", "design", "EMI", "geography")
+design_path = joinpath(@__DIR__, "design", "EMI", "geography")
 
 # Run the GUI
-gui = GUI(case; design_path, model = m)
+gui = GUI(case; design_path, model = m, coarseCoastLines = false)

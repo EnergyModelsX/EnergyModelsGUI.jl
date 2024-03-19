@@ -1,14 +1,21 @@
 # [Public interface](@id sec_lib_public)
 
-## EnergySystemDesign
+## GUI constructor
+
+```@docs
+EnergyModelsGUI.GUI(case::Dict)
+```
+
+## EnergySystemDesign constructor
+
+```@docs
+EnergyModelsGUI.EnergySystemDesign(system::Dict)
+```
+
+## Structures
 
 ```@docs
 EnergyModelsGUI.EnergySystemDesign
-```
-
-## EnergySystemGUI
-
-```@docs
 EnergyModelsGUI.GUI
 ```
 

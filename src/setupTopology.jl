@@ -5,14 +5,14 @@ const Connection = Tuple{EnergySystemDesign, EnergySystemDesign, Dict{Symbol,Any
 Create and initialize an instance of the `EnergySystemDesign` struct, representing energy system designs.
 
 # Parameters:
-    - **`system::Dict`**: A dictionary containing system-related data stored as key-value pairs.
-    - **`design_path::String`**: A file path or identifier related to the design.
-    - **`x::Real`**: Initial x-coordinate of the system (default: 0.0).
-    - **`y::Real`**: Initial y-coordinate of the system (default: 0.0).
-    - **`icon::Union{String, Nothing}`**: An icon associated with the system (default: nothing).
-    - **`wall::Symbol`**: An initial wall value (default: :E).
-    - **`parent::Union{Symbol, Nothing}`**: An parent reference or indicator (default: nothing).
-    - **`kwargs...`**: Additional keyword arguments.
+- **`system::Dict`**: A dictionary containing system-related data stored as key-value pairs.
+- **`design_path::String`**: A file path or identifier related to the design.
+- **`x::Real`**: Initial x-coordinate of the system (default: 0.0).
+- **`y::Real`**: Initial y-coordinate of the system (default: 0.0).
+- **`icon::Union{String, Nothing}`**: An icon associated with the system (default: nothing).
+- **`wall::Symbol`**: An initial wall value (default: :E).
+- **`parent::Union{Symbol, Nothing}`**: An parent reference or indicator (default: nothing).
+- **`kwargs...`**: Additional keyword arguments.
 
 The function reads system configuration data from a TOML file specified by `design_path` (if it exists), initializes various internal fields,
 and processes connections and wall values. It constructs and returns an `EnergySystemDesign` instance.
@@ -68,11 +68,11 @@ function EnergySystemDesign(
 
     if haskey(system,:areas) && haskey(system,:transmission)
         for transmission ∈ system[:transmission]
-            connector_design_from::EnergySystemDesign = getfirst(
+            connector_design_from = getfirst(
                             x -> x.system[:node].node == transmission.from.node,
                             components,
                         )
-            connector_design_to::EnergySystemDesign = getfirst(
+            connector_design_to = getfirst(
                             x -> x.system[:node].node == transmission.to.node,
                             components,
                         )
@@ -85,11 +85,11 @@ function EnergySystemDesign(
         end
     elseif haskey(system,:nodes) && haskey(system,:links)
         for link ∈ system[:links]
-            connector_design_from::EnergySystemDesign = getfirst(
+            connector_design_from = getfirst(
                             x -> x.system[:node] == link.from,
                             components,
                         )
-            connector_design_to::EnergySystemDesign = getfirst(
+            connector_design_to = getfirst(
                             x -> x.system[:node] == link.to,
                             components,
                         )
@@ -125,13 +125,13 @@ end
 Processes children or components within an energy system design and populates the `children` vector.
 
 # Parameters:
-    - **`children::Vector{EnergySystemDesign}`**: A vector to store child `EnergySystemDesign` instances.
-    - **`systems::Dict`**: The system configuration data represented as a dictionary.
-    - **`design_dict::Dict`**: A dictionary containing design-specific data.
-    - **`design_path::String`**: A file path or identifier related to the design.
-    - **`parent::Symbol`**: A symbol representing the parent of the children.
-    - **`parent_xy::Observable{Tuple{T,T}}`**: An observable tuple holding the coordinates of the parent, where T is a subtype of Real.
-    - **`kwargs...`**: Additional keyword arguments.
+- **`children::Vector{EnergySystemDesign}`**: A vector to store child `EnergySystemDesign` instances.
+- **`systems::Dict`**: The system configuration data represented as a dictionary.
+- **`design_dict::Dict`**: A dictionary containing design-specific data.
+- **`design_path::String`**: A file path or identifier related to the design.
+- **`parent::Symbol`**: A symbol representing the parent of the children.
+- **`parent_xy::Observable{Tuple{T,T}}`**: An observable tuple holding the coordinates of the parent, where T is a subtype of Real.
+- **`kwargs...`**: Additional keyword arguments.
 """
 function process_children!(
     children::Vector{EnergySystemDesign},

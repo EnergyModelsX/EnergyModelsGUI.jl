@@ -30,9 +30,11 @@ Find the minimum distance between the nodes in the design object in gui and upda
 function update_distances!(gui::GUI)
     min_d::Float64 = Inf
     for component ∈ gui.design.components
-        d::Float64 = minimum([norm(collect(component.xy[] .- component2.xy[])) for component2 ∈ gui.design.components if component != component2])
-        if d < min_d
-            min_d = d
+        if length(gui.design.components) > 1
+            d::Float64 = minimum([norm(collect(component.xy[] .- component2.xy[])) for component2 ∈ gui.design.components if component != component2])
+            if d < min_d
+                min_d = d
+            end
         end
     end
     gui.vars[:minimum_distance] = min_d
@@ -70,9 +72,11 @@ function align(gui::GUI, type::Symbol)
     xs::Vector{Real} = Real[]
     ys::Vector{Real} = Real[]
     for sub_design ∈ gui.vars[:selected_systems]
-        x, y = sub_design.xy[]
-        push!(xs, x)
-        push!(ys, y)
+        if sub_design isa EnergySystemDesign
+            x, y = sub_design.xy[]
+            push!(xs, x)
+            push!(ys, y)
+        end
     end
 
     # Use the average of the components as the basis of the translated coordinate
@@ -83,12 +87,14 @@ function align(gui::GUI, type::Symbol)
     end
 
     for sub_design ∈ gui.vars[:selected_systems]
-        x, y = sub_design.xy[]
+        if sub_design isa EnergySystemDesign
+            x, y = sub_design.xy[]
 
-        if type == :horizontal
-            sub_design.xy[] = (x, z)
-        elseif type == :vertical
-            sub_design.xy[] = (z, y)
+            if type == :horizontal
+                sub_design.xy[] = (x, z)
+            elseif type == :vertical
+                sub_design.xy[] = (z, y)
+            end
         end
     end
 end
@@ -565,10 +571,11 @@ function adjust_limits!(gui::GUI)
     min_x, max_x, min_y, max_y = find_min_max_coordinates(gui.design)
     Δ_lim_x = max_x-min_x
     Δ_lim_y = max_y-min_y
-    min_x -= Δ_lim_x*gui.vars[:boundary_add]
-    max_x += Δ_lim_x*gui.vars[:boundary_add]
-    min_y -= Δ_lim_y*gui.vars[:boundary_add]
-    max_y += Δ_lim_y*gui.vars[:boundary_add]
+    boundary_add = gui.vars[:boundary_add]
+    min_x -= Δ_lim_x*boundary_add
+    max_x += Δ_lim_x*boundary_add
+    min_y -= Δ_lim_y*boundary_add
+    max_y += Δ_lim_y*boundary_add
     Δ_lim_x = max_x-min_x
     Δ_lim_y = max_y-min_y
     x_center = (min_x+max_x)/2
@@ -582,6 +589,14 @@ function adjust_limits!(gui::GUI)
     max_x = x_center + Δ_lim_x/2
     min_y = y_center - Δ_lim_y/2
     max_y = y_center + Δ_lim_y/2
+    if min_x ≈ max_x
+        min_x -= boundary_add
+        max_x += boundary_add
+    end
+    if min_y ≈ max_y
+        min_y -= boundary_add
+        max_y += boundary_add
+    end
     gui.vars[:xlimits] = [min_x, max_x]
     gui.vars[:ylimits] = [min_y, max_y]
     limits!(gui.axes[:topo], gui.vars[:xlimits], gui.vars[:ylimits])
@@ -794,24 +809,68 @@ function update!(gui::GUI, design::EnergySystemDesign; updateplot::Bool = true)
 end
 
 """
-    update_available_data_menu!(gui::GUI, node::Plotable)
-
-Update the `gui.menus[:availableData]` with the available data of `node`.
+    function initialize_availableData!(gui)
+    
+For all plotable objects, initialize the available data menu with items
 """
-function update_available_data_menu!(gui::GUI, node::Plotable)
-    # Find appearances of node/area/link/transmission in the model
-    availableData = Vector{Dict}(undef,0)
-    if !isempty(gui.model) # Plot results if available
-        for dict ∈ collect(keys(object_dictionary(gui.model))) 
-            if typeof(gui.model[dict]) <: JuMP.Containers.DenseAxisArray
-                if any([eltype(a) <: Union{EMB.Node, EMG.Area} for a in axes(gui.model[dict])]) # nodes/areas found in structure 
-                    if node ∈ gui.model[dict].axes[1] # only add dict if used by node (assume node are located at first Dimension)
-                        if length(axes(gui.model[dict])) > 2
-                            for res ∈ gui.model[dict].axes[3]
+function initialize_availableData!(gui)
+    system = gui.root_design.system
+    plotables = []
+    append!(plotables, [nothing]) # nothing here represents no selection
+    append!(plotables, system[:nodes])
+    if haskey(system,:areas)
+        append!(plotables, system[:areas])
+    end
+    append!(plotables, system[:links])
+    if haskey(system,:transmission)
+        append!(plotables, system[:transmission])
+    end
+    for node ∈ plotables
+        # Find appearances of node/area/link/transmission in the model
+        availableData = Vector{Dict}(undef,0)
+        if !isempty(gui.model) # Plot results if available
+            for dict ∈ collect(keys(object_dictionary(gui.model))) 
+                if typeof(gui.model[dict]) <: JuMP.Containers.DenseAxisArray
+                    if any([eltype(a) <: Union{EMB.Node, EMG.Area} for a in axes(gui.model[dict])]) # nodes/areas found in structure 
+                        if node ∈ gui.model[dict].axes[1] # only add dict if used by node (assume node are located at first Dimension)
+                            if length(axes(gui.model[dict])) > 2
+                                for res ∈ gui.model[dict].axes[3]
+                                    container = Dict(
+                                        :name => string(dict), 
+                                        :isJuMPdata => true, 
+                                        :selection => [node, res],
+                                    )
+                                    add_description!(availableData, container, gui, dict)
+                                end
+                            else
                                 container = Dict(
                                     :name => string(dict), 
                                     :isJuMPdata => true, 
-                                    :selection => [node, res],
+                                    :selection => [node],
+                                )
+                                add_description!(availableData, container, gui, dict)
+                            end
+                        end
+                    elseif any([eltype(a) <: EMG.TransmissionMode for a in axes(gui.model[dict])]) # nodes found in structure 
+                        if node isa EMG.Transmission
+                            for mode ∈ node.modes 
+                                if mode ∈ gui.model[dict].axes[1] # only add dict if used by node (assume node are located at first Dimension)
+                                    container = Dict(
+                                        :name => string(dict), 
+                                        :isJuMPdata => true, 
+                                        :selection => [mode],
+                                    ) # do not include node (<: EMG.Transmission) here as the mode is unique to this transmission
+                                    add_description!(availableData, container, gui, dict)
+                                end
+                            end
+                        end
+                    elseif isnothing(node)
+                        if length(axes(gui.model[dict])) > 1
+                            for res ∈ gui.model[dict].axes[2]
+                                container = Dict(
+                                    :name => string(dict), 
+                                    :isJuMPdata => true, 
+                                    :selection => [res],
                                 )
                                 add_description!(availableData, container, gui, dict)
                             end
@@ -819,124 +878,105 @@ function update_available_data_menu!(gui::GUI, node::Plotable)
                             container = Dict(
                                 :name => string(dict), 
                                 :isJuMPdata => true, 
-                                :selection => [node],
+                                :selection => EMB.Node[],
                             )
                             add_description!(availableData, container, gui, dict)
                         end
                     end
-                elseif any([eltype(a) <: EMG.TransmissionMode for a in axes(gui.model[dict])]) # nodes found in structure 
-                    if node isa EMG.Transmission
-                        for mode ∈ node.modes 
-                            if mode ∈ gui.model[dict].axes[1] # only add dict if used by node (assume node are located at first Dimension)
+                elseif typeof(gui.model[dict]) <: JuMP.Containers.SparseAxisArray
+                    if any([typeof(x) <: Union{EMB.Node, EMB.Link, EMG.Area} for x in first(gui.model[dict].data)[1]]) # nodes/area/links found in structure
+                        if !isnothing(node)
+                            extract_combinations!(gui, availableData, dict, node, gui.model)
+                        end
+                    elseif isnothing(node)
+                        extract_combinations!(gui, availableData, dict, node, gui.model)
+                    end
+                end
+            end
+        end
+
+        # Add timedependent input data (if available)
+        if !isnothing(node)
+            for fieldName ∈ fieldnames(typeof(node))
+                field = getfield(node, fieldName)
+
+                if typeof(field) <: TS.TimeProfile
+                    container = Dict(
+                        :name => string(fieldName), 
+                        :isJuMPdata => false, 
+                        :selection => [node],
+                        :fieldData => field,
+                    )
+                    structure = Symbol(nameof(typeof(node)))
+                    structure_field = fieldName
+                    add_description!(availableData, container, gui, structure, structure_field)
+                elseif field isa Dict
+                    for (dictname, dictvalue) ∈ field
+                        if typeof(dictvalue) <: TS.TimeProfile
+                            container = Dict(
+                                :name => "$fieldName.$dictname", 
+                                :isJuMPdata => false, 
+                                :selection => [node],
+                                :fieldData => dictvalue,
+                            )
+                            structure = Symbol(nameof(typeof(node)))
+                            structure_field = fieldName
+                            add_description!(availableData, container, gui, structure, structure_field, dictname)
+                        end
+                    end
+                elseif field isa Vector{<:EMG.TransmissionMode}
+                    for mode ∈ field
+                        for mode_fieldName ∈ fieldnames(typeof(mode))
+                            mode_field = getfield(mode, mode_fieldName)
+                            if typeof(mode_field) <: TS.TimeProfile
                                 container = Dict(
-                                    :name => string(dict), 
-                                    :isJuMPdata => true, 
+                                    :name => "$mode_fieldName", 
+                                    :isJuMPdata => false, 
                                     :selection => [mode],
-                                ) # do not include node (<: EMG.Transmission) here as the mode is unique to this transmission
-                                add_description!(availableData, container, gui, dict)
+                                    :fieldData => mode_field,
+                                )
+                                structure = Symbol(nameof(typeof(mode)))
+                                structure_field = mode_fieldName
+                                add_description!(availableData, container, gui, structure, structure_field)
                             end
                         end
                     end
-                elseif isnothing(node)
-                    if length(axes(gui.model[dict])) > 1
-                        for res ∈ gui.model[dict].axes[2]
-                            container = Dict(
-                                :name => string(dict), 
-                                :isJuMPdata => true, 
-                                :selection => [res],
-                            )
-                            add_description!(availableData, container, gui, dict)
-                        end
-                    else
-                        container = Dict(
-                            :name => string(dict), 
-                            :isJuMPdata => true, 
-                            :selection => EMB.Node[],
-                        )
-                        add_description!(availableData, container, gui, dict)
-                    end
-                end
-            elseif typeof(gui.model[dict]) <: JuMP.Containers.SparseAxisArray
-                if any([typeof(x) <: Union{EMB.Node, EMB.Link, EMG.Area} for x in first(gui.model[dict].data)[1]]) # nodes/area/links found in structure
-                    if !isnothing(node)
-                        extract_combinations!(gui, availableData, dict, node, gui.model)
-                    end
-                elseif isnothing(node)
-                    extract_combinations!(gui, availableData, dict, node, gui.model)
-                end
-            end
-        end
-    end
-
-    # Add timedependent input data (if available)
-    if !isnothing(node)
-        for fieldName ∈ fieldnames(typeof(node))
-            field = getfield(node, fieldName)
-
-            if typeof(field) <: TS.TimeProfile
-                container = Dict(
-                    :name => string(fieldName), 
-                    :isJuMPdata => false, 
-                    :selection => [node],
-                    :fieldData => field,
-                )
-                structure = Symbol(nameof(typeof(node)))
-                structure_field = fieldName
-                add_description!(availableData, container, gui, structure, structure_field)
-            elseif field isa Dict
-                for (dictname, dictvalue) ∈ field
-                    if typeof(dictvalue) <: TS.TimeProfile
-                        container = Dict(
-                            :name => "$fieldName.$dictname", 
-                            :isJuMPdata => false, 
-                            :selection => [node],
-                            :fieldData => dictvalue,
-                        )
-                        structure = Symbol(nameof(typeof(node)))
-                        structure_field = fieldName
-                        add_description!(availableData, container, gui, structure, structure_field, dictname)
-                    end
-                end
-            elseif field isa Vector{<:EMG.TransmissionMode}
-                for mode ∈ field
-                    for mode_fieldName ∈ fieldnames(typeof(mode))
-                        mode_field = getfield(mode, mode_fieldName)
-                        if typeof(mode_field) <: TS.TimeProfile
-                            container = Dict(
-                                :name => "$mode_fieldName", 
-                                :isJuMPdata => false, 
-                                :selection => [mode],
-                                :fieldData => mode_field,
-                            )
-                            structure = Symbol(nameof(typeof(mode)))
-                            structure_field = mode_fieldName
-                            add_description!(availableData, container, gui, structure, structure_field)
-                        end
-                    end
-                end
-            elseif field isa Vector{Data}
-                for data ∈ field
-                    for data_fieldName ∈ fieldnames(typeof(data))
-                        data_field = getfield(data, data_fieldName)
-                        if typeof(data_field) <: TS.TimeProfile
-                            container = Dict(
-                                :name => "$fieldName.$data_fieldName", 
-                                :isJuMPdata => false, 
-                                :selection => [node],
-                                :fieldData => data_field,
-                            )
-                            structure = Symbol(nameof(typeof(data)))
-                            structure_field = data_fieldName
-                            add_description!(availableData, container, gui, structure, structure_field)
+                elseif field isa Vector{Data}
+                    for data ∈ field
+                        for data_fieldName ∈ fieldnames(typeof(data))
+                            data_field = getfield(data, data_fieldName)
+                            if typeof(data_field) <: TS.TimeProfile
+                                container = Dict(
+                                    :name => "$fieldName.$data_fieldName", 
+                                    :isJuMPdata => false, 
+                                    :selection => [node],
+                                    :fieldData => data_field,
+                                )
+                                structure = Symbol(nameof(typeof(data)))
+                                structure_field = data_fieldName
+                                add_description!(availableData, container, gui, structure, structure_field)
+                            end
                         end
                     end
                 end
             end
         end
+        gui.vars[:availableData][node] = Dict(
+            :container => availableData,
+            :container_strings => create_label.(availableData),
+        )
     end
-    availableData_strings::Vector{String} = create_label.(availableData)
+end
 
-    gui.menus[:availableData].options = zip(availableData_strings, availableData)
+"""
+    update_available_data_menu!(gui::GUI, node::Plotable)
+
+Update the `gui.menus[:availableData]` with the available data of `node`.
+"""
+function update_available_data_menu!(gui::GUI, node::Plotable)
+    container = gui.vars[:availableData][node][:container]
+    container_strings = gui.vars[:availableData][node][:container_strings]
+    gui.menus[:availableData].options = zip(container_strings, container)
 
     # Make sure an option is selected if the menu is altered
     #if isnothing(gui.menus[:availableData].selection[]) && !isempty(gui.menus[:availableData].options[])

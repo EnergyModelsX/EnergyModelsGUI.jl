@@ -38,6 +38,9 @@ makedocs(
         ],
         "How-to" => Any[
             "Save design to file" => "how-to/save-design.md",
+            "Export results" => "how-to/export-results.md",
+            "Customize colors" => "how-to/customize-colors.md",
+            "Customize icons" => "how-to/customize-icons.md",
         ],
         "Library" => Any[
             "Public" => "library/public.md",

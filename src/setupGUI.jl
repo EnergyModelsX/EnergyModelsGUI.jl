@@ -1,13 +1,29 @@
 """
-    GUI(case, path; idToColorMap, idToIconMap, model::JuMP.Model = JuMP.Model())
+    GUI(case::Dict)
 
-Initialize the EnergyModelsGUI window and visualize the topology of a EnergySystemDesign object (and optionally visualize its results in the JuMP object model).
+Initialize the EnergyModelsGUI window and visualize the topology of a system `case` (and optionally visualize its results in a JuMP object model). 
+
+The optional arguments are as follows:
+- **`design_path::String = ""`**: Path to store the coordinates in .yml files format
+- **`idToColorMap::Dict = Dict()`**: A dict that maps `Resource`s `id` to colors
+- **`idToIconMap::Dict = Dict()`**: A dict that maps `Node/Area` `id` to .png files for icons
+- **`model::JuMP.Model = JuMP.Model()`**: Input a JuMP model with results for the `case`
+- **`hideTopoAxDecorations::Bool = true`**: Toggle visibility of ticks, ticklabels and grids for the topology axis
+- **`expandAll::Bool = false`**: Set the default option for toggling visibility of all nodes in all areas
+- **`periods_labels::Vector = []`**: Descriptive labels for strategic periods
+- **`scenarios_labels::Vector = []`**: Descriptive labels for scenarios   
+- **`representativePeriods_labels::Vector = []`**: Descriptive labels for the representative periods
+- **`pathToResults::String = ""`**: Path to where exported files are stored
+- **`coarseCoastLines::Bool = true`**: Toggle coarse or fine resolution coastlines 
+- **`backgroundcolor = GLMakie.RGBf(0.99, 0.99, 0.99)`**: Background colors of the main window 
+- **`fontsize::Int64 = 12`**: General fontsize
+- **`plot_widths::Tuple{Int64,Int64} = (1920, 1080)`**: Resolution of window
 """
 function GUI(
-        case::Dict; 
-        design_path::String = "", 
-        idToColorMap::Dict = Dict(), 
-        idToIconMap::Dict = Dict(), 
+        case::Dict;
+        design_path::String = "",
+        idToColorMap::Dict = Dict(),
+        idToIconMap::Dict = Dict(),
         model::JuMP.Model = JuMP.Model(),
         hideTopoAxDecorations::Bool = true,
         expandAll::Bool = false,
@@ -16,6 +32,9 @@ function GUI(
         representativePeriods_labels::Vector = [],
         pathToResults::String = "",
         coarseCoastLines::Bool = true,
+        backgroundcolor = GLMakie.RGBf(0.99, 0.99, 0.99),
+        fontsize::Int64 = 12,
+        plot_widths::Tuple{Int64,Int64} = (1920, 1080),
     )
     # Generate the system topology:
     @info raw"Setting up the topology design structure"
@@ -35,7 +54,7 @@ function GUI(
         :line_sep_px => 2,         # Separation (in px) between lines for connections
         :connectionLinewidth => 2, # line width of connection lines
         :axAspectRatio => 1.0,     # Aspect ratio for the topology plotting area
-        :fontsize => 12,           # General font size (in px)
+        :fontsize => fontsize,           # General font size (in px)
         :linewidth => 1.2,         # Width of the line around boxes
         :parentScaling => 1.1,     # Scale for enlargement of boxes around main boxes for nodes for parent systems
         :icon_scale => 0.9,        # scale icons w.r.t. the surrounding box in fraction of Δh
@@ -54,25 +73,25 @@ function GUI(
             :results_rp => [], 
             :results_op => [],
         ),
+        :availableData => Dict{Any, Any}(),
         :originalPlotColor => :black,
     )
 
     # gobal variables for legends
-    vars[:colorBoxPadding_px] = 25         # Padding around the legends
-    vars[:colorBoxesWidth_px] = 20         # Width of the rectangles for the colors in legends
-    vars[:colorBoxesHeight_px] = vars[:fontsize]  # Height of the rectangles for the colors in legends
-    vars[:colorBoxesSep_px] = 5            # Separation between rectangles 
-    vars[:boxTextSep_px] = 5               # Separation between rectangles for colors and text
+    vars[:colorBoxPadding_px] = 25               # Padding around the legends
+    vars[:colorBoxesWidth_px] = 20               # Width of the rectangles for the colors in legends
+    vars[:colorBoxesHeight_px] = vars[:fontsize] # Height of the rectangles for the colors in legends
+    vars[:colorBoxesSep_px] = 5                  # Separation between rectangles 
+    vars[:boxTextSep_px] = 5                     # Separation between rectangles for colors and text
     vars[:descriptiveNames] = YAML.load_file(joinpath(@__DIR__,"descriptiveNames.yml"); dicttype=Dict{Symbol,Any})
 
-    vars[:plot_widths] = (1920, 1080)
+    vars[:plot_widths] = plot_widths
     vars[:hideTopoAxDecorations] = hideTopoAxDecorations
     vars[:expandAll] = expandAll
 
     vars[:xlimits] = Vector{Float64}([0.0,1.0])
     vars[:ylimits] = Vector{Float64}([0.0,1.0])
 
-    #vars[:availableData_menu_history] = Ref(Vector{String}(undef, 0))
     vars[:selected_systems] = []
     vars[:selected_plots] = []
 
@@ -94,8 +113,9 @@ function GUI(
     is_ctrl_pressed::Ref{Bool} = Ref(false)
 
     # Create a figure (the main window)
-    backgroundcolor = RGBf(0.99, 0.99, 0.99)
     GLMakie.activate!() # use GLMakie as backend
+    GLMakie.set_theme!(fontsize = Float32(vars[:fontsize])) # Set the fontsize for the entire figure (if not otherwise specified, the fontsize will inherit this number)
+
     fig::Figure = Figure(resolution = vars[:plot_widths], backgroundcolor = backgroundcolor)
 
     # Create grid layout structure of the window
@@ -220,7 +240,7 @@ function GUI(
     vars[:topoLegend] = axislegend(ax, markers, collect(keys(root_design.idToColorMap)), "Resources", position = :rt, labelsize = vars[:fontsize], titlesize = vars[:fontsize])
 
     # Initiate an axis for displaying information about the selected node
-    axInfo::Makie.Axis = Axis(gridlayout_info[1,1])
+    axInfo::Makie.Axis = Axis(gridlayout_info[1,1], backgroundcolor = backgroundcolor)
 
     # Add text at the top left of the axis domain (to print information of the selected/hovered node/connection)
     text!(axInfo, vars[:defaultText], position = (0.01, 0.99), align = (:left, :top), fontsize = vars[:fontsize])
@@ -246,11 +266,11 @@ function GUI(
     #investmentPlan_label    = Makie.Label(gridlayout_taskbar[1, 8], "Investment plan:"; halign = :left, fontsize = vars[:fontsize], justification = :left)
     #investmentPlan_menu     = Makie.Menu(gridlayout_taskbar[1, 9], halign = :left, width=100, fontsize = vars[:fontsize])
     period_label               = Makie.Label(gridlayout_taskbar[1, 9], "Period:"; halign = :right, fontsize = vars[:fontsize], justification = :right)
-    period_menu                = Makie.Menu( gridlayout_taskbar[1, 10], options = zip(periods_labels, periods), default = periods_labels[1], halign = :left, width=100, fontsize = vars[:fontsize])
+    period_menu                = Makie.Menu( gridlayout_taskbar[1, 10], options = zip(periods_labels, periods), default = periods_labels[1], halign = :left, width=100*vars[:fontsize]/12, fontsize = vars[:fontsize])
     scenario_label             = Makie.Label(gridlayout_taskbar[1, 11], "Scenario:"; halign = :left, fontsize = vars[:fontsize], justification = :left)
-    scenario_menu              = Makie.Menu( gridlayout_taskbar[1, 12], options = zip(scenarios_labels, scenarios), default = scenarios_labels[1], halign = :left, width=100, fontsize = vars[:fontsize])
+    scenario_menu              = Makie.Menu( gridlayout_taskbar[1, 12], options = zip(scenarios_labels, scenarios), default = scenarios_labels[1], halign = :left, width=100*vars[:fontsize]/12, fontsize = vars[:fontsize])
     representativePeriod_label = Makie.Label(gridlayout_taskbar[1, 13], "Representative period:"; halign = :right, fontsize = vars[:fontsize], justification = :right)
-    representativePeriod_menu  = Makie.Menu( gridlayout_taskbar[1, 14], options = zip(representativePeriods_labels, representativePeriods), default = representativePeriods_labels[1], halign = :left, width=100, fontsize = vars[:fontsize])
+    representativePeriod_menu  = Makie.Menu( gridlayout_taskbar[1, 14], options = zip(representativePeriods_labels, representativePeriods), default = representativePeriods_labels[1], halign = :left, width=100*vars[:fontsize]/12, fontsize = vars[:fontsize])
     availableData_label        = Makie.Label(gridlayout_taskbar[1, 15], "Data:"; halign = :right, fontsize = vars[:fontsize], justification = :right)
     availableData_menu         = Makie.Menu( gridlayout_taskbar[1, 16], halign = :left, fontsize = vars[:fontsize],tellwidth = true)
 
@@ -259,12 +279,12 @@ function GUI(
 
     # Add task bar over axes[:results]
     time_label        = Makie.Label( gridlayout_resultsTaskbar[1, 2], "Plot:"; halign = :right, fontsize = vars[:fontsize], justification = :right)
-    time_menu         = Makie.Menu(  gridlayout_resultsTaskbar[1, 3], options = zip(axisTimeTypes_labels, axisTimeTypes), halign = :left, width=120, fontsize = vars[:fontsize])
+    time_menu         = Makie.Menu(  gridlayout_resultsTaskbar[1, 3], options = zip(axisTimeTypes_labels, axisTimeTypes), halign = :left, width=120*vars[:fontsize]/12, fontsize = vars[:fontsize])
     pinPlot_button    = Makie.Button(gridlayout_resultsTaskbar[1, 4]; label = "pin current data", fontsize = vars[:fontsize])
     removePlot_button = Makie.Button(gridlayout_resultsTaskbar[1, 5]; label = "remove selected data", fontsize = vars[:fontsize])
     saveResults_label = Makie.Label( gridlayout_resultsTaskbar[1, 6], "Export:"; halign = :right, fontsize = vars[:fontsize], justification = :right)
-    axes_menu         = Makie.Menu(  gridlayout_resultsTaskbar[1, 7], options = ["All", "Plots"], default = "Plots", halign = :left, width=80, fontsize = vars[:fontsize])
-    saveResults_menu  = Makie.Menu(  gridlayout_resultsTaskbar[1, 8], options = ["bmp", "tiff", "tif", "jpg", "jpeg", "svg", "xlsx", "png", "REPL"], default = "REPL", halign = :left, width=60, fontsize = vars[:fontsize])
+    axes_menu         = Makie.Menu(  gridlayout_resultsTaskbar[1, 7], options = ["All", "Plots"], default = "Plots", halign = :left, width=80*vars[:fontsize]/12, fontsize = vars[:fontsize])
+    saveResults_menu  = Makie.Menu(  gridlayout_resultsTaskbar[1, 8], options = ["bmp", "tiff", "tif", "jpg", "jpeg", "svg", "xlsx", "png", "REPL"], default = "REPL", halign = :left, width=60*vars[:fontsize]/12, fontsize = vars[:fontsize])
     export_button     = Makie.Button(gridlayout_resultsTaskbar[1, 9]; label = "export", fontsize = vars[:fontsize])
 
     # Collect all menus into a dictionary
@@ -315,6 +335,9 @@ function GUI(
 
     # Plot the topology
     initialize_plot!(gui, gui.root_design)
+    
+    # Pre calculate the available fields for each node
+    initialize_availableData!(gui)
 
     # Update limits based on the location of the nodes
     adjust_limits!(gui)
@@ -424,12 +447,12 @@ function GUI(
                 # Make sure selections are not removed when left-clicking outside axes[:topo]
                 mouse_pos::Tuple{Float64, Float64} = events(gui.axes[:topo]).mouseposition[]
 
-                plot_origin::Vec2{Int64} = pixelarea(gui.axes[:topo].scene)[].origin
-                plot_widths::Vec2{Int64} = pixelarea(gui.axes[:topo].scene)[].widths
-                mouse_pos_loc::Vec2{Float64} = mouse_pos .- plot_origin
+                origin::Vec2{Int64} = pixelarea(gui.axes[:topo].scene)[].origin
+                widths::Vec2{Int64} = pixelarea(gui.axes[:topo].scene)[].widths
+                mouse_pos_loc::Vec2{Float64} = mouse_pos .- origin
 
                 # Check if mouseclick is outside the gui.axes[:topo] area (and return if so)
-                if all(mouse_pos_loc .> 0.0) && all(mouse_pos_loc .- plot_widths .< 0.0)
+                if all(mouse_pos_loc .> 0.0) && all(mouse_pos_loc .- widths .< 0.0)
                     if !is_ctrl_pressed[] && !isempty(gui.vars[:selected_systems])
                         clear_selection(gui; clearResults = false)
                     end
@@ -445,11 +468,11 @@ function GUI(
                     return Consume(true)
                 else
                     axisTimeType = gui.menus[:time].selection[]
-                    plot_origin = pixelarea(gui.axes[axisTimeType].scene)[].origin
-                    plot_widths = pixelarea(gui.axes[axisTimeType].scene)[].widths
-                    mouse_pos_loc = mouse_pos .- plot_origin
+                    origin = pixelarea(gui.axes[axisTimeType].scene)[].origin
+                    widths = pixelarea(gui.axes[axisTimeType].scene)[].widths
+                    mouse_pos_loc = mouse_pos .- origin
 
-                    if all(mouse_pos_loc .> 0.0) && all(mouse_pos_loc .- plot_widths .< 0.0)
+                    if all(mouse_pos_loc .> 0.0) && all(mouse_pos_loc .- widths .< 0.0)
                         if !is_ctrl_pressed[] && !isempty(gui.vars[:selected_plots])
                             clear_selection(gui; clearTopo = false)
                         end
@@ -483,14 +506,14 @@ function GUI(
     # Handle mouse movement
     on(events(gui.axes[:topo]).mouseposition, priority = 2) do mouse_pos # priority ≥ 2 in order to suppress GLMakie left-click and drag zoom feature
         if dragging[]
-            plot_origin::Vec2{Int64} = pixelarea(gui.axes[:topo].scene)[].origin
-            plot_widths::Vec2{Int64} = pixelarea(gui.axes[:topo].scene)[].widths
-            mouse_pos_loc::Vec2{Float64} = mouse_pos .- plot_origin
+            origin::Vec2{Int64} = pixelarea(gui.axes[:topo].scene)[].origin
+            widths::Vec2{Int64} = pixelarea(gui.axes[:topo].scene)[].widths
+            mouse_pos_loc::Vec2{Float64} = mouse_pos .- origin
 
             xy_widths::Vec2{Float32} = gui.axes[:topo].finallimits[].widths
             xy_origin::Vec2{Float32} = gui.axes[:topo].finallimits[].origin
 
-            xy::Vec2{Float64} = xy_origin .+ mouse_pos_loc .* xy_widths ./ plot_widths
+            xy::Vec2{Float64} = xy_origin .+ mouse_pos_loc .* xy_widths ./ widths
             if !isempty(gui.vars[:selected_systems]) && gui.vars[:selected_systems][1] isa EnergySystemDesign # Only nodes/area can be moved (connections will update correspondinlgy)
                 sub_design::EnergySystemDesign = gui.vars[:selected_systems][1]
 
@@ -731,8 +754,6 @@ function GUI(
     on(gui.menus[:availableData].selection, priority=10) do val
         @debug "Changes in available data selection. New val: $val"
         if !isnothing(val)
-            #labels, _ =  collect(zip(gui.menus[:availableData].options[]...))
-            #pushfirst!(gui.vars[:availableData_menu_history][], labels[gui.menus[:availableData].i_selected[]])
             if isempty(gui.vars[:selected_systems])
                 update_plot!(gui, nothing)
             else
