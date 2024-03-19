@@ -168,7 +168,7 @@ idToIconMap = Dict(
 idToIconMap = set_icons(idToIconMap)
 
 # Set folder where visualization info is saved and retrieved
-design_path = joinpath(@__DIR__, "..", "design", "EMB", "network")
+design_path = joinpath(@__DIR__, "design", "EMB", "network")
 
 # Run the GUI
 gui = GUI(case; design_path, idToIconMap, model = m)

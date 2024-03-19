@@ -122,7 +122,7 @@ pretty_table(
 using EnergyModelsGUI
 
 # Set folder where visualization info is saved and rBtrieved
-design_path = joinpath(@__DIR__, "..", "design", "EMR", "hydro_power")
+design_path = joinpath(@__DIR__, "design", "EMR", "hydro_power")
 
 # Run the GUIidToIconMap, 
 gui = GUI(case; design_path, model = m)

@@ -477,6 +477,11 @@ function save_design(design::EnergySystemDesign)
             :x => round(x; digits = 5),
             :y => round(y; digits = 5),
         )
+
+        # Also save the coordinates from sub designs
+        if !isempty(component.components)
+            save_design(component)
+        end
     end
 
     @info "Saving design coordinates to file $(design.file)"

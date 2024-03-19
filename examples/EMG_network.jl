@@ -264,7 +264,7 @@ Power = case[:products][3]
 idToColorMap = Dict(Power.id => :cyan, NG.id => "#FF9876")
 
 # Set folder where visualization info is saved and retrieved
-design_path = joinpath(@__DIR__, "..", "design", "EMG", "network")
+design_path = joinpath(@__DIR__, "design", "EMG", "network")
 
 # Run the GUI
 gui = GUI(case; design_path, idToColorMap, model = m)

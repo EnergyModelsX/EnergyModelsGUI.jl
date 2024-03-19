@@ -94,7 +94,7 @@ icon_names = Dict(1 => "hydroPowerPlant", 2 => "factoryEmissions")
 idToIconMap = set_icons(icon_names)
 
 # Set folder where visualization info is saved and retrieved
-design_path = joinpath(@__DIR__, "..", "design", "EMB", "sink_source")
+design_path = joinpath(@__DIR__, "design", "EMB", "sink_source")
 
 # Run the GUI
 gui = GUI(case; design_path, idToIconMap, model = m)

@@ -118,7 +118,7 @@ case, m = demo_invest();
 using EnergyModelsGUI
 
 # Set folder where visualization info is saved and retrieved
-design_path = joinpath(@__DIR__, "..", "design", "EMI", "sink_source")
+design_path = joinpath(@__DIR__, "design", "EMI", "sink_source")
 
 # Run the GUI
 gui = GUI(case; design_path, model = m)
