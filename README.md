@@ -15,13 +15,13 @@ The [documentation](https://clean_export.pages.sintef.no/energymodelsgui.jl/) fo
 
 See examples of usage of the package and a simple guide for running them in the folder [`examples`](examples).
 
-I.e. running the example [`generate_EMI`](examples/generate_EMI.jl) will result in a view like the following:
+I.e. running the example [`EMI_geography`](examples/EMI_geography.jl) will result in a view like the following:
 
-![Example image for generate_EMI](docs/src/figures/generate_EMI.png)
+![Example image for EMI_geography](docs/src/figures/EMI_geography.png)
 
 Opening the Oslo area will display that sub system:
 
-![Example image for generate_EMI](docs/src/figures/generate_EMI_Oslo.png)
+![Example image for EMI_geography](docs/src/figures/EMI_geography_Oslo.png)
 
 ## Project Funding
 
