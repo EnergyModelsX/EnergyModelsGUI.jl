@@ -1,3 +1,4 @@
+# Import the required packages
 using EnergyModelsBase
 using EnergyModelsRenewableProducers
 using HiGHS
@@ -7,8 +8,16 @@ using TimeStruct
 
 const EMB = EnergyModelsBase
 
-function generate_data()
-    @info "Generate data"
+"""
+    generate_example_data()
+
+Generate the data for an example consisting of a simple electricity network with a
+non-dispatchable power source, a regulated hydro power plant, as well as a demand.
+It illustrates how the hydro power plant can balance the intermittent renewable power
+generation.
+"""
+function generate_example_data()
+    @info "Generate case data - Simple `HydroStor` example"
 
     # Define the different resources and their emission intensity in tCO2/MWh
     # CO2 has to be defined, even if not used, as it is required for the `EnergyModel` type
@@ -21,11 +30,10 @@ function generate_data()
     op_number = 4   # There are in total 4 operational periods
     operational_periods = SimpleTimes(op_number, op_duration)
 
-    # The number of operational periods times the duration of the operational periods, which
-    # can also be extracted using the function `duration` of a `SimpleTimes` structure.
+    # The number of operational periods times the duration of the operational periods.
     # This implies, that a strategic period is 8 times longer than an operational period,
     # resulting in the values below as "/8h".
-    op_per_strat = duration(operational_periods)
+    op_per_strat = op_duration * op_number
 
     # Create the time structure and global data
     T = TwoLevel(2, 1, operational_periods; op_per_strat)
@@ -48,24 +56,28 @@ function generate_data()
     )
 
     # Create a regulated hydro power plant without storage capacity
-    hydro = HydroStor(
+    hydro = HydroStor{CyclicStrategic}(
         "hydropower",       # Node ID
-        FixedProfile(2.0),  # Rate capacity in MW
-        FixedProfile(90),   # Storage capacity in MWh
+        StorCapOpexFixed(FixedProfile(90), FixedProfile(3)),
+        # Line above for the storage level:
+        #   Argument 1: Storage capacity in MWh
+        #   Argument 2: Fixed OPEX in EUR/8h
+        StorCapOpexVar(FixedProfile(2.0), FixedProfile(8)),
+        # Line above for the discharge rate:
+        #   Argument 1: Rate capacity in MW
+        #   Argument 2: Variable OPEX in EUR/MWh
         FixedProfile(10),   # Initial storage level in MWh
         FixedProfile(1),    # Inflow to the Node in MW
         FixedProfile(0.0),  # Minimum storage level as fraction
-        FixedProfile(8),    # Variable OPEX in EUR/MWh
-        FixedProfile(3),    # Fixed OPEX in EUR/8h
         Power,              # Stored resource
         Dict(Power => 0.9), # Input to the power plant, irrelevant in this case
         Dict(Power => 1),   # Output from the Node, in this gase, Power
-        Data[],                 # Potential additional data
+        Data[],             # Potential additional data
     )
 
     # Create a power demand node
     sink = RefSink(
-        "sink",             # Node ID
+        "electricity demand",   # Node id
         FixedProfile(2),    # Demand in MW
         Dict(:surplus => FixedProfile(0), :deficit => FixedProfile(1e6)),
         # Line above: Surplus and deficit penalty for the node in EUR/MWh
@@ -76,11 +88,11 @@ function generate_data()
     nodes = [av, wind, hydro, sink]
 
     # Connect all nodes with the availability node for the overall energy balance
-        links = [
+    links = [
         Direct("wind-av", wind, av),
         Direct("hy-av", hydro, av),
         Direct("av-hy", av, hydro),
-        Direct("av-si", av, sink),
+        Direct("av-demand", av, sink),
     ]
 
     # Create the case dictionary
@@ -89,26 +101,22 @@ function generate_data()
     return case, model
 end
 
-# Create the case and model data and run the model
-case, model = generate_data()
+# Generate the case and model data and run the model
+case, model = generate_example_data()
 optimizer = optimizer_with_attributes(HiGHS.Optimizer, MOI.Silent() => true)
 m = EMB.run_model(case, model, optimizer)
 
 # Display some results
 @info "Storage level of the hydro power plant"
 pretty_table(
-    JuMP.Containers.rowtable(
-        value,
-        m[:stor_level];
-        header = [:Node, :TimePeriod, :Level],
-    ),
+    JuMP.Containers.rowtable(value, m[:stor_level]; header=[:Node, :TimePeriod, :Level])
 )
 @info "Power production of the two power sources"
 pretty_table(
     JuMP.Containers.rowtable(
         value,
         m[:flow_out][case[:nodes][2:3], :, case[:products][2]];
-        header = [:Node, :TimePeriod, :Production],
+        header=[:Node, :TimePeriod, :Production],
     ),
 )
 
@@ -116,7 +124,7 @@ pretty_table(
 # inspect_results()
 
 ## Code above identical to the example EnergyModelsBase.jl/examples/network.jl
-##########################################################################################################################
+############################################################################################
 ## Code below for displaying the GUI
 
 using EnergyModelsGUI
@@ -124,6 +132,5 @@ using EnergyModelsGUI
 # Set folder where visualization info is saved and rBtrieved
 design_path = joinpath(@__DIR__, "design", "EMR", "hydro_power")
 
-# Run the GUIidToIconMap, 
-gui = GUI(case; design_path, model = m)
-
+# Run the GUIidToIconMap,
+gui = GUI(case; design_path, model=m)

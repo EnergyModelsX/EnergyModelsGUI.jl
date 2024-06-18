@@ -1,15 +1,17 @@
-Power:           "#0000FF"
-Hydrogen:        "#99CCFF"
-Cooling:         "#00FFFF"
-Resource:        "#FFCC99"
-Waste:           "#FFCC00"
-Heat:            "#FF0000"
-WarmWater:       "#993366"
-ResourceCarrier: "#7030A0"
-Biomass:         "#FF99CC"
-NG:              "#339966"
-Oil:             "#808000"
-ResourceEmit:    "#7F7F7F"
-CO2:             "#7F7F7F"
-CO₂:             "#7F7F7F"
-Coal:            "#000000"
+# Matplotlib colors collected from https://matplotlib.org/stable/gallery/color/named_colors.html#tableau-palette 
+# The values have to be provided as hex triplet https://en.wikipedia.org/wiki/Web_colors#Hex_triplets 
+Power:           "#045993" # blue
+Hydrogen:        "#009DAD" # cyan
+Cooling:         "#00DBDB" # aqua
+Resource:        "#C059A1" # pink
+Waste:           "#DB6000" # orange
+Heat:            "#B40C0D" # red
+WarmWater:       "#75499C" # purple
+ResourceCarrier: "#C059A1" # pink
+Biomass:         "#118011" # green
+NG:              "#B88505" # goldenrod
+Oil:             "#DBB500" # gold
+ResourceEmit:    "#606060" # gray
+CO2:             "#606060" # gray
+CO₂:             "#606060" # gray
+Coal:            "#6D392E" # brown

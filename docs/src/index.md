@@ -14,12 +14,12 @@ For running and visualizing a basic energy system model, only the base technolog
 [`EnergyModelsGUI.jl`](https://clean_export.pages.sintef.no/energymodelsgui.jl/)
 and the time structure package
 [`TimeStruct.jl`](https://github.com/sintefore/TimeStruct.jl/releases)
-is needed.
+are needed.
 
 The EnergyModelsGUI package also provides visualization utilities for the following packages
 
 - [`EnergyModelsGeography.jl`](https://github.com/EnergyModelsX/EnergyModelsGeography.jl):
-   this package makes it possible to easily extend your energy model different
+   this package makes it possible to easily extend your energy model with different
    geographic areas, where transmission can be set to allow for the transport of
    resources between the different areas.
 - [`EnergyModelsInvestments.jl`](https://github.com/EnergyModelsX/EnergyModelsInvestments.jl):
@@ -34,5 +34,29 @@ Pages = [
     "manual/quick-start.md",
     "manual/philosophy.md",
     "manual/simple-example.md",
+    "manual/NEWS.md",
 ]
+Depth = 1
+```
+
+## How to guides
+
+```@contents
+Pages = [
+    "how-to/save-design.md",
+    "how-to/export-results.md",
+    "how-to/customize-colors.md",
+    "how-to/customize-icons.md",
+]
+Depth = 1
+```
+
+## Library outline
+
+```@contents
+Pages = [
+    "library/public.md",
+    "library/internals/reference.md",
+]
+Depth = 1
 ```

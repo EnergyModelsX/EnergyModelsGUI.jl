@@ -1,17 +1,22 @@
 # EnergyModelsGUI
 [![Pipeline: passing](https://gitlab.sintef.no/clean_export/energymodelsgui.jl/badges/main/pipeline.svg)](https://gitlab.sintef.no/clean_export/energymodelsgui.jl/-/jobs)
-[![Docs: in development](https://img.shields.io/badge/docs-in%20development-ff69b4.svg)](https://clean_export.pages.sintef.no/energymodelsgui.jl)
+[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://energymodelsx.github.io/EnergyModelsBase.jl/stable/)
+[![Aqua QA](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl)
+[![Code Style: Blue](https://img.shields.io/badge/code%20style-blue-4495d1.svg)](https://github.com/JuliaDiff/BlueStyle)
 
 EnergyModelsGUI enables a graphical user interface for the [EnergyModelsBase](https://gitlab.sintef.no/clean_export/energymodelsbase.jl) package and other packages building upon this package (like [EnergyModelsInvestments](https://gitlab.sintef.no/clean_export/energymodelsinvestments.jl) and [EnergyModelsGeography](https://gitlab.sintef.no/clean_export/energymodelsgeography.jl)). It is designed to give a simple visualization of the topology of the model and enable the user to interactively navigate through the different layers of the model design. Visualization of the results after simulations will be added at a later stage.
 
 The EnergyModelsGUI package has taken inspiration from the source code of [ModelingToolkitDesigner](https://github.com/bradcarman/ModelingToolkitDesigner.jl) as a starting point for development.
 
-> **Note**
-> This is an internal pre-release not intended for distribution outside SINTEF. 
-
 ## Usage
+If you already have constructed a `case` in EMX you can view this case with
+```julia
+using EnergyModelsGUI
 
-The [documentation](https://clean_export.pages.sintef.no/energymodelsgui.jl/) for `EnergyModelsGUI` is in development.
+GUI(case)
+```
+
+Please refer to the [documentation](https://clean_export.pages.sintef.no/energymodelsgui.jl/) for more details.
 
 See examples of usage of the package and a simple guide for running them in the folder [`examples`](examples).
 

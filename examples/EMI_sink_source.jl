@@ -1,3 +1,4 @@
+# Import the required packages
 using EnergyModelsBase
 using EnergyModelsInvestments
 using HiGHS
@@ -9,8 +10,16 @@ const EMB = EnergyModelsBase
 const EMI = EnergyModelsInvestments
 const TS = TimeStruct
 
-function demo_invest(lifemode = RollingLife(); discount_rate = 0.05)
-    @info "Generate case data and run the simple model"
+"""
+    generate_example_data()
+
+Generate the data for an example consisting of an electricity source and sink.
+The electricity source has initially no capacity. Hence, investments are required.
+
+The example is partly based on the provided example `sink_source.jl` in `EnergyModelsBase`.
+"""
+function generate_example_data(lifemode=RollingLife; discount_rate=0.05)
+    @info "Generate case data - Simple sink-source example"
 
     # Define the different resources and their emission intensity in tCO2/MWh
     CO2 = ResourceEmit("CO2", 1.0)
@@ -42,19 +51,20 @@ function demo_invest(lifemode = RollingLife(); discount_rate = 0.05)
     lifetime = FixedProfile(15)
 
     # Create the investment data for the source node
-    investment_data_source = InvData(
-        capex_cap = FixedProfile(300*1e3),  # Capex [€/MW]
-        cap_max_inst = FixedProfile(30),    # Max installed capacity [MW]
-        cap_max_add = FixedProfile(30),     # Max added capactity per sp [MW]
-        cap_min_add = FixedProfile(0),      # Max added capactity per sp [MW]
-        life_mode = lifemode,               # Lifetime mode
-        lifetime = lifetime,                # Lifetime
+    investment_data_source = SingleInvData(
+        FixedProfile(300 * 1e3),  # capex [€/MW]
+        FixedProfile(30),       # max installed capacity [MW]
+        ContinuousInvestment(FixedProfile(0), FixedProfile(30)),
+        # Line above: Investment mode with the following arguments:
+        # 1. argument: min added capactity per sp [MW]
+        # 2. argument: max added capactity per sp [MW]
+        lifemode(lifetime),     # Lifetime mode
     )
 
     # Create the individual test nodes, corresponding to a system with an electricity
     # demand/sink and source
     source = RefSource(
-        "source",                   # Node ID
+        "electricity source",       # Node ID
         FixedProfile(0),            # Capacity in MW
         FixedProfile(10),           # Variable OPEX in EUR/MW
         FixedProfile(5),            # Fixed OPEX in EUR/year
@@ -62,7 +72,7 @@ function demo_invest(lifemode = RollingLife(); discount_rate = 0.05)
         [investment_data_source],   # Additional data used for adding the investment data
     )
     sink = RefSink(
-        "sink",                     # Node ID
+        "electricity demand",       # Node ID
         FixedProfile(20),           # Demand in MW
         Dict(:surplus => FixedProfile(0), :deficit => FixedProfile(1e6)),
         # Line above: Surplus and deficit penalty for the node in EUR/MWh
@@ -71,48 +81,35 @@ function demo_invest(lifemode = RollingLife(); discount_rate = 0.05)
     nodes = [source, sink]
 
     # Connect the two ndoes
-    links = [
-        Direct(12, nodes[1], nodes[2], Linear())
-    ]
+    links = [Direct("source-demand", nodes[1], nodes[2], Linear())]
 
     # WIP data structure
-    case = Dict(
-        :nodes => nodes,
-        :links => links,
-        :products => products,
-        :T => T,
-    )
-
-    # Create the case and model data and run the model
-    m = EMB.create_model(case, model)
-    optimizer = optimizer_with_attributes(HiGHS.Optimizer, MOI.Silent() => true)
-    set_optimizer(m, optimizer)
-    optimize!(m)
-
-    # Display some results
-    @info "Invested capacity for the source in the beginning of the individual strategic periods"
-    pretty_table(
-        JuMP.Containers.rowtable(
-            value,
-            m[:cap_add][source, :];
-            header = [:StrategicPeriod, :InvestCapacity],
-        ),
-    )
-    @info "Retired capacity of the source at the end of the individual strategic periods"
-    pretty_table(
-        JuMP.Containers.rowtable(
-            value,
-            m[:cap_rem][source, :];
-            header = [:StrategicPeriod, :InvestCapacity],
-        ),
-    )
-    return case, m
+    case = Dict(:nodes => nodes, :links => links, :products => products, :T => T)
+    return case, model
 end
 
-case, m = demo_invest();
+# Create the case and model data and run the model
+case, model = generate_example_data()
+optimizer = optimizer_with_attributes(HiGHS.Optimizer, MOI.Silent() => true)
+m = EMB.run_model(case, model, optimizer)
 
-## Code above identical to the example EnergyModelsBase.jl/examples/network.jl
-##########################################################################################################################
+# Display some results
+source, sink = case[:nodes]
+@info "Invested capacity for the source in the beginning of the individual strategic periods"
+pretty_table(
+    JuMP.Containers.rowtable(
+        value, m[:cap_add][source, :]; header=[:StrategicPeriod, :InvestCapacity]
+    ),
+)
+@info "Retired capacity of the source at the end of the individual strategic periods"
+pretty_table(
+    JuMP.Containers.rowtable(
+        value, m[:cap_rem][source, :]; header=[:StrategicPeriod, :InvestCapacity]
+    ),
+)
+
+## Code above identical to the example EnergyModelsInvestments.jl/examples/sink_source.jl
+############################################################################################
 ## Code below for displaying the GUI
 
 using EnergyModelsGUI
@@ -121,4 +118,4 @@ using EnergyModelsGUI
 design_path = joinpath(@__DIR__, "design", "EMI", "sink_source")
 
 # Run the GUI
-gui = GUI(case; design_path, model = m)
+gui = GUI(case; design_path, model=m)

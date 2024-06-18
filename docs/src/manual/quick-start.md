@@ -1,12 +1,19 @@
 # Quick Start
 
 >  1. Install the most recent version of [Julia], preferably using the Juliaup version multiplexer (https://github.com/JuliaLang/juliaup)
->  2. Add the [CleanExport internal Julia registry](https://gitlab.sintef.no/clean_export/registrycleanexport):
->     ```
->     ] registry add git@gitlab.sintef.no:clean_export/registrycleanexport.git
->     ```
->  3. Install the package [`EnergyModelsGUI.jl`](https://clean_export.pages.sintef.no/energymodelsgui.jl/) by running:
+>  2. Install the package [`EnergyModelsGUI`](https://energymodelsx.github.io/EnergyModelsGUI.jl/) by running:
 >     ```
 >     ] add EnergyModelsGUI
 >     ```
->     This will fetch the packages from the CleanExport package and OneSINTEF registries.
+
+!!! note
+    Utilizing `EnergyModelsGUI` requires the declaration of cases in `EnergyModelsX`.
+    To this end, you also have to add the packages [`EnergyModelsBase`](https://energymodelsx.github.io/EnergyModelsBase.jl/stable/) and potentially [`EnergyModelsGeography`](https://energymodelsx.github.io/EnergyModelsGeography.jl/stable/) and [`EnergyModelsInvestments`](https://energymodelsx.github.io/EnergyModelsInvestments.jl/stable/) to create your energy model cases first.
+
+If you already have constructed a `case` in EMX you can view this case with
+
+```julia
+using EnergyModelsGUI
+
+GUI(case)
+```

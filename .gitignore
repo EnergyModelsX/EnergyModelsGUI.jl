@@ -1,7 +1,14 @@
 *.jl.*.cov
 *.jl.cov
 *.jl.mem
+*.geojson
+*startup.jl
+test/test_coverage.jl
 /Manifest.toml
 /docs/Manifest.toml
+/examples/Manifest.toml
+/examples/exported_files
+/test/Manifest.toml
 /docs/build/
-/design
+/dev
+/docs/src/manual/NEWS.md

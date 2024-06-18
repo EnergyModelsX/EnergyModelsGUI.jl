@@ -14,21 +14,22 @@ if isfile(news)
 end
 cp("../NEWS.md", news)
 
+DocMeta.setdocmeta!(
+    EnergyModelsGUI, :DocTestSetup, :(using EnergyModelsGUI); recursive=true
+)
 
-DocMeta.setdocmeta!(EnergyModelsGUI, :DocTestSetup, :(using EnergyModelsGUI); recursive=true)
-
-makedocs(
-    sitename = "EnergyModelsGUI.jl",
+makedocs(;
+    sitename="EnergyModelsGUI.jl",
     repo="https://gitlab.sintef.no/clean_export/energymodelsgui.jl/blob/{commit}{path}#{line}",
-    format = Documenter.HTML(;
+    format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
         canonical="https://clean_export.pages.sintef.no/energymodelsgui.jl/",
         repolink="https://clean_export.pages.sintef.no/energymodelsgui.jl/",
         edit_link="main",
         assets=String[],
     ),
-    modules = [EnergyModelsGUI],
-    pages = [
+    modules=[EnergyModelsGUI],
+    pages=[
         "Home" => "index.md",
         "Manual" => Any[
             "Quick Start" => "manual/quick-start.md",
@@ -44,13 +45,10 @@ makedocs(
         ],
         "Library" => Any[
             "Public" => "library/public.md",
-            "Internals" => Any[
-                "Reference" => "library/internals/reference.md",
-            ]
-        ]
-
+            "Internals" => Any["Reference" => "library/internals/reference.md",],
+        ],
     ],
-    checkdocs=:all
+    checkdocs=:all,
 )
 
 # Documenter can also automatically deploy documentation to gh-pages.

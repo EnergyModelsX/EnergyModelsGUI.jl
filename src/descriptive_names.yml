@@ -1,0 +1,260 @@
+# This file contains description of EMX-structures and variables 
+# with fields of type TimeStruct.TimeProfile
+structures:
+  # EnergyModelsBase
+  ## node.jl
+  StorCapOpex:
+    capacity:               "Installed capacity"
+    opex_var:               "Relative variable operating expense per energy unit"
+    opex_fixed:             "Relative fixed operating expense per installed capacity"
+
+  StorCap:
+    capacity:               "Installed capacity"
+
+  StorCapOpexVar:
+    capacity:               "Installed capacity"
+    opex_var:               "Relative variable operating expense per energy unit"
+
+  StorCapOpexFixed:
+    capacity:               "Installed capacity"
+    opex_fixed:             "Relative fixed operating expense per installed capacity"
+
+  StorOpexVar:
+    opex_var:               "Relative variable operating expense per energy unit"
+
+  RefSource:
+    id:                     "Name/identifier of the node"
+    cap:                    "Installed capacity"
+    opex_var:               "Relative variable operating expense per energy unit produced"
+    opex_fixed:             "Relative fixed operating expense per installed capacity"
+    output:                 "Output resources with conversion value"
+    data:                   "Additional data"
+
+  RefNetworkNode:
+    id:                     "Name/identifier of the node"
+    cap:                    "Installed capacity"
+    opex_var:               "Relative variable operating expense per energy unit produced"
+    opex_fixed:             "Relative fixed operating expense per installed capacity"
+    input:                  "Input resources with conversion value"
+    output:                 "Output resources with conversion value"
+    data:                   "Additional data"
+
+  RefStorage:
+    id:                     "Name/identifier of the node"
+    charge:                 "Charging parameters of the Storage node"
+    level:                  "Level parameters of the Storage node"
+    stor_res:               "Stored resource"
+    input:                  "Input resources with conversion value"
+    output:                 "Output resources with conversion value (relevant for linking and the stored resource)"
+    data:                   "Additional data"
+
+  RefSink:
+    id:                     "Name/identifier of the node"
+    cap:                    "Demand"
+    penalty:
+      surplus:              "Penalties for surplus"
+      deficit:              "Penalties for deficits"
+    input:                  "Input resources with conversion value"
+    data:                   "Additional data"
+
+  ## EnergyModelsGeography
+  # mode.jl
+  RefDynamic:
+    id:                     "Name/identifier of the transmission mode"
+    resource:               "Transported resource"
+    trans_cap:              "Capacity of the transmission mode"
+    trans_loss:             "Relative loss of the transported resource during transmission"
+    opex_var:               "Relative variable operating expense per energy unit transported"
+    opex_fixed:             "Relative fixed operating expense per installed capacity"
+    directions:             "Number of directions the resource can be transported"
+
+  RefStatic:
+    id:                     "Name/identifier of the transmission mode"
+    resource:               "Resource that is transported"
+    trans_cap:              "Capacity of the transmission mode"
+    trans_loss:             "Relative loss of the transported resource during transmission"
+    opex_var:               "Relative variable operating expense per energy unit transported"
+    opex_fixed:             "Relative fixed operating expense per installed capacity"
+    directions:             "Number of directions the resource can be transported"
+    data:                   "Additional data"
+
+  PipeSimple:
+    id:                     "Identifier used in printed output"
+    inlet:                  "Resource going into transmission"
+    outlet:                 "Resource going out of the outlet of the transmission"
+    consuming:              "Resource the transmission consumes by operating"
+    consumption_rate:       "Rate at which the resource is consumed, as a ratio of the volume of the resource going into the inlet"
+    trans_cap:              "Capacity of the transmission mode"
+    trans_loss:             "Relative loss of the transported resource during transmission"
+    opex_var:               "Relative variable operating expense per energy unit transported"
+    opex_fixed:             "Relative fixed operating expense per installed capacity"
+    directions:             "Specifies that the pipeline is unidirectional by default"
+    data:                   "Additional data"
+
+  PipeLinepackSimple:
+    id:                     "Identifier used in printed output"
+    inlet:                  "Resource going into transmission"
+    outlet:                 "Resource going out of the outlet of the transmission"
+    consuming:              "Resource the transmission consumes by operating"
+    consumption_rate:       "Rate at which the resource is consumed, as a ratio of the volume of the resource going into the inlet"
+    trans_cap:              "Capacity of the transmission mode"
+    trans_loss:             "Relative loss of the transported resource during transmission"
+    opex_var:               "Relative variable operating expense per energy unit transported"
+    opex_fixed:             "Relative fixed operating expense per installed capacity"
+    energy_share:           "Storage energy capacity relative to pipeline capacity"
+    directions:             "Specifies that the pipeline is unidirectional by default"
+
+  ## EnergyModelsInvestment
+  # investment_data.jl
+  NoStartInvData:
+    capex:                  "Capital costs for investing in a capacity"
+    max_inst:               "Maximum installed capacity in a strategic period"
+    inv_mode:               "Chosen investment mode for the technology"
+    life_mode:              "Chosen lfetime mode for the technology"
+
+  StartInvData:
+    capex:                  "Capital costs for investing in a capacity"
+    max_inst:               "Maximum installed capacity in a strategic period"
+    initial:                "Initial capacity in the first strategic period"
+    inv_mode:               "Chosen investment mode for the technology"
+    life_mode:              "Chosen lfetime mode for the technology"
+
+  # investment_mode.jl
+  FixedInvestment:
+    cap:                    "Capacity used for the fixed investments"
+
+  BinaryInvestment:
+    cap:                    "Capacity used for the binary investments"
+
+  DiscreteInvestment:
+    increment:              "Used increment for discrete investments"
+
+  ContinuousInvestment:
+    min_add:                "Minimum added capacity in a strategic period"
+    max_add:                "Maximum added capacity in a strategic period"
+
+  SemiContinuousInvestment:
+    min_add:                "Minimum added capacity in a strategic period"
+    max_add:                "Maximum added capacity in a strategic period"
+
+  SemiContinuousOffsetInvestment:
+    max_add:                "Maximum added capacity in a strategic period"
+    min_add:                "Minimum added capacity in a strategic period"
+    capex_offset:           "Offset for the CAPEX in a strategic period"
+
+  # lifetime_mode.jl
+  StudyLife:
+    lifetime:               "Chosen lifetime of the technology"
+
+  PeriodLife:
+    lifetime:               "Chosen lifetime of the technology"
+
+  RollingLife:
+    lifetime:               "Chosen lifetime of the technology"
+
+  ## EnergyModelsRenewableProducers
+  NonDisRES:
+    id:                     "Name/identifier of the node"
+    cap:                    "Installed capacity"
+    profile:                "Power production in each operational period as a ratio of the installed capacity at that time"
+    opex_var:               "Relative variable operating expense per energy unit produced"
+    opex_fixed:             "Relative fixed operating expense per installed capacity"
+    output:                 "Output resources, normally Power"
+    data:                   "Additional data"
+
+  HydroStor:
+    id:                     "Name/identifier of the node"
+    level:                  "Level parameters of the HydroStor node"
+    discharge:              "Discharging parameters of the HydroStor node"
+    level_init:             "Initial stored energy in the dam"
+    level_inflow:           "Inflow of power per operational period"
+    level_min:              "Minimum fraction of the reservoir capacity that has to remain in the HydroStorage node"
+    stor_res:               "Stored Resource"
+    input:                  "Input Resources"
+    output:                 "Output Resources (can only contain one entry, the stored resource)"
+    data:                   "Additional data"
+
+  PumpedHydroStor:
+    id:                     "Name/identifier of the node"
+    charge:                 "Charging parameters of the PumpedHydroStor node"
+    level:                  "Level parameters of the HydroStor node"
+    discharge:              "Discharging parameters of the HydroStor node"
+    level_init:             "Initial stored energy in the dam"
+    level_inflow:           "Inflow of power per operational period"
+    level_min:              "Minimum fraction of the reservoir capacity that has to remain in the HydroStorage node"
+    stor_res:               "Stored Resource"
+    input:                  "Input Resources"
+    output:                 "Output Resources (can only contain one entry, the stored resource)"
+    data:                   "Additional data"
+
+variables:
+  ## EnergyModelsBase
+  cap_use:                        "Absolute capacity utilization"
+  cap_inst:                       "Installed capacity"
+  stor_level:                     "Storage level at end of operational period"
+  stor_level_inst:                "Installed storage capacity"
+  stor_level_Δ_op:                "Storage level change in an operational period"
+  stor_level_Δ_rp:                "Storage level change in a representative period"
+  stor_charge_use:                "Absolute storage charging utilization"
+  stor_charge_inst:               "Installed charging capacity"
+  stor_discharge_use:             "Absolute storage discharging utilization"
+  stor_discharge_inst:            "Installed discharging capacity"
+  flow_in:                        "Input flowrate"
+  flow_out:                       "Output flowrate"
+  link_in:                        "Link input"
+  link_out:                       "Link output"
+  emissions_node:                 "Emission of a node"
+  emissions_total:                "Total strategic emissions"
+  emissions_strategic:            "Total emissions"
+  opex_var:                       "Absolute variable operating expenses"
+  opex_fixed:                     "Absolute fixed operating expenses"
+  sink_surplus:                   "Surplus delivered to a sink, i.e., oversatisfied demand"
+  sink_deficit:                   "Deficit in a sink, i.e., not satisfied demand"
+
+  ## EnergyModelsGeography
+  area_exchange:                  "Area exchange"
+  trans_opex_var:                 "Absolute variable transmission operating expenses"
+  trans_opex_fixed:               "Absolute fixed transmission operating expenses"
+  trans_cap:                      "Transmission capacity usage"
+  trans_in:                       "Inlet flow to a transmission mode"
+  trans_out:                      "Outlet flow from a transmission mode"
+  trans_loss:                     "Loss during transmission"
+  trans_neg:                      "Negative loss during transmission"
+  trans_pos:                      "Positive loss during transmission"
+  linepack_stor_level:            "Storage level in linepack"
+
+  ## EnergyModelsInvestment 
+  cap_capex:                      "Absolute CAPEX for investments in the capacity of a technology"
+  cap_invest_b:                   "Binary indicator of capacity investments"
+  cap_remove_b:                   "Binary indicator of capacity investments removal"
+  cap_current:                    "Installed capacity in each strategic period"
+  cap_add:                        "Added capacity"
+  cap_rem:                        "Removed capacity"
+  stor_level_capex:               "Absolute CAPEX for investments in the capacity of a storage"
+  stor_level_invest_b:            "Binary indicator of capacity investments"
+  stor_level_remove_b:            "Binary indicator of capacity investments removal"
+  stor_level_current:             "Installed storage capacity in each strategic period"
+  stor_level_add:                 "Added storage capacity"
+  stor_level_rem:                 "Removed storage capacity"
+  stor_charge_capex:              "Absolute CAPEX for investments in the charging rate of a storage"
+  stor_charge_invest_b:           "Binary indicator of investments in charging rate"
+  stor_charge_remove_b:           "Binary indicator of investments in charging rate removal"
+  stor_charge_current:            "Installed charging rate for storage in each strategic period"
+  stor_charge_add:                "Added charging rate"
+  stor_charge_rem:                "Removed charging rate"
+  stor_discharge_capex:           "Absolute CAPEX for investments in the discharging rate of a storage"
+  stor_discharge_invest_b:        "Binary indicator of investments in discharging rate"
+  stor_discharge_remove_b:        "Binary indicator of investments in discharging rate removal"
+  stor_discharge_current:         "Installed rate for storage in each strategic period"
+  stor_discharge_add:             "Added discharging rate"
+  stor_discharge_rem:             "Removed rdischarging ate"
+  trans_cap_capex:                "Absolute CAPEX for investments in the capacity of a transmission mode"
+  trans_cap_invest_b:             "Binary indicator of investments in transmission capacity"
+  trans_cap_remove_b:             "Binary indicator of investments in transmission capacity removal"
+  trans_cap_current:              "Installed capacity for each strategic period"
+  trans_cap_add:                  "Added capacity"
+  trans_cap_rem:                  "Removed capacity"
+
+  ## EnergyModelsRenewableProducers
+  curtailment:                    "Curtailment of a non-dispatchable energy source"
+  hydro_spill:                    "Spilled water (not producing energy)"
