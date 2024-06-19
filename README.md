@@ -6,7 +6,9 @@
 [![Aqua QA](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl)
 [![Code Style: Blue](https://img.shields.io/badge/code%20style-blue-4495d1.svg)](https://github.com/JuliaDiff/BlueStyle)
 
-EnergyModelsGUI enables a graphical user interface for the [EnergyModelsBase](https://github.com/EnergyModelsX/EnergyModelsBase.jl) package and other packages building upon this package (like [EnergyModelsInvestments](https://github.com/EnergyModelsX/EnergyModelsInvestments.jl) and [EnergyModelsGeography](https://github.com/EnergyModelsX/EnergyModelsGeography.jl)). It is designed to give a simple visualization of the topology of the model and enable the user to interactively navigate through the different layers of the model design. Visualization of the results after simulations will be added at a later stage.
+EnergyModelsGUI enables a graphical user interface for the [EnergyModelsBase](https://github.com/EnergyModelsX/EnergyModelsBase.jl) package and other packages building upon this package (like [EnergyModelsInvestments](https://github.com/EnergyModelsX/EnergyModelsInvestments.jl) and [EnergyModelsGeography](https://github.com/EnergyModelsX/EnergyModelsGeography.jl)).
+It is designed to give a simple visualization of the topology of the model and enable the user to interactively navigate through the different layers of the model design.
+Visualization of the results after simulations will be added at a later stage.
 
 The EnergyModelsGUI package has taken inspiration from the source code of [ModelingToolkitDesigner](https://github.com/bradcarman/ModelingToolkitDesigner.jl) as a starting point for development.
 
@@ -24,7 +26,7 @@ Please refer to the [documentation](https://clean_export.pages.sintef.no/energym
 
 See examples of usage of the package and a simple guide for running them in the folder [`examples`](examples).
 
-I.e. running the example [`EMI_geography`](examples/EMI_geography.jl) will result in a view like the following:
+*I.e.*, running the example [`EMI_geography`](examples/EMI_geography.jl) will result in a view like the following:
 
 ![Example image for EMI_geography](docs/src/figures/EMI_geography.png)
 
