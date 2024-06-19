@@ -47,6 +47,4 @@ makedocs(;
     checkdocs=:all,
 )
 
-deploydocs(;
-    repo = "github.com/EnergyModelsX/EnergyModelsGUI.jl.git",
-)
+deploydocs(; repo="github.com/EnergyModelsX/EnergyModelsGUI.jl.git")
