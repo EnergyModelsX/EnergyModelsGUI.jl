@@ -12,8 +12,8 @@ using EnergyModelsGUI
 exdir = joinpath(pkgdir(EnergyModelsGUI), "examples")
 
 # Install required packages (use the project.toml file in the test folder of the repository)
-using Pkg 
-Pkg.activate(exdir) 
+using Pkg
+Pkg.activate(exdir)
 Pkg.instantiate()
 
 # Include the code into the Julia REPL to run an example (i.e., EMI_geography.jl):

@@ -1,16 +1,8 @@
 # Examples
 
-For the content of the individual examples, see the [examples](https://gitlab.sintef.no/clean_export/energymodelsgui.jl/-/tree/main/examples) directory in the project repository.
+For the content of the individual examples, see the [examples](https://github.com/EnergyModelsX/EnergyModelsGUI.jl/tree/main/examples) directory in the project repository.
 
 ## The package is installed with `] add`
-
-First, add the [*Clean Export* Julia packages repository](https://gitlab.sintef.no/clean_export/registrycleanexport). Then run
-
-```
-~/some/directory/ $ julia   # Starts the Julia REPL
-julia> ]                    # Enter Pkg mode
-pkg> add EnergyModelsGUI    # Install the package EnergyModelsBase to the current environment.
-```
 
 From the Julia REPL (*i.e*, command-line in julia; `julia> `), run
 
