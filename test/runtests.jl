@@ -12,18 +12,20 @@ include("utils.jl")
 include("../examples/utils.jl")
 
 @testset "EnergyModelsGUI" verbose = true begin
-    # Run all Aqua tests
-    include("Aqua.jl")
+    redirect_stdio(stdout=devnull) do
+        # Run all Aqua tests
+        include("Aqua.jl")
 
-    # Check if there is need for formatting
-    include("JuliaFormatter.jl")
+        # Check if there is need for formatting
+        include("JuliaFormatter.jl")
 
-    # The following tests simply checks if the main examples can be run without errors
-    include("test_examples.jl")
+        # The following tests simply checks if the main examples can be run without errors
+        include("test_examples.jl")
 
-    # Test specific GUI functionalities related to interactivity
-    include("test_interactivity.jl")
+        # Test specific GUI functionalities related to interactivity
+        include("test_interactivity.jl")
 
-    # Test miscellaneous functionalities
-    include("test_functionality.jl")
+        # Test miscellaneous functionalities
+        include("test_functionality.jl")
+    end
 end
