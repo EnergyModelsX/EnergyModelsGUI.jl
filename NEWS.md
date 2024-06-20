@@ -1,5 +1,9 @@
 # Release notes
 
+## Unversioned
+
+* Redirect stdout to avoid redundant printouts during testing
+
 ## Version 0.5.0 (2024-04-19)
 
 ### Adjustment
