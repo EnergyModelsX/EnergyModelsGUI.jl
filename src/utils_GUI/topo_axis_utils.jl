@@ -850,21 +850,6 @@ function pick_component!(gui::GUI; pick_topo_component=false, pick_results_compo
 end
 
 """
-    update_limits!(gui::GUI)
-
-Update the limits based on the visible plots of type `time_axis`
-"""
-function update_limits!(gui::GUI)
-    time_axis = gui.menus[:time].selection[]
-    autolimits!(gui.axes[time_axis])
-    yorigin::Float32 = gui.axes[time_axis].finallimits[].origin[2]
-    ywidth::Float32 = gui.axes[time_axis].finallimits[].widths[2]
-
-    # ensure that the legend box does not overlap the data
-    ylims!(gui.axes[time_axis], yorigin, yorigin + ywidth * 1.1)
-end
-
-"""
     get_hover_string(element::Plotable)
 
 Return the string for a EMB.Node/Area/Link/Transmission to be shown on hovering.

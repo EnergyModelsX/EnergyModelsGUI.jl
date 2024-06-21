@@ -584,6 +584,20 @@ function update_plot!(gui::GUI, design::EnergySystemDesign)
 end
 
 """
+    update_limits!(gui::GUI)
+
+Update the limits based on the visible plots of type `time_axis`
+"""
+function update_limits!(ax::Axis)
+    autolimits!(ax)
+    yorigin::Float32 = ax.finallimits[].origin[2]
+    ywidth::Float32 = ax.finallimits[].widths[2]
+
+    # ensure that the legend box does not overlap the data
+    ylims!(ax, yorigin, yorigin + ywidth * 1.1)
+end
+
+"""
     update_barplot_dodge!(gui::GUI)
 
 Update the barplot of the state of the GUI (such that the bars are dodged away from each other)

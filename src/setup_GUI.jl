@@ -858,7 +858,7 @@ function define_event_functions(gui::GUI)
         end
         update_legend!(gui)
         update_barplot_dodge!(gui)
-        update_limits!(gui)
+        update_limits!(gui.axes[gui.menus[:time].selection[]])
         empty!(gui.vars[:selected_plots])
         return Consume(false)
     end
