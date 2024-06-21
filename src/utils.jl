@@ -551,11 +551,11 @@ end
         θ₁::Real = 0,
         θ₂::Real = π/4,
         steps::Int=200,
-        type::Symbol = :circle)
+        geometry::Symbol = :circle)
 
 Get points for the boundary of a sector defined by the center `c`, radius/halfsidelength `Δ`,
-and angles `θ₁` and `θ₂` for a square (type = :rect), a circle (type = :circle), or a
-triangle (type = :triangle).
+and angles `θ₁` and `θ₂` for a square (geometry = :rect), a circle (geometry = :circle), or a
+triangle (geometry = :triangle).
 """
 function get_sector_points(;
     c::Tuple{Real,Real}=(0.0, 0.0),
@@ -563,16 +563,16 @@ function get_sector_points(;
     θ₁::Real=0.0,
     θ₂::Real=π / 4,
     steps::Int=200,
-    type::Symbol=:circle,
+    geometry::Symbol=:circle,
 )
-    if type == :circle
+    if geometry == :circle
         θ::Vector{Float64} = LinRange(θ₁, θ₂, Int(round(steps * (θ₂ - θ₁) / (2π))))
         x_coords::Vector{Float64} = Δ * cos.(θ) .+ c[1]
         y_coords::Vector{Float64} = Δ * sin.(θ) .+ c[2]
 
         # Include the center and close the polygon
         return [c; collect(zip(x_coords, y_coords)); c]
-    elseif type == :rect
+    elseif geometry == :rect
         if θ₁ == 0 && θ₂ ≈ 2π
             x_coords, y_coords = box(c[1], c[2], Δ)
             return collect(zip(x_coords, y_coords))
@@ -591,7 +591,7 @@ function get_sector_points(;
             push!(vertices, c)
             return vertices
         end
-    elseif type == :triangle
+    elseif geometry == :triangle
         input::Bool = θ₂ > π / 2
         if input                        # input resources on a triangle to the left
             f = θ -> -2Δ * θ / π + 2Δ
@@ -605,7 +605,7 @@ function get_sector_points(;
         xy2 = c .+ (x_side, f(θ₂))
         return [x; xy1; xy2; x]
     else
-        @error "Type $type is not implemented."
+        @error "Geometry $geometry is not implemented."
     end
 end
 
@@ -900,16 +900,16 @@ function export_to_file(gui::GUI)
             end
         end
     else
-        axis_time_type = gui.menus[:time].selection[]
+        time_axis = gui.menus[:time].selection[]
         if file_ending == "svg"
-            flag = export_svg(gui.axes[axis_time_type], filename)
+            flag = export_svg(gui.axes[time_axis], filename)
         elseif file_ending == "xlsx"
-            if axis_time_type == :topo
+            if time_axis == :topo
                 @warn "Exporting the topology to an xlsx file is not implemented"
                 flag = 1
             else
-                plots = gui.vars[:visible_plots][axis_time_type]
-                flag = export_xlsx(plots, filename, axis_time_type)
+                plots = gui.vars[:visible_plots][time_axis]
+                flag = export_xlsx(plots, filename, time_axis)
             end
         elseif file_ending == "lp" || file_ending == "mps"
             try
@@ -920,7 +920,7 @@ function export_to_file(gui::GUI)
             end
         else
             try
-                save(filename, colorbuffer(gui.axes[axis_time_type]))
+                save(filename, colorbuffer(gui.axes[time_axis]))
                 flag = 0
             catch
                 flag = 2

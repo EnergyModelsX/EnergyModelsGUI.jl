@@ -127,18 +127,18 @@
             x -> x == "Absolute capacity utilization (cap_use)", available_data
         )
         gui.menus[:available_data].i_selected = i_selected # Select flow_out (CO2)
-        axis_time_type = gui.menus[:time].selection[]
+        time_axis = gui.menus[:time].selection[]
 
         gui.menus[:period].i_selected = 1
-        data_point = gui.axes[axis_time_type].scene.plots[1][1][][35][2]
+        data_point = gui.axes[time_axis].scene.plots[1][1][][35][2]
         @test data_point == 2.1003003f0
 
         gui.menus[:period].i_selected = 2
-        data_point = gui.axes[axis_time_type].scene.plots[1][1][][35][2]
+        data_point = gui.axes[time_axis].scene.plots[1][1][][35][2]
         @test data_point == 3.3003004f0
 
         gui.menus[:period].i_selected = 3
-        data_point = gui.axes[axis_time_type].scene.plots[1][1][][35][2]
+        data_point = gui.axes[time_axis].scene.plots[1][1][][35][2]
         @test data_point == 1.2f0
     end
 
@@ -150,16 +150,16 @@
         available_data = [x[2][:name] for x ∈ collect(gui.menus[:available_data].options[])]
         i_selected = findfirst(x -> x == "flow_in", available_data)
         gui.menus[:available_data].i_selected = i_selected # Select flow_out (CO2)
-        axis_time_type = gui.menus[:time].selection[]
+        time_axis = gui.menus[:time].selection[]
 
         gui.menus[:representative_period].i_selected = 2
         notify(gui.menus[:representative_period].selection)
-        data_point = gui.axes[axis_time_type].scene.plots[1][1][][10][2]
+        data_point = gui.axes[time_axis].scene.plots[1][1][][10][2]
         @test data_point == 0.2f0
 
         gui.menus[:representative_period].i_selected = 1
         notify(gui.menus[:representative_period].selection)
-        data_point = gui.axes[axis_time_type].scene.plots[1][1][][10][2]
+        data_point = gui.axes[time_axis].scene.plots[1][1][][10][2]
         @test data_point == 2.0f0
     end
 
@@ -171,7 +171,7 @@
         available_data = [x[2][:name] for x ∈ collect(gui.menus[:available_data].options[])]
         i_selected = findfirst(x -> x == "profile", available_data)
         gui.menus[:available_data].i_selected = i_selected # Select flow_out (CO2)
-        axis_time_type = gui.menus[:time].selection[]
+        time_axis = gui.menus[:time].selection[]
         notify(gui.buttons[:pin_plot].clicks)
         sub_component2 = gui.root_design.components[3].components[2] # fetch the EV charger node
         push!(gui.vars[:selected_systems], sub_component2) # Manually add to :selected_systems
@@ -180,9 +180,9 @@
         i_selected = findfirst(x -> x == "cap", available_data)
         gui.menus[:available_data].i_selected = i_selected # Select flow_out (CO2)
         notify(gui.buttons[:pin_plot].clicks)
-        data_point = gui.axes[axis_time_type].scene.plots[1][1][][10][2]
+        data_point = gui.axes[time_axis].scene.plots[1][1][][10][2]
         @test data_point == 0.25f0
-        data_point = gui.axes[axis_time_type].scene.plots[2][1][][10][2]
+        data_point = gui.axes[time_axis].scene.plots[2][1][][10][2]
         @test data_point == 0.6f0
     end
 
@@ -205,10 +205,10 @@
     end
 
     @testset "gui.buttons[:remove_plot].clicks" begin
-        axis_time_type = gui.menus[:time].selection[]
-        push!(gui.vars[:selected_plots], gui.vars[:visible_plots][axis_time_type][1])
+        time_axis = gui.menus[:time].selection[]
+        push!(gui.vars[:selected_plots], gui.vars[:visible_plots][time_axis][1])
         notify(gui.buttons[:remove_plot].clicks)
-        @test !gui.axes[axis_time_type].scene.plots[1].visible[]
+        @test !gui.axes[time_axis].scene.plots[1].visible[]
     end
 
     @testset "gui.buttons[:clear_all].clicks" begin
@@ -222,8 +222,8 @@
         gui.menus[:available_data].i_selected = i_selected # Select emissions_total (NG)
         notify(gui.buttons[:pin_plot].clicks)
         notify(gui.buttons[:clear_all].clicks)
-        axis_time_type = gui.menus[:time].selection[]
-        @test all([!x.visible[] for x ∈ gui.axes[axis_time_type].scene.plots])
+        time_axis = gui.menus[:time].selection[]
+        @test all([!x.visible[] for x ∈ gui.axes[time_axis].scene.plots])
     end
 
     @testset "Test icon not found" begin

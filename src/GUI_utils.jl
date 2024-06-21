@@ -853,8 +853,8 @@ function pick_component!(gui::GUI; pick_topo_component=false, pick_results_compo
             end
         end
         if pick_results_component
-            axis_time_type = gui.menus[:time].selection[]
-            for vis_obj ∈ gui.vars[:visible_plots][axis_time_type]
+            time_axis = gui.menus[:time].selection[]
+            for vis_obj ∈ gui.vars[:visible_plots][time_axis]
                 plot = vis_obj[:plot]
                 if plot === plt ||
                     plot === plt.parent ||
@@ -1250,13 +1250,13 @@ function get_data(
         field_data = selection[:field_data]
         type = typeof(field_data)
     end
-    t_values, x_type = get_time_values(T, type, sp, rp, sc)
+    t_values, time_axis = get_time_values(T, type, sp, rp, sc)
     if selection[:is_jump_data]
         y_values = get_jump_values(model, dict, selection[:selection], t_values, i_T)
     else
         y_values = field_data[t_values]
     end
-    return t_values, y_values, x_type
+    return t_values, y_values, time_axis
 end
 
 """
@@ -1401,17 +1401,17 @@ function update_plot!(gui::GUI, node::Plotable)
         rp = gui.menus[:representative_period].selection[]
         sc = gui.menus[:scenario].selection[]
 
-        t_values, y_values, x_type = get_data(gui.model, selection, T, sp, rp, sc)
+        t_values, y_values, time_axis = get_data(gui.model, selection, T, sp, rp, sc)
 
         label::String = create_label(selection)
         if !isnothing(node)
             label *= " for $node"
         end
-        if x_type == :StrategicPeriod
+        if time_axis == :StrategicPeriod
             xlabel *= " (StrategicPeriod)"
-        elseif x_type == :RepresentativePeriod
+        elseif time_axis == :RepresentativePeriod
             xlabel *= " (RepresentativePeriod)"
-        elseif x_type == :OperationalPeriod
+        elseif time_axis == :OperationalPeriod
             xlabel *= " (OperationalPeriod)"
 
             if eltype(T.operational) <: TS.RepresentativePeriods
@@ -1432,7 +1432,7 @@ function update_plot!(gui::GUI, node::Plotable)
         if no_pts > length(y_values)
             y_values = vcat(y_values, fill(y_values[end], no_pts - length(y_values)))
         end
-        if x_type == :OperationalPeriod
+        if time_axis == :OperationalPeriod
             x_values = get_op.(t_values)
             x_values_step, y_values_step = stepify(vec(x_values), vec(y_values))
             # For FixedProfile, make values constant over the operational period
@@ -1442,22 +1442,22 @@ function update_plot!(gui::GUI, node::Plotable)
         else
             points = [Point{2,Float64}(x, y) for (x, y) ∈ zip(1:no_pts, y_values)]
             custom_ticks = (1:no_pts, [string(t) for t ∈ t_values])
-            if x_type == :StrategicPeriod
+            if time_axis == :StrategicPeriod
                 gui.menus[:time].i_selected[] = 1
             else
                 gui.menus[:time].i_selected[] = 2
             end
         end
         notify(gui.menus[:time].selection) # In case the new plot is on an other time type
-        axis_time_type = gui.menus[:time].selection[]
-        pinned_plots = [x[:plot] for x ∈ gui.vars[:pinned_plots][axis_time_type]]
-        visible_plots = [x[:plot] for x ∈ gui.vars[:visible_plots][axis_time_type]]
+        time_axis = gui.menus[:time].selection[]
+        pinned_plots = [x[:plot] for x ∈ gui.vars[:pinned_plots][time_axis]]
+        visible_plots = [x[:plot] for x ∈ gui.vars[:visible_plots][time_axis]]
         plots = filter(
             x ->
                 (isa(x, Combined) || isa(x, Lines)) &&
                     !isa(x, Wireframe) &&
                     !(x ∈ pinned_plots),
-            gui.axes[axis_time_type].scene.plots,
+            gui.axes[time_axis].scene.plots,
         ) # Extract non-pinned plots. Only extract Lines and Combined (bars). Done to avoid Wireframe-objects
 
         plot = getfirst(x -> x ∈ visible_plots, plots) # get first non-pinned visible plots
@@ -1473,7 +1473,7 @@ function update_plot!(gui::GUI, node::Plotable)
             if !isnothing(plot) # Overwrite a hidden plots
                 @debug "Found a hidden plot to overwrite"
                 push!(
-                    gui.vars[:visible_plots][axis_time_type],
+                    gui.vars[:visible_plots][time_axis],
                     Dict(
                         :plot => plot,
                         :name => selection[:name],
@@ -1487,10 +1487,10 @@ function update_plot!(gui::GUI, node::Plotable)
         else # Overwrite the non-pinned visible plot
             @debug "Found a visible plot to overwrite"
             # remove the plot to be overwritten
-            filter!(x -> x[:plot] != plot, gui.vars[:visible_plots][axis_time_type])
+            filter!(x -> x[:plot] != plot, gui.vars[:visible_plots][time_axis])
 
             push!(
-                gui.vars[:visible_plots][axis_time_type],
+                gui.vars[:visible_plots][time_axis],
                 Dict(
                     :plot => plot,
                     :name => selection[:name],
@@ -1508,12 +1508,12 @@ function update_plot!(gui::GUI, node::Plotable)
             plot.label = label
         else
             @debug "Could not find anything to overwrite, creating new plot instead"
-            if x_type == :OperationalPeriod
-                plot = lines!(gui.axes[axis_time_type], points; label=label)
+            if time_axis == :OperationalPeriod
+                plot = lines!(gui.axes[time_axis], points; label=label)
             else
-                n_visible = length(gui.vars[:visible_plots][axis_time_type]) + 1
+                n_visible = length(gui.vars[:visible_plots][time_axis]) + 1
                 plot = barplot!(
-                    gui.axes[axis_time_type],
+                    gui.axes[time_axis],
                     points;
                     dodge=n_visible * ones(Int, length(points)),
                     n_dodge=n_visible,
@@ -1523,7 +1523,7 @@ function update_plot!(gui::GUI, node::Plotable)
                 )
             end
             push!(
-                gui.vars[:visible_plots][axis_time_type],
+                gui.vars[:visible_plots][time_axis],
                 Dict(
                     :plot => plot,
                     :name => selection[:name],
@@ -1545,20 +1545,20 @@ function update_plot!(gui::GUI, node::Plotable)
             push!(
                 gui.vars[:results_legend],
                 axislegend(
-                    gui.axes[axis_time_type], [plot], [label]; labelsize=gui.vars[:fontsize]
+                    gui.axes[time_axis], [plot], [label]; labelsize=gui.vars[:fontsize]
                 ),
             ) # Add legends inside axes[:results] area
         else
             update_legend!(gui)
         end
 
-        if x_type == :OperationalPeriod
-            gui.axes[axis_time_type].xticks = Makie.automatic
+        if time_axis == :OperationalPeriod
+            gui.axes[time_axis].xticks = Makie.automatic
         else
-            gui.axes[axis_time_type].xticks = custom_ticks
+            gui.axes[time_axis].xticks = custom_ticks
         end
-        gui.axes[axis_time_type].xlabel = xlabel
-        gui.axes[axis_time_type].ylabel = ylabel
+        gui.axes[time_axis].xlabel = xlabel
+        gui.axes[time_axis].ylabel = ylabel
         update_limits!(gui)
     end
 end
@@ -1566,32 +1566,32 @@ end
 """
     update_limits!(gui::GUI)
 
-Update the limits based on the visible plots of type `axis_time_type`
+Update the limits based on the visible plots of type `time_axis`
 """
 function update_limits!(gui::GUI)
-    axis_time_type = gui.menus[:time].selection[]
-    autolimits!(gui.axes[axis_time_type])
-    yorigin::Float32 = gui.axes[axis_time_type].finallimits[].origin[2]
-    ywidth::Float32 = gui.axes[axis_time_type].finallimits[].widths[2]
+    time_axis = gui.menus[:time].selection[]
+    autolimits!(gui.axes[time_axis])
+    yorigin::Float32 = gui.axes[time_axis].finallimits[].origin[2]
+    ywidth::Float32 = gui.axes[time_axis].finallimits[].widths[2]
 
     # ensure that the legend box does not overlap the data
-    ylims!(gui.axes[axis_time_type], yorigin, yorigin + ywidth * 1.1)
+    ylims!(gui.axes[time_axis], yorigin, yorigin + ywidth * 1.1)
 end
 
 """
     update_legend!(gui::GUI)
 
-Update the legend based on the visible plots of type `axis_time_type`
+Update the legend based on the visible plots of type `time_axis`
 """
 function update_legend!(gui::GUI)
-    axis_time_type = gui.menus[:time].selection[]
+    time_axis = gui.menus[:time].selection[]
     if !isempty(gui.vars[:results_legend])
         gui.vars[:results_legend][1].entrygroups[] = [(
             nothing,
             #! format: off
             [
                 LegendEntry(x[:plot].label, x[:plot], gui.vars[:results_legend][1])
-                for x ∈ gui.vars[:visible_plots][axis_time_type]
+                for x ∈ gui.vars[:visible_plots][time_axis]
             ],
             #! format: on
         )]
@@ -1676,9 +1676,9 @@ Update the barplot of the state of the GUI (such that the bars are dodged away f
 """
 function update_barplot_dodge!(gui::GUI)
     if gui.menus[:time].selection[] != :results_op
-        axis_time_type = gui.menus[:time].selection[]
-        n_visible = length(gui.vars[:visible_plots][axis_time_type])
-        for (i, x) ∈ enumerate(gui.vars[:visible_plots][axis_time_type])
+        time_axis = gui.menus[:time].selection[]
+        n_visible = length(gui.vars[:visible_plots][time_axis])
+        for (i, x) ∈ enumerate(gui.vars[:visible_plots][time_axis])
             x[:plot].n_dodge = n_visible
             x[:plot].dodge = i * ones(Int, length(x[:plot].dodge[]))
         end

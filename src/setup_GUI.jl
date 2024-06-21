@@ -148,8 +148,8 @@ function GUI(
     )
     vars[:dragging] = Ref(false)
     vars[:is_ctrl_pressed] = Ref(false)
-    vars[:axis_time_types_labels] = ["Strategic", "Representative", "Operational"]
-    vars[:axis_time_types] = [:results_sp, :results_rp, :results_op]
+    vars[:time_axiss_labels] = ["Strategic", "Representative", "Operational"]
+    vars[:time_axiss] = [:results_sp, :results_rp, :results_op]
 
     # Construct the makie figure and its objects
     fig, buttons, menus, toggles, axes = create_makie_objects(vars, root_design)
@@ -478,7 +478,7 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
     )
     time_menu = Makie.Menu(
         gridlayout_results_taskbar[1, 3];
-        options=zip(vars[:axis_time_types_labels], vars[:axis_time_types]),
+        options=zip(vars[:time_axiss_labels], vars[:time_axiss]),
         halign=:left,
         width=120 * vars[:fontsize] / 12,
         fontsize=vars[:fontsize],
@@ -701,9 +701,9 @@ function define_event_functions(gui::GUI)
                     gui.vars[:dragging][] = true
                     return Consume(true)
                 else
-                    axis_time_type = gui.menus[:time].selection[]
-                    origin = pixelarea(gui.axes[axis_time_type].scene)[].origin
-                    widths = pixelarea(gui.axes[axis_time_type].scene)[].widths
+                    time_axis = gui.menus[:time].selection[]
+                    origin = pixelarea(gui.axes[time_axis].scene)[].origin
+                    widths = pixelarea(gui.axes[time_axis].scene)[].widths
                     mouse_pos_loc = mouse_pos .- origin
 
                     if all(mouse_pos_loc .> 0.0) && all(mouse_pos_loc .- widths .< 0.0)
@@ -822,18 +822,18 @@ function define_event_functions(gui::GUI)
     # Pin current plot (the last plot added)
     on(gui.buttons[:pin_plot].clicks; priority=10) do _
         @info "Current plot pinned"
-        axis_time_type = gui.vars[:axis_time_types][gui.menus[:time].i_selected[]]
-        plots = gui.axes[axis_time_type].scene.plots
+        time_axis = gui.vars[:time_axiss][gui.menus[:time].i_selected[]]
+        plots = gui.axes[time_axis].scene.plots
         if !isempty(plots) # Check if any plots exist
-            pinned_plots = [x[:plot] for x ∈ gui.vars[:pinned_plots][axis_time_type]]
+            pinned_plots = [x[:plot] for x ∈ gui.vars[:pinned_plots][time_axis]]
             plot = getfirst(
                 x ->
                     !(x[:plot] ∈ pinned_plots) &&
                         (isa(x[:plot], Lines) || isa(x[:plot], Combined)),
-                gui.vars[:visible_plots][axis_time_type],
+                gui.vars[:visible_plots][time_axis],
             )
             if !isnothing(plot)
-                push!(gui.vars[:pinned_plots][axis_time_type], plot)
+                push!(gui.vars[:pinned_plots][time_axis], plot)
             end
         end
         return Consume(false)
@@ -844,17 +844,15 @@ function define_event_functions(gui::GUI)
         if isempty(gui.vars[:selected_plots])
             return Consume(false)
         end
-        axis_time_type = gui.vars[:axis_time_types][gui.menus[:time].i_selected[]]
+        time_axis = gui.vars[:time_axiss][gui.menus[:time].i_selected[]]
         for plot_selected ∈ gui.vars[:selected_plots]
             plot_selected[:plot].visible = false
             toggle_selection_color!(gui, plot_selected, false)
             filter!(
-                x -> x[:plot] != plot_selected[:plot],
-                gui.vars[:visible_plots][axis_time_type],
+                x -> x[:plot] != plot_selected[:plot], gui.vars[:visible_plots][time_axis]
             )
             filter!(
-                x -> x[:plot] != plot_selected[:plot],
-                gui.vars[:pinned_plots][axis_time_type],
+                x -> x[:plot] != plot_selected[:plot], gui.vars[:pinned_plots][time_axis]
             )
             @info "Removing plot with label: $(plot_selected[:plot].label[])"
         end
@@ -867,15 +865,15 @@ function define_event_functions(gui::GUI)
 
     # Clear all plots
     on(gui.buttons[:clear_all].clicks; priority=10) do _
-        axis_time_type = gui.vars[:axis_time_types][gui.menus[:time].i_selected[]]
-        for plot_selected ∈ gui.vars[:visible_plots][axis_time_type]
+        time_axis = gui.vars[:time_axiss][gui.menus[:time].i_selected[]]
+        for plot_selected ∈ gui.vars[:visible_plots][time_axis]
             plot_selected[:plot].visible = false
             toggle_selection_color!(gui, plot_selected, false)
         end
         @info "Clearing plots"
         empty!(gui.vars[:selected_plots])
-        empty!(gui.vars[:visible_plots][axis_time_type])
-        empty!(gui.vars[:pinned_plots][axis_time_type])
+        empty!(gui.vars[:visible_plots][time_axis])
+        empty!(gui.vars[:pinned_plots][time_axis])
         update_legend!(gui)
         return Consume(false)
     end
@@ -908,8 +906,8 @@ function define_event_functions(gui::GUI)
         if gui.menus[:export_type].selection[] == "REPL"
             axes_str::String = gui.menus[:axes].selection[]
             if axes_str == "Plots"
-                axis_time_type = gui.vars[:axis_time_types][gui.menus[:time].i_selected[]]
-                vis_plots = gui.vars[:visible_plots][axis_time_type]
+                time_axis = gui.vars[:time_axiss][gui.menus[:time].i_selected[]]
+                vis_plots = gui.vars[:visible_plots][time_axis]
                 if !isempty(vis_plots) # Check if any plots exist
                     t = vis_plots[1][:t]
                     data = Matrix{Any}(undef, length(t), length(vis_plots) + 1)
@@ -954,15 +952,15 @@ function define_event_functions(gui::GUI)
 
     # Time menu: Handle menu selection (selecting time)
     on(gui.menus[:time].selection; priority=10) do selection
-        for (_, axis_time_type) ∈ gui.menus[:time].options[]
-            if axis_time_type == selection
-                showdecorations!(gui.axes[axis_time_type])
-                showspines!(gui.axes[axis_time_type])
-                showplots!([x[:plot] for x ∈ gui.vars[:visible_plots][axis_time_type]])
+        for (_, time_axis) ∈ gui.menus[:time].options[]
+            if time_axis == selection
+                showdecorations!(gui.axes[time_axis])
+                showspines!(gui.axes[time_axis])
+                showplots!([x[:plot] for x ∈ gui.vars[:visible_plots][time_axis]])
             else
-                hidedecorations!(gui.axes[axis_time_type])
-                hidespines!(gui.axes[axis_time_type])
-                hideplots!(gui.axes[axis_time_type].scene.plots)
+                hidedecorations!(gui.axes[time_axis])
+                hidespines!(gui.axes[time_axis])
+                hideplots!(gui.axes[time_axis].scene.plots)
             end
         end
         update_legend!(gui)
