@@ -6,6 +6,7 @@
 * Create figures for docs and README.md file on the fly (based on current version)
 * Rename variables named type that is not acutually of type DataTypes to avoid confusion
 * Scattered the functions from the utils.jl and GUIutils.jl files onto smaller files in the folders `src/utils_gen` and `src/utils_GUI`
+* Updated docstrings
 
 ## Version 0.5.0 (2024-04-19)
 

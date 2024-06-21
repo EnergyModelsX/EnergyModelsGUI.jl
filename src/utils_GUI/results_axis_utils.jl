@@ -1,44 +1,64 @@
 """
-    extract_combinations!(
-        gui::GUI,
+    add_description!(
         available_data::Vector{Dict},
-        dict::Symbol,
-        model
+        container::Dict{Symbol,Any},
+        gui::GUI,
+        key_str::String;
+        pre_desc::String="",
     )
 
-Extract all available resources in `model[dict]`
+Update the `container` with a description (from `gui.vars[:descriptive_names]` if available),
+and add `container` to `available_data`.
 """
-function extract_combinations!(gui::GUI, available_data::Vector{Dict}, dict::Symbol, model)
-    resources::Vector{Resource} = unique([key[2] for key ∈ keys(model[dict].data)])
-    for res ∈ resources
-        dict_str = string(dict)
-        container = Dict(:name => dict_str, :is_jump_data => true, :selection => [res])
-        add_description!(available_data, container, gui, "variables.$dict_str")
+function add_description!(
+    available_data::Vector{Dict},
+    container::Dict{Symbol,Any},
+    gui::GUI,
+    key_str::String;
+    pre_desc::String="",
+)
+    structure = get_nth_field(key_str, '.', 3)
+    if structure == "to" || structure == "from" # don't add `to` and `from` fields
+        return nothing
     end
+    description = pre_desc
+    try
+        description *= String(get_nested_value(gui.vars[:descriptive_names], key_str))
+    catch
+        description = key_str[(findfirst('.', key_str) + 1):end]
+        @warn "Could't find a description for $description. \
+            Using the string $description instead"
+    end
+    container[:description] = description
+    push!(available_data, container)
 end
 
 """
-    extract_combinations!(available_data::Vector{Dict}, dict::Symbol, node::Plotable, model)
+    add_description!(
+        field::T,
+        name::String,
+        key_str::String,
+        pre_desc::String,
+        node::Plotable,
+        available_data::Vector{Dict},
+        gui::GUI,
+    ) where {T<:TS.TimeProfile}
 
-Extract all available resources in `model[dict]` for a given `node`.
+Create a container with a description, and add `container` to `available_data`.
 """
-function extract_combinations!(
-    gui::GUI, available_data::Vector{Dict}, dict::Symbol, node::Plotable, model
-)
-    if isa(model[dict], SparseVariables.IndexedVarArray)
-        dict_str = string(dict)
-        container = Dict(:name => dict_str, :is_jump_data => true, :selection => [node])
-        add_description!(available_data, container, gui, "variables.$dict_str")
-    else
-        resources = unique([key[2] for key ∈ keys(model[dict][node, :, :].data)])
-        for res ∈ resources
-            dict_str = string(dict)
-            container = Dict(
-                :name => dict_str, :is_jump_data => true, :selection => [node, res]
-            )
-            add_description!(available_data, container, gui, "variables.$dict_str")
-        end
-    end
+function add_description!(
+    field::T,
+    name::String,
+    key_str::String,
+    pre_desc::String,
+    node::Plotable,
+    available_data::Vector{Dict},
+    gui::GUI,
+) where {T<:TS.TimeProfile}
+    container = Dict(
+        :name => name, :is_jump_data => false, :selection => [node], :field_data => field
+    )
+    add_description!(available_data, container, gui, key_str; pre_desc)
 end
 
 """
@@ -52,7 +72,8 @@ end
         gui::GUI,
     )
 
-Update the container with a description if available, and add description to available_data.
+Loop through all `dictnames` for a `field` of type `Dict` (i.e. for the field `penalty`
+having the keys :deficit and surplus) and update `available_data` with an added description.
 """
 function add_description!(
     field::Dict,
@@ -83,8 +104,8 @@ end
         gui::GUI,
     )
 
-If field is a vector, loop through the vector and update the container with a description
-if available, and add description to available_data.
+Loop through all elements of `field` of type `Vector` (i.e. for the field `data`)
+and update `available_data` with an added description.
 """
 function add_description!(
     field::Vector,
@@ -109,19 +130,20 @@ end
     add_description!(
         field::Any,
         name::String,
-        key_str::String,
+        ::String,
         pre_desc::String,
         node::Plotable,
         available_data::Vector{Dict},
         gui::GUI,
     )
 
-Update the container with a description if available, and add description to available_data.
+Loop through all struct fieldnames of `field` (i.e. for the field `level` of type `NoStartInvData`)
+and update `available_data` with an added description.
 """
 function add_description!(
     field::Any,
     name::String,
-    key_str::String,
+    ::String,
     pre_desc::String,
     node::Plotable,
     available_data::Vector{Dict},
@@ -141,65 +163,48 @@ function add_description!(
 end
 
 """
-    add_description!(
-        field::T,
-        name::String,
-        key_str::String,
-        pre_desc::String,
-        node::Plotable,
-        available_data::Vector{Dict},
+    extract_combinations!(
         gui::GUI,
-    ) where {T<:TS.TimeProfile}
-
-Update the container with a description if available, and add description to available_data.
-"""
-function add_description!(
-    field::T,
-    name::String,
-    key_str::String,
-    pre_desc::String,
-    node::Plotable,
-    available_data::Vector{Dict},
-    gui::GUI,
-) where {T<:TS.TimeProfile}
-    container = Dict(
-        :name => name, :is_jump_data => false, :selection => [node], :field_data => field
+        available_data::Vector{Dict},
+        dict::Symbol,
+        model
     )
-    add_description!(available_data, container, gui, key_str; pre_desc)
+
+Extract all combinations of available resources in `model[dict]`, add descriptions to
+`container`, and add `container` to `available_data`
+"""
+function extract_combinations!(gui::GUI, available_data::Vector{Dict}, dict::Symbol, model)
+    resources::Vector{Resource} = unique([key[2] for key ∈ keys(model[dict].data)])
+    for res ∈ resources
+        dict_str = string(dict)
+        container = Dict(:name => dict_str, :is_jump_data => true, :selection => [res])
+        add_description!(available_data, container, gui, "variables.$dict_str")
+    end
 end
 
 """
-    add_description!(
-        available_data::Vector{Dict},
-        container::Dict{Symbol,Any},
-        gui::GUI,
-        key_str::String;
-        pre_desc::String="",
-    )
+    extract_combinations!(available_data::Vector{Dict}, dict::Symbol, node::Plotable, model)
 
-Update the container with a description if available, and add container to available_data.
+Extract all combinations of available resources in `model[dict]` for a given `node`, add
+descriptions to `container`, and add `container` to `available_data`
 """
-function add_description!(
-    available_data::Vector{Dict},
-    container::Dict{Symbol,Any},
-    gui::GUI,
-    key_str::String;
-    pre_desc::String="",
+function extract_combinations!(
+    gui::GUI, available_data::Vector{Dict}, dict::Symbol, node::Plotable, model
 )
-    structure = get_nth_field(key_str, '.', 3)
-    if structure == "to" || structure == "from" # don't add `to` and `from` fields
-        return nothing
+    if isa(model[dict], SparseVariables.IndexedVarArray)
+        dict_str = string(dict)
+        container = Dict(:name => dict_str, :is_jump_data => true, :selection => [node])
+        add_description!(available_data, container, gui, "variables.$dict_str")
+    else
+        resources = unique([key[2] for key ∈ keys(model[dict][node, :, :].data)])
+        for res ∈ resources
+            dict_str = string(dict)
+            container = Dict(
+                :name => dict_str, :is_jump_data => true, :selection => [node, res]
+            )
+            add_description!(available_data, container, gui, "variables.$dict_str")
+        end
     end
-    description = pre_desc
-    try
-        description *= String(get_nested_value(gui.vars[:descriptive_names], key_str))
-    catch
-        description = key_str[(findfirst('.', key_str) + 1):end]
-        @warn "Could't find a description for $description. \
-            Using the string $description instead"
-    end
-    container[:description] = description
-    push!(available_data, container)
 end
 
 """
@@ -212,54 +217,56 @@ end
         sc::Int64,
     )
 
-Get the values from the JuMP `model` or the input data for at `selection` for all times `T`
+Get the values from the JuMP `model`, or the input data, at `selection` for all periods in `T`
 restricted to strategic period `sp`, representative period `rp`, and scenario `sc`.
 """
 function get_data(
     model::JuMP.Model, selection::Dict, T::TS.TimeStructure, sp::Int64, rp::Int64, sc::Int64
 )
     if selection[:is_jump_data]
-        dict = Symbol(selection[:name])
-        i_T, type = get_time_axis(model[dict])
+        var = Symbol(selection[:name])
+        i_T, type = get_time_axis(model[var])
     else
         field_data = selection[:field_data]
         type = typeof(field_data)
     end
-    t_values, time_axis = get_time_values(T, type, sp, rp, sc)
+    periods, time_axis = get_periods(T, type, sp, rp, sc)
     if selection[:is_jump_data]
-        y_values = get_jump_values(model, dict, selection[:selection], t_values, i_T)
+        y_values = get_jump_values(model, var, selection[:selection], periods, i_T)
     else
-        y_values = field_data[t_values]
+        y_values = field_data[periods]
     end
-    return t_values, y_values, time_axis
+    return periods, y_values, time_axis
 end
 
 """
     get_jump_values(
-        model::JuMP.Model, var::Symbol, selection::Vector, t_values::Vector, i_T::Int64
+        model::JuMP.Model, var::Symbol, selection::Vector, periods::Vector, i_T::Int64
     )
 
-Get the values from the JuMP `model` for symbol `var` at `selection` for all times `T` \
-restricted to `sp`
+Get the values from the JuMP `model` for a JuMP variable `var` at `selection` containing all
+indices except for the time index from which we want to extract all values in the vector `periods`).
+The time dimension is located at `i_T` of `model[var]`
 """
 function get_jump_values(
-    model::JuMP.Model, var::Symbol, selection::Vector, t_values::Vector, i_T::Int64
+    model::JuMP.Model, var::Symbol, selection::Vector, periods::Vector, i_T::Int64
 )
     return [
         value(model[var][vcat(selection[1:(i_T - 1)], t, selection[i_T:end])...]) for
-        t ∈ t_values
+        t ∈ periods
     ]
 end
 
 """
-    get_time_values(
+    get_periods(
         T::TS.TimeStructure, type::Type, sp::Int64, rp::Int64, sc::Int64
     )
 
-Get the time values for a given time type (TS.StrategicPeriod, TS.RepresentativePeriod
-or TS.OperationalPeriod)
+Get the periods for a given TimePeriod `type` (TS.StrategicPeriod, TS.RepresentativePeriod
+or TS.OperationalPeriod) restricted to the strategic period `sp`, representative period `rp`
+and the scenario `sc`.
 """
-function get_time_values(T::TS.TimeStructure, type::Type, sp::Int64, rp::Int64, sc::Int64)
+function get_periods(T::TS.TimeStructure, type::Type, sp::Int64, rp::Int64, sc::Int64)
     if type <: TS.StrategicPeriod
         return [t for t ∈ TS.strat_periods(T)], :results_sp
     elseif type <: TS.TimeStructure{T} where {T}
@@ -292,7 +299,8 @@ end
         },
     )
 
-Get the index of the axis/column corresponding to TS.TimePeriod and return the specific type.
+Get the index of the axis/column of `data` (i.e. from a JuMP variable) corresponding to
+TS.TimePeriod and return this index (`i_T`) alongside its TimeStruct type.
 """
 function get_time_axis(
     data::Union{
@@ -376,7 +384,7 @@ function update_plot!(gui::GUI, node::Plotable)
         rp = gui.menus[:representative_period].selection[]
         sc = gui.menus[:scenario].selection[]
 
-        t_values, y_values, time_axis = get_data(gui.model, selection, T, sp, rp, sc)
+        periods, y_values, time_axis = get_data(gui.model, selection, T, sp, rp, sc)
 
         label::String = create_label(selection)
         if !isnothing(node)
@@ -402,13 +410,13 @@ function update_plot!(gui::GUI, node::Plotable)
             end
         end
 
-        no_pts = length(t_values)
+        no_pts = length(periods)
         # For FixedProfiles, make sure the y_values are extended correspondingly to the x_values
         if no_pts > length(y_values)
             y_values = vcat(y_values, fill(y_values[end], no_pts - length(y_values)))
         end
         if time_axis == :results_op
-            x_values = get_op.(t_values)
+            x_values = get_op.(periods)
             x_values_step, y_values_step = stepify(vec(x_values), vec(y_values))
             # For FixedProfile, make values constant over the operational period
             points = [Point{2,Float64}(x, y) for (x, y) ∈ zip(x_values_step, y_values_step)]
@@ -416,7 +424,7 @@ function update_plot!(gui::GUI, node::Plotable)
             gui.menus[:time].i_selected[] = 3
         else
             points = [Point{2,Float64}(x, y) for (x, y) ∈ zip(1:no_pts, y_values)]
-            custom_ticks = (1:no_pts, [string(t) for t ∈ t_values])
+            custom_ticks = (1:no_pts, [string(t) for t ∈ periods])
             if time_axis == :results_sp
                 gui.menus[:time].i_selected[] = 1
             else
@@ -453,7 +461,7 @@ function update_plot!(gui::GUI, node::Plotable)
                         :plot => plot,
                         :name => selection[:name],
                         :selection => selection[:selection],
-                        :t => t_values,
+                        :t => periods,
                         :y => y_values,
                         :color => plot.color[],
                     ),
@@ -470,7 +478,7 @@ function update_plot!(gui::GUI, node::Plotable)
                     :plot => plot,
                     :name => selection[:name],
                     :selection => selection[:selection],
-                    :t => t_values,
+                    :t => periods,
                     :y => y_values,
                     :color => plot.color[],
                 ),
@@ -503,7 +511,7 @@ function update_plot!(gui::GUI, node::Plotable)
                     :plot => plot,
                     :name => selection[:name],
                     :selection => selection[:selection],
-                    :t => t_values,
+                    :t => periods,
                     :y => y_values,
                     :color => plot.color[],
                 ),
