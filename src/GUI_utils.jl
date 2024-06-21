@@ -74,16 +74,16 @@ get_change(gui::GUI, ::Val{Keyboard.left}) = (-gui.vars[:Δh][] / 5, 0.0)
 get_change(gui::GUI, ::Val{Keyboard.right}) = (+gui.vars[:Δh][] / 5, 0.0)
 
 """
-    align(gui::GUI, type::Symbol)
+    align(gui::GUI, align::Symbol)
 
-Align components in `gui.vars[:selected_systems]` based on the value of Symbol `type`.
+Align components in `gui.vars[:selected_systems]` based on the value of Symbol `align`.
 
 The following values are allowed
 
 - `:horizontal` for horizontal alignment.
 - `:vertical` for vertical alignment.
 """
-function align(gui::GUI, type::Symbol)
+function align(gui::GUI, align::Symbol)
     xs::Vector{Real} = Real[]
     ys::Vector{Real} = Real[]
     for sub_design ∈ gui.vars[:selected_systems]
@@ -95,9 +95,9 @@ function align(gui::GUI, type::Symbol)
     end
 
     # Use the average of the components as the basis of the translated coordinate
-    z::Real = if type == :horizontal
+    z::Real = if align == :horizontal
         sum(ys) / length(ys)
-    elseif type == :vertical
+    elseif align == :vertical
         sum(xs) / length(xs)
     end
 
@@ -105,9 +105,9 @@ function align(gui::GUI, type::Symbol)
         if isa(sub_design, EnergySystemDesign)
             x, y = sub_design.xy[]
 
-            if type == :horizontal
+            if align == :horizontal
                 sub_design.xy[] = (x, z)
-            elseif type == :vertical
+            elseif align == :vertical
                 sub_design.xy[] = (z, y)
             end
         end
@@ -537,7 +537,7 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
         colors_output::Vector{RGB} = get_resource_colors(
             EMB.outputs(node), design.id_to_color_map
         )
-        type::Symbol = if isa(node, EMB.Source)
+        geometry::Symbol = if isa(node, EMB.Source)
             :rect
         elseif isa(node, EMB.Sink)
             :circle
@@ -572,7 +572,7 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
                 push!(design.plots, network_poly)
                 on(design.xy; priority=3) do c
                     Δ = gui.vars[:Δh][] * gui.vars[:icon_scale] / 2
-                    sector = get_sector_points(; c, Δ, θ₁=θᵢ, θ₂=θᵢ₊₁, type=type)
+                    sector = get_sector_points(; c, Δ, θ₁=θᵢ, θ₂=θᵢ₊₁, geometry=geometry)
                     network_poly[1][] = sector
                 end
             end
