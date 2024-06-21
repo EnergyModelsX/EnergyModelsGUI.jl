@@ -22,7 +22,7 @@ end
 """
     update_distances!(gui::GUI)
 
-Find the minimum distance between the nodes in the design object `gui` and update `Δh` such
+Find the minimum distance between the elements in the design object `gui` and update `Δh` such
 that neighbouring icons do not overlap.
 """
 function update_distances!(gui::GUI)
@@ -195,7 +195,7 @@ function connect!(gui::GUI, design::EnergySystemDesign)
     end
 
     for connection ∈ design.connections
-        # Check if link between two nodes goes in both directions (two_way)
+        # Check if link between two elements goes in both directions (two_way)
         connection_con = connection.connection
         two_way::Bool = false
         for connection2 ∈ design.connections
@@ -865,10 +865,10 @@ function update_limits!(gui::GUI)
 end
 
 """
-    get_hover_string(node::Plotable)
+    get_hover_string(element::Plotable)
 
 Return the string for a Node/Area/Link/Transmission to be shown on hovering.
 """
-function get_hover_string(node::Plotable)
-    return string(nameof(typeof(node)))
+function get_hover_string(element::Plotable)
+    return string(nameof(typeof(element)))
 end

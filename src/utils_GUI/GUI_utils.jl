@@ -37,16 +37,16 @@ function update!(gui::GUI)
 end
 
 """
-    update!(gui::GUI, node::Plotable; updateplot::Bool=true)
+    update!(gui::GUI, element::Plotable; updateplot::Bool=true)
 
-Based on `node`, update the text in `gui.axes[:info]` and update plot in
+Based on `element`, update the text in `gui.axes[:info]` and update plot in
 `gui.axes[:results]` if `updateplot = true`
 """
-function update!(gui::GUI, node::Plotable; updateplot::Bool=true)
-    update_info_box!(gui, node)
-    update_available_data_menu!(gui, node)
+function update!(gui::GUI, element::Plotable; updateplot::Bool=true)
+    update_info_box!(gui, element)
+    update_available_data_menu!(gui, element)
     if updateplot
-        update_plot!(gui, node)
+        update_plot!(gui, element)
     end
 end
 
@@ -87,7 +87,7 @@ function initialize_available_data!(gui)
     if haskey(system, :transmission)
         append!(plotables, system[:transmission])
     end
-    for node ∈ plotables
+    for element ∈ plotables
         # Find appearances of node/area/link/transmission in the model
         available_data = Vector{Dict}(undef, 0)
         if termination_status(gui.model) == MOI.OPTIMAL # Plot results if available
@@ -98,14 +98,14 @@ function initialize_available_data!(gui)
                 if typeof(gui.model[dict]) <: JuMP.Containers.DenseAxisArray
                     # nodes/areas found in structure
                     if any(eltype.(axes(gui.model[dict])) .<: Union{EMB.Node,EMG.Area})
-                        # only add dict if used by node (assume node are located at first Dimension)
-                        if exists(gui.model[dict], node)
+                        # only add dict if used by element (assume element is located at first Dimension)
+                        if exists(gui.model[dict], element)
                             if length(axes(gui.model[dict])) > 2
                                 for res ∈ gui.model[dict].axes[3]
                                     container = Dict(
                                         :name => string(dict),
                                         :is_jump_data => true,
-                                        :selection => [node, res],
+                                        :selection => [element, res],
                                     )
                                     key_str = "variables.$dict"
                                     add_description!(
@@ -116,18 +116,18 @@ function initialize_available_data!(gui)
                                 container = Dict(
                                     :name => string(dict),
                                     :is_jump_data => true,
-                                    :selection => [node],
+                                    :selection => [element],
                                 )
                                 key_str = "variables.$dict"
                                 add_description!(available_data, container, gui, key_str)
                             end
                         end
-                    elseif any(eltype.(axes(gui.model[dict])) .<: EMG.TransmissionMode) # nodes found in structure
-                        if isa(node, EMG.Transmission)
-                            for mode ∈ modes(node)
-                                # only add dict if used by node (assume node are located at first Dimension)
+                    elseif any(eltype.(axes(gui.model[dict])) .<: EMG.TransmissionMode) # element found in structure
+                        if isa(element, EMG.Transmission)
+                            for mode ∈ modes(element)
+                                # only add dict if used by element (assume element is located at first Dimension)
                                 if exists(gui.model[dict], mode)
-                                    # do not include node (<: EMG.Transmission) here
+                                    # do not include element (<: EMG.Transmission) here
                                     # as the mode is unique to this transmission
                                     container = Dict(
                                         :name => string(dict),
@@ -141,7 +141,7 @@ function initialize_available_data!(gui)
                                 end
                             end
                         end
-                    elseif isnothing(node)
+                    elseif isnothing(element)
                         if length(axes(gui.model[dict])) > 1
                             for res ∈ gui.model[dict].axes[2]
                                 container = Dict(
@@ -165,14 +165,14 @@ function initialize_available_data!(gui)
                 elseif typeof(gui.model[dict]) <: SparseVars
                     fieldtypes = typeof.(first(keys(gui.model[dict].data)))
                     if any(fieldtypes .<: Union{EMB.Node,EMB.Link,EMG.Area}) # nodes/area/links found in structure
-                        if exists(gui.model[dict], node) # current node found in structure
+                        if exists(gui.model[dict], element) # current element found in structure
                             extract_combinations!(
-                                gui, available_data, dict, node, gui.model
+                                gui, available_data, dict, element, gui.model
                             )
                         end
                     elseif any(fieldtypes .<: EMG.TransmissionMode) # TransmissionModes found in structure
-                        if isa(node, EMG.Transmission)
-                            for mode ∈ modes(node)
+                        if isa(element, EMG.Transmission)
+                            for mode ∈ modes(element)
                                 if exists(gui.model[dict], mode) # current mode found in structure
                                     extract_combinations!(
                                         gui, available_data, dict, mode, gui.model
@@ -180,7 +180,7 @@ function initialize_available_data!(gui)
                                 end
                             end
                         end
-                    elseif isnothing(node)
+                    elseif isnothing(element)
                         extract_combinations!(gui, available_data, dict, gui.model)
                     end
                 end
@@ -188,16 +188,16 @@ function initialize_available_data!(gui)
         end
 
         # Add timedependent input data (if available)
-        if !isnothing(node)
-            for field_name ∈ fieldnames(typeof(node))
-                field = getfield(node, field_name)
-                structure = String(nameof(typeof(node)))
+        if !isnothing(element)
+            for field_name ∈ fieldnames(typeof(element))
+                field = getfield(element, field_name)
+                structure = String(nameof(typeof(element)))
                 name = "$field_name"
                 key_str = "structures.$structure.$name"
-                add_description!(field, name, key_str, "", node, available_data, gui)
+                add_description!(field, name, key_str, "", element, available_data, gui)
             end
         end
-        gui.vars[:available_data][node] = Dict(
+        gui.vars[:available_data][element] = Dict(
             :container => available_data,
             :container_strings => create_label.(available_data),
         )
@@ -205,12 +205,12 @@ function initialize_available_data!(gui)
 end
 
 """
-    update_available_data_menu!(gui::GUI, node::Plotable)
+    update_available_data_menu!(gui::GUI, element::Plotable)
 
-Update the `gui.menus[:available_data]` with the available data of `node`.
+Update the `gui.menus[:available_data]` with the available data of `element`.
 """
-function update_available_data_menu!(gui::GUI, node::Plotable)
-    container = gui.vars[:available_data][node][:container]
-    container_strings = gui.vars[:available_data][node][:container_strings]
+function update_available_data_menu!(gui::GUI, element::Plotable)
+    container = gui.vars[:available_data][element][:container]
+    container_strings = gui.vars[:available_data][element][:container_strings]
     return gui.menus[:available_data].options = zip(container_strings, container)
 end

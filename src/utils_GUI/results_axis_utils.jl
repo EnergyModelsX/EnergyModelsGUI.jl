@@ -39,7 +39,7 @@ end
         name::String,
         key_str::String,
         pre_desc::String,
-        node::Plotable,
+        element::Plotable,
         available_data::Vector{Dict},
         gui::GUI,
     ) where {T<:TS.TimeProfile}
@@ -51,12 +51,12 @@ function add_description!(
     name::String,
     key_str::String,
     pre_desc::String,
-    node::Plotable,
+    element::Plotable,
     available_data::Vector{Dict},
     gui::GUI,
 ) where {T<:TS.TimeProfile}
     container = Dict(
-        :name => name, :is_jump_data => false, :selection => [node], :field_data => field
+        :name => name, :is_jump_data => false, :selection => [element], :field_data => field
     )
     add_description!(available_data, container, gui, key_str; pre_desc)
 end
@@ -67,7 +67,7 @@ end
         name::String,
         key_str::String,
         pre_desc::String,
-        node::Plotable,
+        element::Plotable,
         available_data::Vector{Dict},
         gui::GUI,
     )
@@ -80,7 +80,7 @@ function add_description!(
     name::String,
     key_str::String,
     pre_desc::String,
-    node::Plotable,
+    element::Plotable,
     available_data::Vector{Dict},
     gui::GUI,
 )
@@ -88,7 +88,7 @@ function add_description!(
         name_field = "$name.$dictname"
         key_str_field = "$key_str.$dictname"
         add_description!(
-            dictvalue, name_field, key_str_field, pre_desc, node, available_data, gui
+            dictvalue, name_field, key_str_field, pre_desc, element, available_data, gui
         )
     end
 end
@@ -99,7 +99,7 @@ end
         name::String,
         key_str::String,
         pre_desc::String,
-        node::Plotable,
+        element::Plotable,
         available_data::Vector{Dict},
         gui::GUI,
     )
@@ -112,7 +112,7 @@ function add_description!(
     name::String,
     key_str::String,
     pre_desc::String,
-    node::Plotable,
+    element::Plotable,
     available_data::Vector{Dict},
     gui::GUI,
 )
@@ -121,7 +121,7 @@ function add_description!(
         name_field = "$name.$data_type"
         key_str_field = "$key_str.$data_type"
         add_description!(
-            data, name_field, key_str_field, pre_desc, node, available_data, gui
+            data, name_field, key_str_field, pre_desc, element, available_data, gui
         )
     end
 end
@@ -132,7 +132,7 @@ end
         name::String,
         ::String,
         pre_desc::String,
-        node::Plotable,
+        element::Plotable,
         available_data::Vector{Dict},
         gui::GUI,
     )
@@ -145,7 +145,7 @@ function add_description!(
     name::String,
     ::String,
     pre_desc::String,
-    node::Plotable,
+    element::Plotable,
     available_data::Vector{Dict},
     gui::GUI,
 )
@@ -157,7 +157,7 @@ function add_description!(
         pre_desc_sub = "$pre_desc$name_field_type: "
         key_str = "structures.$name_field_type.$sub_field_name"
         add_description!(
-            sub_field, name_field, key_str, pre_desc_sub, node, available_data, gui
+            sub_field, name_field, key_str, pre_desc_sub, element, available_data, gui
         )
     end
 end
@@ -183,24 +183,24 @@ function extract_combinations!(gui::GUI, available_data::Vector{Dict}, dict::Sym
 end
 
 """
-    extract_combinations!(available_data::Vector{Dict}, dict::Symbol, node::Plotable, model)
+    extract_combinations!(available_data::Vector{Dict}, dict::Symbol, element::Plotable, model)
 
-Extract all combinations of available resources in `model[dict]` for a given `node`, add
+Extract all combinations of available resources in `model[dict]` for a given `element`, add
 descriptions to `container`, and add `container` to `available_data`
 """
 function extract_combinations!(
-    gui::GUI, available_data::Vector{Dict}, dict::Symbol, node::Plotable, model
+    gui::GUI, available_data::Vector{Dict}, dict::Symbol, element::Plotable, model
 )
     if isa(model[dict], SparseVariables.IndexedVarArray)
         dict_str = string(dict)
-        container = Dict(:name => dict_str, :is_jump_data => true, :selection => [node])
+        container = Dict(:name => dict_str, :is_jump_data => true, :selection => [element])
         add_description!(available_data, container, gui, "variables.$dict_str")
     else
-        resources = unique([key[2] for key ∈ keys(model[dict][node, :, :].data)])
+        resources = unique([key[2] for key ∈ keys(model[dict][element, :, :].data)])
         for res ∈ resources
             dict_str = string(dict)
             container = Dict(
-                :name => dict_str, :is_jump_data => true, :selection => [node, res]
+                :name => dict_str, :is_jump_data => true, :selection => [element, res]
             )
             add_description!(available_data, container, gui, "variables.$dict_str")
         end
@@ -366,11 +366,11 @@ function create_label(selection::Dict{Symbol,Any})
 end
 
 """
-    update_plot!(gui::GUI, node)
+    update_plot!(gui::GUI, element)
 
-Based on `node` update the results in `gui.axes[:results]`.
+Based on `element` update the results in `gui.axes[:results]`.
 """
-function update_plot!(gui::GUI, node::Plotable)
+function update_plot!(gui::GUI, element::Plotable)
     T = gui.root_design.system[:T]
     selection = gui.menus[:available_data].selection[]
     if !isnothing(selection)
@@ -387,8 +387,8 @@ function update_plot!(gui::GUI, node::Plotable)
         periods, y_values, time_axis = get_data(gui.model, selection, T, sp, rp, sc)
 
         label::String = create_label(selection)
-        if !isnothing(node)
-            label *= " for $node"
+        if !isnothing(element)
+            label *= " for $element"
         end
         if time_axis == :results_sp
             xlabel *= " (StrategicPeriods)"
@@ -577,7 +577,7 @@ end
 """
     update_plot!(gui::GUI, design::EnergySystemDesign)
 
-Based on `design.system[:node]` update the results in `gui.axes[:results]`
+Based on `design.system[:element]` update the results in `gui.axes[:results]`
 """
 function update_plot!(gui::GUI, design::EnergySystemDesign)
     return update_plot!(gui, design.system[:node])

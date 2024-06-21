@@ -128,16 +128,16 @@ function get_nth_field(s::String, delimiter::Char, n::Int)
 end
 
 """
-    exists(data::JuMP.Containers.DenseAxisArray, node::Plotable)
+    exists(data::JuMP.Containers.DenseAxisArray, element::Plotable)
 
-Check if `node` exist in the `data` structure.
+Check if `element` exist in the `data` structure.
 """
-function exists(data::JuMP.Containers.DenseAxisArray, node::Plotable)
-    if isnothing(node)
+function exists(data::JuMP.Containers.DenseAxisArray, element::Plotable)
+    if isnothing(element)
         return false
     end
     for axis ∈ axes(data), entry ∈ axis
-        if entry == node
+        if entry == element
             return true
         end
     end
@@ -145,16 +145,16 @@ function exists(data::JuMP.Containers.DenseAxisArray, node::Plotable)
 end
 
 """
-    exists(data::SparseVars, node::Plotable)
+    exists(data::SparseVars, element::Plotable)
 
-Check if `node` exist in the `data` structure.
+Check if `element` exist in the `data` structure.
 """
-function exists(data::SparseVars, node::Plotable)
-    if isnothing(node)
+function exists(data::SparseVars, element::Plotable)
+    if isnothing(element)
         return false
     end
     for key ∈ keys(data.data), entry ∈ key
-        if entry == node
+        if entry == element
             return true
         end
     end
