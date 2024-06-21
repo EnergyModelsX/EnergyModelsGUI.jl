@@ -15,7 +15,7 @@ function update_info_box!(gui::GUI, element; indent::Int64=0)
     indent += 1
     indent_str = "  "^indent
     is_iterable(x) =
-        isa(x, Vector) || isa(x, Dict) || typeof(x) <: EMB.Node || typeof(x) <: EMB.Resource
+        isa(x, Vector) || isa(x, Dict) || typeof(x) <: EMB.Node || typeof(x) <: Resource
     if isa(element, Vector)
         for (i, field1) ∈ enumerate(element)
             if is_iterable(field1)

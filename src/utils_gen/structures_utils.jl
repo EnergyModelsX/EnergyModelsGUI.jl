@@ -36,7 +36,7 @@ for standard names (like Power, NG, Coal, CO2) collected from `src/colors.yml`.
 Color can be represented as a hex (_i.e._, #a4220b2) or a symbol (_i.e_. :green), but also a
 string of the identifier for default colors in the `src/colors.yml` file.
 """
-function set_colors(products::Vector{S}, id_to_color_map::Dict) where {S<:EMB.Resource}
+function set_colors(products::Vector{S}, id_to_color_map::Dict) where {S<:Resource}
     complete_id_to_color_map::Dict = Dict()
     default_colors::Dict = get_default_colors()
     for product ∈ products
@@ -216,7 +216,7 @@ end
 """
     get_linked_nodes!(node::EMB.Node,
         system::Dict{Symbol, Any},
-        links::Vector{EMB.Link},
+        links::Vector{Link},
         nodes::Vector{EMB.Node},
         indices::Vector{Int})
 
@@ -229,7 +229,7 @@ respectively.
 function get_linked_nodes!(
     node::EMB.Node,
     system::Dict{Symbol,Any},
-    links::Vector{EMB.Link},
+    links::Vector{Link},
     nodes::Vector{EMB.Node},
     indices::Vector{Int},
 )
@@ -258,35 +258,35 @@ function get_linked_nodes!(
 end
 
 """
-    get_resource_colors(resources::Vector{EMB.Resource}, id_to_color_map::Dict{Any,Any})
+    get_resource_colors(resources::Vector{Resource}, id_to_color_map::Dict{Any,Any})
 
 Get the colors linked the the resources in `resources` based on the mapping `id_to_color_map`.
 """
 function get_resource_colors(
     resources::Vector{T}, id_to_color_map::Dict{Any,Any}
-) where {T<:EMB.Resource}
+) where {T<:Resource}
     hexColors::Vector{Any} = [id_to_color_map[resource.id] for resource ∈ resources]
     return [parse(Colorant, hex_color) for hex_color ∈ hexColors]
 end
 
 """
-    get_resource_colors(l::Vector{EMB.Link}, id_to_color_map::Dict{Any,Any})
+    get_resource_colors(l::Vector{Link}, id_to_color_map::Dict{Any,Any})
 
 Get the colors linked to the resources in the link `l` based on the mapping `id_to_color_map`.
 """
-function get_resource_colors(l::EMB.Link, id_to_color_map::Dict{Any,Any})
-    resources::Vector{EMB.Resource} = EMB.link_res(l)
+function get_resource_colors(l::Link, id_to_color_map::Dict{Any,Any})
+    resources::Vector{Resource} = EMB.link_res(l)
     return get_resource_colors(resources, id_to_color_map)
 end
 
 """
-    get_resource_colors(l::Vector{EMG.Transmission}, id_to_color_map::Dict{Any,Any})
+    get_resource_colors(l::Vector{Transmission}, id_to_color_map::Dict{Any,Any})
 
 Get the colors linked to the resources in the transmission `l` (from modes(Transmission))
 based on the mapping `id_to_color_map`
 """
-function get_resource_colors(l::EMG.Transmission, id_to_color_map::Dict{Any,Any})
-    resources::Vector{EMB.Resource} = [map_trans_resource(mode) for mode ∈ l.modes]
+function get_resource_colors(l::Transmission, id_to_color_map::Dict{Any,Any})
+    resources::Vector{Resource} = [map_trans_resource(mode) for mode ∈ l.modes]
     return get_resource_colors(resources, id_to_color_map)
 end
 

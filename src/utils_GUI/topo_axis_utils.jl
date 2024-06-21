@@ -390,7 +390,7 @@ Get the line style for an Connection `connection` based on its properties.
 function get_linestyle(gui::GUI, connection::Connection)
     # Check of connection is a transmission
     t = connection.connection
-    if isa(t, EMG.Transmission)
+    if isa(t, Transmission)
         if EMI.has_investment(t)
             return gui.vars[:investment_lineStyle]
         else
@@ -532,14 +532,14 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
         end
 
         colors_input::Vector{RGB} = get_resource_colors(
-            EMB.inputs(node), design.id_to_color_map
+            inputs(node), design.id_to_color_map
         )
         colors_output::Vector{RGB} = get_resource_colors(
-            EMB.outputs(node), design.id_to_color_map
+            outputs(node), design.id_to_color_map
         )
-        geometry::Symbol = if isa(node, EMB.Source)
+        geometry::Symbol = if isa(node, Source)
             :rect
-        elseif isa(node, EMB.Sink)
+        elseif isa(node, Sink)
             :circle
         else # assume NetworkNode
             :triangle
@@ -552,7 +552,7 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
 
                 # Check if node is a NetworkNode (if so, devide disc into two where
                 # left side is for input and right side is for output)
-                if isa(node, EMB.NetworkNode)
+                if isa(node, NetworkNode)
                     θᵢ = (-1)^(j + 1) * π / 2 + π * (i - 1) / no_colors
                     θᵢ₊₁ = (-1)^(j + 1) * π / 2 + π * i / no_colors
                 else
@@ -578,7 +578,7 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
             end
         end
 
-        if isa(node, EMB.NetworkNode)
+        if isa(node, NetworkNode)
             # Add a vertical white separation line to distinguis input resources from output resources
             center_box = lines!(
                 gui.axes[:topo],
@@ -867,7 +867,7 @@ end
 """
     get_hover_string(element::Plotable)
 
-Return the string for a Node/Area/Link/Transmission to be shown on hovering.
+Return the string for a EMB.Node/Area/Link/Transmission to be shown on hovering.
 """
 function get_hover_string(element::Plotable)
     return string(nameof(typeof(element)))

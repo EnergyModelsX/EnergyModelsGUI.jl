@@ -132,7 +132,7 @@ function process_children!(
     parent_xy::Observable{Tuple{T,T}},
 ) where {T<:Real}
     system_iterator::Union{
-        Iterators.Enumerate{Vector{EMB.Node}},Iterators.Enumerate{Vector{EMG.Area}},Nothing
+        Iterators.Enumerate{Vector{EMB.Node}},Iterators.Enumerate{Vector{Area}},Nothing
     } = if haskey(systems, :areas)
         enumerate(systems[:areas])
     elseif haskey(systems, :nodes)
@@ -160,7 +160,7 @@ function process_children!(
             push!(kwargs_pair, :parent => parent)
 
             # if x and y are missing, add defaults
-            if isa(system, EMG.Area)
+            if isa(system, Area)
                 if hasproperty(system, :lon) && hasproperty(system, :lat)
                     push!(kwargs_pair, :x => system.lon) # assigning longitude and latitude
                     push!(kwargs_pair, :y => system.lat)
@@ -168,7 +168,7 @@ function process_children!(
             elseif !haskey(kwargs, "x") && !haskey(kwargs, "y") && haskey(systems, :nodes)
                 if !parent_node_found && (
                     (haskey(systems, :node) && system == systems[:node].node) ||
-                    (parent == :parent_not_found && typeof(system) <: EMB.Availability)
+                    (parent == :parent_not_found && typeof(system) <: Availability)
                 )  # use the parent coordinate for the RefArea node or an availability node
                     x::Real = parent_x
                     y::Real = parent_y
@@ -197,9 +197,7 @@ function process_children!(
                 area_an::EMB.Node = availability_node(systems[:areas][i])
 
                 # Allocate redundantly large vector (for efficiency) to collect all links and nodes
-                area_links::Vector{EMB.Link} = Vector{EMB.Link}(
-                    undef, length(systems[:links])
-                )
+                area_links::Vector{Link} = Vector{Link}(undef, length(systems[:links]))
                 area_nodes::Vector{EMB.Node} = Vector{EMB.Node}(
                     undef, length(systems[:nodes])
                 )

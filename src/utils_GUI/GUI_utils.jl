@@ -97,7 +97,7 @@ function initialize_available_data!(gui)
                 end
                 if typeof(gui.model[dict]) <: JuMP.Containers.DenseAxisArray
                     # nodes/areas found in structure
-                    if any(eltype.(axes(gui.model[dict])) .<: Union{EMB.Node,EMG.Area})
+                    if any(eltype.(axes(gui.model[dict])) .<: Union{EMB.Node,Area})
                         # only add dict if used by element (assume element is located at first Dimension)
                         if exists(gui.model[dict], element)
                             if length(axes(gui.model[dict])) > 2
@@ -122,12 +122,12 @@ function initialize_available_data!(gui)
                                 add_description!(available_data, container, gui, key_str)
                             end
                         end
-                    elseif any(eltype.(axes(gui.model[dict])) .<: EMG.TransmissionMode) # element found in structure
-                        if isa(element, EMG.Transmission)
+                    elseif any(eltype.(axes(gui.model[dict])) .<: TransmissionMode) # element found in structure
+                        if isa(element, Transmission)
                             for mode ∈ modes(element)
                                 # only add dict if used by element (assume element is located at first Dimension)
                                 if exists(gui.model[dict], mode)
-                                    # do not include element (<: EMG.Transmission) here
+                                    # do not include element (<: Transmission) here
                                     # as the mode is unique to this transmission
                                     container = Dict(
                                         :name => string(dict),
@@ -164,14 +164,14 @@ function initialize_available_data!(gui)
                     end
                 elseif typeof(gui.model[dict]) <: SparseVars
                     fieldtypes = typeof.(first(keys(gui.model[dict].data)))
-                    if any(fieldtypes .<: Union{EMB.Node,EMB.Link,EMG.Area}) # nodes/area/links found in structure
+                    if any(fieldtypes .<: Union{EMB.Node,Link,Area}) # nodes/area/links found in structure
                         if exists(gui.model[dict], element) # current element found in structure
                             extract_combinations!(
                                 gui, available_data, dict, element, gui.model
                             )
                         end
-                    elseif any(fieldtypes .<: EMG.TransmissionMode) # TransmissionModes found in structure
-                        if isa(element, EMG.Transmission)
+                    elseif any(fieldtypes .<: TransmissionMode) # TransmissionModes found in structure
+                        if isa(element, Transmission)
                             for mode ∈ modes(element)
                                 if exists(gui.model[dict], mode) # current mode found in structure
                                     extract_combinations!(

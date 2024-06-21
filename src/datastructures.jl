@@ -76,21 +76,21 @@ Mutable type for providing a flexible data structure for connections between
   originates.
 - **`to::EnergySystemDesign`** is the `EnergySystemDesign` to which the connection is
   linked to.
-- **`connection::Union{EMB.Link,EMG.Transmission}`** is the EMX connection structure.
+- **`connection::Union{Link,Transmission}`** is the EMX connection structure.
 - **`colors::Vector{RGB}`** is the associated colors of the connection
 - **`plots::Vector{Any}`** is a vector with all Makie object associated with this object
 """
 mutable struct Connection
     from::EnergySystemDesign
     to::EnergySystemDesign
-    connection::Union{EMB.Link,EMG.Transmission}
+    connection::Union{Link,Transmission}
     colors::Vector{RGB}
     plots::Vector{Any}
 end
 function Connection(
     from::EnergySystemDesign,
     to::EnergySystemDesign,
-    connection::Union{EMB.Link,EMG.Transmission},
+    connection::Union{Link,Transmission},
     id_to_color_map::Dict{Any,Any},
 )
     colors::Vector{RGB} = get_resource_colors(connection, id_to_color_map)
