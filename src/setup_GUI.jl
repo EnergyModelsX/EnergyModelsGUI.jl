@@ -183,8 +183,6 @@ function GUI(
 
     # make sure all graphics is adapted to the spawned figure sizes
     notify(gui.toggles[:expand_all].active)
-    #notify(pixelarea(gui.axes[:topo].scene))
-    #update_distances!(gui)
 
     # Enable inspector (such that hovering objects shows information)
     # Linewidth set to zero as this boundary is slightly laggy on movement
