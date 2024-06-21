@@ -261,9 +261,9 @@ or TS.OperationalPeriod)
 """
 function get_time_values(T::TS.TimeStructure, type::Type, sp::Int64, rp::Int64, sc::Int64)
     if type <: TS.StrategicPeriod
-        return [t for t ∈ TS.strat_periods(T)], :StrategicPeriod
+        return [t for t ∈ TS.strat_periods(T)], :results_sp
     elseif type <: TS.TimeStructure{T} where {T}
-        return [t for t ∈ TS.repr_periods(T)], :RepresentativePeriod
+        return [t for t ∈ TS.repr_periods(T)], :results_rp
     else
         if eltype(T.operational) <: TS.RepresentativePeriods
             if eltype(T.operational[sp].rep_periods) <: TS.OperationalScenarios
@@ -271,14 +271,14 @@ function get_time_values(T::TS.TimeStructure, type::Type, sp::Int64, rp::Int64, 
                     t for
                     t ∈ T if t.sp == sp && t.period.rp == rp && t.period.period.sc == sc
                 ],
-                :OperationalPeriod
+                :results_op
             else
-                return [t for t ∈ T if t.sp == sp && t.period.rp == rp], :OperationalPeriod
+                return [t for t ∈ T if t.sp == sp && t.period.rp == rp], :results_op
             end
         elseif eltype(T.operational) <: TS.OperationalScenarios
-            return [t for t ∈ T if t.sp == sp && t.period.sc == sc], :OperationalPeriod
+            return [t for t ∈ T if t.sp == sp && t.period.sc == sc], :results_op
         else
-            return [t for t ∈ T if t.sp == sp], :OperationalPeriod
+            return [t for t ∈ T if t.sp == sp], :results_op
         end
     end
 end
@@ -382,12 +382,12 @@ function update_plot!(gui::GUI, node::Plotable)
         if !isnothing(node)
             label *= " for $node"
         end
-        if time_axis == :StrategicPeriod
-            xlabel *= " (StrategicPeriod)"
-        elseif time_axis == :RepresentativePeriod
-            xlabel *= " (RepresentativePeriod)"
-        elseif time_axis == :OperationalPeriod
-            xlabel *= " (OperationalPeriod)"
+        if time_axis == :results_sp
+            xlabel *= " (StrategicPeriods)"
+        elseif time_axis == :results_rp
+            xlabel *= " (RepresentativePeriods)"
+        elseif time_axis == :results_op
+            xlabel *= " (OperationalPeriods)"
 
             if eltype(T.operational) <: TS.RepresentativePeriods
                 if eltype(T.operational[sp].rep_periods) <: TS.OperationalScenarios
@@ -407,7 +407,7 @@ function update_plot!(gui::GUI, node::Plotable)
         if no_pts > length(y_values)
             y_values = vcat(y_values, fill(y_values[end], no_pts - length(y_values)))
         end
-        if time_axis == :OperationalPeriod
+        if time_axis == :results_op
             x_values = get_op.(t_values)
             x_values_step, y_values_step = stepify(vec(x_values), vec(y_values))
             # For FixedProfile, make values constant over the operational period
@@ -417,7 +417,7 @@ function update_plot!(gui::GUI, node::Plotable)
         else
             points = [Point{2,Float64}(x, y) for (x, y) ∈ zip(1:no_pts, y_values)]
             custom_ticks = (1:no_pts, [string(t) for t ∈ t_values])
-            if time_axis == :StrategicPeriod
+            if time_axis == :results_sp
                 gui.menus[:time].i_selected[] = 1
             else
                 gui.menus[:time].i_selected[] = 2
@@ -483,7 +483,7 @@ function update_plot!(gui::GUI, node::Plotable)
             plot.label = label
         else
             @debug "Could not find anything to overwrite, creating new plot instead"
-            if time_axis == :OperationalPeriod
+            if time_axis == :results_op
                 plot = lines!(gui.axes[time_axis], points; label=label)
             else
                 n_visible = length(gui.vars[:visible_plots][time_axis]) + 1
@@ -527,7 +527,7 @@ function update_plot!(gui::GUI, node::Plotable)
             update_legend!(gui)
         end
 
-        if time_axis == :OperationalPeriod
+        if time_axis == :results_op
             gui.axes[time_axis].xticks = Makie.automatic
         else
             gui.axes[time_axis].xticks = custom_ticks
