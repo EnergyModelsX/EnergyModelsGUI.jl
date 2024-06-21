@@ -692,8 +692,6 @@ showdecorations!(ax) = begin
     ax.yticklabelsvisible = true
     ax.xticksvisible = true
     ax.yticksvisible = true
-    ax.yticklabelsvisible = true
-    ax.yticklabelsvisible = true
 end
 
 """
