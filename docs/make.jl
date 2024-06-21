@@ -12,6 +12,8 @@ if isfile(news)
 end
 cp("NEWS.md", news)
 
+include("generate_images.jl")
+
 DocMeta.setdocmeta!(
     EnergyModelsGUI, :DocTestSetup, :(using EnergyModelsGUI); recursive=true
 )

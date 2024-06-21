@@ -3,6 +3,7 @@
 ## Unversioned
 
 * Redirect stdout to avoid redundant printouts during testing
+* Create figures for docs and README.md file on the fly (based on current version)
 
 ## Version 0.5.0 (2024-04-19)
 
