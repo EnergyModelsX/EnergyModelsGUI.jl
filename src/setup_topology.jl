@@ -9,13 +9,13 @@ system designs.
 # Keyword arguments:
 
 - **`design_path::String=""`** is a file path or identifier related to the design.
+- **`id_to_color_map::Dict`** is a dictionary of resources and their assigned colors.
+- **`id_to_icon_map::Dict`** is a dictionary of nodes and their assigned icons.
 - **`x::Real=0.0`** is the initial x-coordinate of the system.
 - **`y::Real=0.0`** is the initial y-coordinate of the system.
 - **`icon::String=""`** is the optional (path to) icons associated with the system, stored as
   a string.
-- **`wall::Symbol=:E`** is an initial wall value.
 - **`parent::Union{Symbol, Nothing}=nothing`** is a parent reference or indicator.
-- **`kwargs...`** are additional keyword arguments that can be provided.
 
 The function reads system configuration data from a TOML file specified by `design_path`
 (if it exists), initializes various internal fields, and processes connections and wall values.
@@ -30,16 +30,20 @@ function EnergySystemDesign(
     x::Real=0.0,
     y::Real=0.0,
     icon::String="",
-    wall::Symbol=:E,
     parent::Union{Symbol,Nothing}=nothing,
-    kwargs...,
 )
+    # Create the path to the file where existing design is stored (if any)
     file::String = design_file(system, design_path)
+
+    # Extract stored design from file
     design_dict::Dict = if isfile(file)
         YAML.load_file(file)
     else
         Dict()
     end
+
+    # Complete the `id_to_color_map` if some products are lacking (this is done by choosing
+    # colors for the lacking `Resource`s that are most distinct to the existing set of colors)
     if haskey(system, :products) && !(length(system[:products]) == length(id_to_color_map))
         id_to_color_map = set_colors(system[:products], id_to_color_map)
     end
@@ -48,6 +52,7 @@ function EnergySystemDesign(
     components::Vector{EnergySystemDesign} = EnergySystemDesign[]
     connections::Vector{Connection} = Connection[]
 
+    # Create the name for the parent system
     parent_arg::Symbol = if haskey(system, :areas)
         :top_level
     elseif haskey(system, :node)
@@ -55,7 +60,10 @@ function EnergySystemDesign(
     else
         :parent_not_found
     end
-    xy::Observable{Tuple{Real,Real}} = Observable((x, y)) # extracting coordinates
+
+    # Create an observable for the coordinate xy that can be inherited as the coordinate
+    # parent_xy
+    xy::Observable{Tuple{Real,Real}} = Observable((x, y))
     if !isempty(system)
         process_children!(
             components,
@@ -65,11 +73,11 @@ function EnergySystemDesign(
             id_to_color_map,
             id_to_icon_map,
             parent_arg,
-            xy,
+            xy[],
         )
     end
-    color::Symbol = :black
 
+    # Add  `Transmission`s and `Link`s to `connections` as a `Connection`
     if haskey(system, :areas) && haskey(system, :transmission)
         for transmission ∈ system[:transmission]
             from = getfirst(x -> x.system[:node].node == transmission.from.node, components)
@@ -98,8 +106,8 @@ function EnergySystemDesign(
         connections,
         xy,
         icon,
-        Observable(color),
-        Observable(wall),
+        Observable(:black),
+        Observable(:E),
         file,
     )
 end
@@ -116,10 +124,11 @@ Processes children or components within an energy system design and populates th
 - **`systems::Dict`** is the system configuration data represented as a dictionary.
 - **`design_dict::Dict`** is a dictionary containing design-specific data.
 - **`design_path::String`** is a file path or identifier related to the design.
+- **`id_to_color_map::Dict`** is a dictionary of resources and their assigned colors.
+- **`id_to_icon_map::Dict`** is a dictionary of nodes and their assigned icons.
 - **`parent::Symbol`** is a symbol representing the parent of the children.
-- **`parent_xy::Observable{Tuple{T,T}}`** is an observable tuple holding the coordinates of
-  the parent, where `T` is a subtype of Real.
-- **`kwargs...`**: Additional keyword arguments.
+- **`parent_xy::Tuple{T,T}`** is a tuple holding the coordinates of the parent,
+  where `T` is a subtype of Real.
 """
 function process_children!(
     children::Vector{EnergySystemDesign},
@@ -129,69 +138,69 @@ function process_children!(
     id_to_color_map::Dict,
     id_to_icon_map::Dict,
     parent::Symbol,
-    parent_xy::Observable{Tuple{T,T}},
+    parent_xy::Tuple{T,T},
 ) where {T<:Real}
-    system_iterator::Union{
+    # Create an iterator for the current systems
+    systems_iterator::Union{
         Iterators.Enumerate{Vector{EMB.Node}},Iterators.Enumerate{Vector{Area}},Nothing
     } = if haskey(systems, :areas)
         enumerate(systems[:areas])
     elseif haskey(systems, :nodes)
         enumerate(systems[:nodes])
     end
-    parent_x, parent_y = parent_xy[] # we get these from constructor
-    if !isempty(systems) && !isnothing(system_iterator)
+    parent_x, parent_y = parent_xy # extract parent coordinates
+
+    # If system contains any children (i.e. !isempty(system)) add all childrens (constructed
+    # as an EnergySystemDesign) to `children`
+    if !isempty(systems) && !isnothing(systems_iterator)
         current_node::Int64 = 1
         if haskey(systems, :nodes)
             nodes_count::Int64 = length(systems[:nodes])
         end
         parent_node_found::Bool = false
-        for (i, system) ∈ system_iterator
+
+        # Loop through all childrens of `systems`
+        for (i, system) ∈ systems_iterator
+            # Extract available information from file (stored in the `design_dict` variable)
             key::String = string(system)
-            kwargs::Dict = if haskey(design_dict, key)
+            system_info::Dict = if haskey(design_dict, key)
                 design_dict[key]
             else
                 Dict()
             end
 
-            kwargs_pair::Vector{Pair} = Pair[]
-
-            push!(kwargs_pair, :id_to_color_map => id_to_color_map)
-            push!(kwargs_pair, :id_to_icon_map => id_to_icon_map)
-            push!(kwargs_pair, :parent => parent)
-
-            # if x and y are missing, add defaults
-            if isa(system, Area)
+            # Extract x and y coordinates from file, or from structure or add defaults
+            if haskey(system_info, "x") && haskey(system_info, "y")
+                x = system_info["x"]
+                y = system_info["y"]
+            elseif isa(system, Area)
                 if hasproperty(system, :lon) && hasproperty(system, :lat)
-                    push!(kwargs_pair, :x => system.lon) # assigning longitude and latitude
-                    push!(kwargs_pair, :y => system.lat)
+                    # assigning longitude and latitude
+                    x = system.lon
+                    y = system.lat
+                else
+                    @error "Missing lon and/or lat coordinates"
                 end
-            elseif !haskey(kwargs, "x") && !haskey(kwargs, "y") && haskey(systems, :nodes)
+            elseif !haskey(system_info, "x") &&
+                !haskey(system_info, "y") &&
+                haskey(systems, :nodes)
                 if !parent_node_found && (
                     (haskey(systems, :node) && system == systems[:node].node) ||
                     (parent == :parent_not_found && typeof(system) <: Availability)
-                )  # use the parent coordinate for the RefArea node or an availability node
-                    x::Real = parent_x
-                    y::Real = parent_y
+                )  # use the parent coordinate for the RefArea node or the first Availability node found
+                    x = parent_x
+                    y = parent_y
                     nodes_count -= 1
                     parent_node_found = true
-                else
+                else # place nodes in a circle around the parents availability node
                     x, y = place_nodes_in_circle(
                         nodes_count, current_node, 1, parent_x, parent_y
                     )
                     current_node += 1
                 end
-                push!(kwargs_pair, :x => x)
-                push!(kwargs_pair, :y => y)
             end
 
-            # r => wall for icon rotation
-            if haskey(kwargs, "r")
-                push!(kwargs_pair, :wall => kwargs["r"])
-            end
-
-            for (key, value) ∈ kwargs
-                push!(kwargs_pair, Symbol(key) => value)
-            end
+            # Construct the system dict for the current system
             this_sys::Dict{Symbol,Any} = Dict()
             if haskey(systems, :areas)
                 area_an::EMB.Node = availability_node(systems[:areas][i])
@@ -214,11 +223,20 @@ function process_children!(
             else
                 this_sys = Dict(:node => system)
             end
-            push!(kwargs_pair, :icon => find_icon(this_sys, id_to_icon_map))
 
+            # Add child to `children`
             push!(
                 children,
-                EnergySystemDesign(this_sys; design_path, NamedTuple(kwargs_pair)...),
+                EnergySystemDesign(
+                    this_sys;
+                    design_path,
+                    id_to_color_map,
+                    id_to_icon_map,
+                    x,
+                    y,
+                    icon=find_icon(this_sys, id_to_icon_map),
+                    parent=parent,
+                ),
             )
         end
     end

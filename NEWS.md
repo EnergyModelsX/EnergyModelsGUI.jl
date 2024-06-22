@@ -10,6 +10,7 @@
 * Change variable name from `node` to `element` for variables of type `Plotable`
 * Remove redundant `EMB.` and `EMG.` prefixes
 * Simplify the input argument of the function update_limits!
+* Add more comments and clean up EnergySystemDesign constructor
 
 ## Version 0.5.0 (2024-04-19)
 
