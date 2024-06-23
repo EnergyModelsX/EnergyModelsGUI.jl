@@ -47,6 +47,7 @@ Pages = [
     "how-to/export-results.md",
     "how-to/customize-colors.md",
     "how-to/customize-icons.md",
+    "how-to/customize-descriptive_names.md",
 ]
 Depth = 1
 ```

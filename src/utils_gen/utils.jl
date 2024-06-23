@@ -158,3 +158,24 @@ function exists(data::SparseVars, element::Plotable)
     end
     return false
 end
+
+"""
+    merge_dicts(dict1::Dict, dict2::Dict)
+
+Merge `dict1` and `dict2` (in case of overlap, `dict2` overwrites entries in `dict1`)
+"""
+function merge_dicts(dict1::Dict, dict2::Dict)
+    merged = deepcopy(dict1)
+    for (k, v) ∈ dict2
+        if haskey(merged, k)
+            if isa(merged[k], Dict) && isa(v, Dict)
+                merged[k] = merge_dicts(merged[k], v)
+            else
+                merged[k] = v
+            end
+        else
+            merged[k] = v
+        end
+    end
+    return merged
+end

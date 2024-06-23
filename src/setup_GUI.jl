@@ -45,6 +45,7 @@ function GUI(
     scenarios_labels::Vector=[],
     path_to_results::String="",
     path_to_descriptive_names::String="",
+    descriptive_names_dict::Dict=Dict(),
     coarse_coast_lines::Bool=true,
     backgroundcolor=GLMakie.RGBf(0.99, 0.99, 0.99),
     fontsize::Int64=12,
@@ -58,10 +59,6 @@ function GUI(
 
     @info raw"Setting up the GUI"
     design::EnergySystemDesign = root_design # variable to store current system (inkluding sub systems)
-
-    if isempty(path_to_descriptive_names)
-        path_to_descriptive_names = joinpath(@__DIR__, "descriptive_names.yml")
-    end
 
     # Set variables
     vars::Dict{Symbol,Any} = Dict(
@@ -108,9 +105,9 @@ function GUI(
     vars[:box_text_sep_px] = 5                     # Separation between rectangles for colors and text
 
     vars[:taskbar_height] = 30
-    vars[:descriptive_names] = YAML.load_file(
-        path_to_descriptive_names; dicttype=Dict{Symbol,Any}
-    )
+    vars[:descriptive_names] = Dict()
+    vars[:path_to_descriptive_names] = path_to_descriptive_names
+    vars[:descriptive_names_dict] = descriptive_names_dict
 
     vars[:plot_widths] = plot_widths
     vars[:hide_topo_ax_decorations] = hide_topo_ax_decorations
@@ -156,6 +153,9 @@ function GUI(
 
     ## Create the main structure for the EnergyModelsGUI
     gui::GUI = GUI(fig, axes, buttons, menus, toggles, root_design, design, model, vars)
+
+    # Create complete Dict of descriptive names
+    update_descriptive_names!(gui)
 
     # Plot the topology
     initialize_plot!(gui, root_design)

@@ -214,3 +214,60 @@ function update_available_data_menu!(gui::GUI, element::Plotable)
     container_strings = available_data[element][:container_strings]
     get_menu(gui, :available_data).options = zip(container_strings, container)
 end
+
+"""
+    update_descriptive_names!(gui::GUI)
+
+Update the dictionary of `descriptive_names` where the Dict is appended/overwritten in the
+following order:
+
+- The default descriptive names found in `src/descriptive_names.yml`
+- Any descriptive_names.yml file found in the ext/EMGUIExt folder of any other EMX package
+- Descriptive names from a user defined file (from the GUI input argument `path_to_descriptive_names`)
+- Descriptive names from a user defined Dict (from the GUI input argument `descriptive_names_dict`)
+"""
+function update_descriptive_names!(gui::GUI)
+    descriptive_names = YAML.load_file(
+        joinpath(@__DIR__, "..", "descriptive_names.yml"); dicttype=Dict{Symbol,Any}
+    )
+
+    # Get a dictionary of installed packages
+    installed_packages = installed()
+
+    # Filter packages with names matching the pattern "EnergyModels*"
+    emx_packages = filter(pkg -> occursin(r"EnergyModels", pkg), keys(installed_packages))
+
+    # Search through EMX packages if icons are available there
+    for package ∈ emx_packages
+        package_path::Union{String,Nothing} = Base.find_package(package)
+        if !isnothing(package_path)
+            path_to_descriptive_names_ext::String = joinpath(
+                package_path, "ext", "EMGUIExt", "descriptive_names.yml"
+            )
+            if isfile(path_to_descriptive_names_ext)
+                descriptive_names_dict_ext_file = YAML.load_file(
+                    path_to_descriptive_names_ext; dicttype=Dict{Symbol,Any}
+                )
+                descriptive_names = merge_dicts(
+                    descriptive_names, descriptive_names_dict_ext_file
+                )
+            end
+        end
+    end
+
+    # Update the Dict of descriptive names with user defined names from file
+    path_to_descriptive_names = get_var(gui, :path_to_descriptive_names)
+    if !isempty(path_to_descriptive_names)
+        descriptive_names_dict_user_file = YAML.load_file(
+            path_to_descriptive_names; dicttype=Dict{Symbol,Any}
+        )
+        descriptive_names = merge_dicts(descriptive_names, descriptive_names_dict_user_file)
+    end
+
+    # Update the Dict of descriptive names with user defined names from Dict
+    descriptive_names_dict = get_var(gui, :descriptive_names_dict)
+    if !isempty(descriptive_names_dict)
+        descriptive_names = merge_dicts(descriptive_names, descriptive_names_dict)
+    end
+    get_vars(gui)[:descriptive_names] = descriptive_names
+end

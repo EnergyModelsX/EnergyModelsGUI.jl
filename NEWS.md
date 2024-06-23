@@ -12,6 +12,8 @@
 * Simplify the input argument of the function update_limits!
 * Add more comments and clean up EnergySystemDesign constructor
 * Introduced functions for accessing fields of types to simplify potential changes in field names and cleaned up code
+* Provided the user with the ability to provide descriptive_names in the folder `ext/EMGUIExt/descriptive_names.yml` for a EMX package, and/or
+  a user defined file, and/or a user defined Dict.
 
 ## Version 0.5.0 (2024-04-19)
 

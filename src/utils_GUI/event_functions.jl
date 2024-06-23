@@ -369,7 +369,6 @@ function define_event_functions(gui::GUI)
             elseif axes_str == "All"
                 model = get_model(gui)
                 for dict ∈ collect(keys(object_dictionary(model)))
-                    @info "Results for $dict"
                     container = model[dict]
                     if isempty(container)
                         continue
