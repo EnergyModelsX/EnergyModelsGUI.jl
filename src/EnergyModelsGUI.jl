@@ -59,9 +59,16 @@ const EMG = EnergyModelsGeography
 const EMI = EnergyModelsInvestments
 
 include("datastructures.jl")
-include("utils.jl")
+include("utils_gen/utils.jl")
+include("utils_gen/structures_utils.jl")
+include("utils_gen/topo_utils.jl")
+include("utils_gen/export_utils.jl")
 include("setup_topology.jl")
-include("GUI_utils.jl")
+include("utils_GUI/GUI_utils.jl")
+include("utils_GUI/topo_axis_utils.jl")
+include("utils_GUI/info_axis_utils.jl")
+include("utils_GUI/results_axis_utils.jl")
+include("utils_GUI/event_functions.jl")
 include("setup_GUI.jl")
 
 # Export types

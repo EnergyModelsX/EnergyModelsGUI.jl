@@ -17,7 +17,7 @@ id_to_icon_map = Dict(
 # Update id_to_icon_map with full paths for the icons
 id_to_icon_map = set_icons(id_to_icon_map)
 
-gui = GUI(case; id_to_icon_map);
+gui = GUI(case; id_to_icon_map=id_to_icon_map);
 ```
 
 If the string provided is a full path to a .png file, the GUI will use this file.

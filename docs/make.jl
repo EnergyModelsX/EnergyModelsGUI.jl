@@ -12,6 +12,8 @@ if isfile(news)
 end
 cp("NEWS.md", news)
 
+include("generate_images.jl")
+
 DocMeta.setdocmeta!(
     EnergyModelsGUI, :DocTestSetup, :(using EnergyModelsGUI); recursive=true
 )
@@ -38,6 +40,7 @@ makedocs(;
             "Export results" => "how-to/export-results.md",
             "Customize colors" => "how-to/customize-colors.md",
             "Customize icons" => "how-to/customize-icons.md",
+            "Customize descriptive_names" => "how-to/customize-descriptive_names.md",
         ],
         "Library" => Any[
             "Public" => "library/public.md",
