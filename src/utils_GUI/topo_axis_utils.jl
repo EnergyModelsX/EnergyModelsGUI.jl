@@ -5,11 +5,12 @@ Convert `pixel_size` to data widths (in x- and y-direction) in design object `gu
 """
 function pixel_to_data(gui::GUI, pixel_size::Real)
     # Calculate the range in data coordinates
-    x_range::Float64 = gui.vars[:xlimits][2] - gui.vars[:xlimits][1]
-    y_range::Float64 = gui.vars[:ylimits][2] - gui.vars[:ylimits][1]
+    vars = get_vars(gui)
+    x_range::Float64 = vars[:xlimits][2] - vars[:xlimits][1]
+    y_range::Float64 = vars[:ylimits][2] - vars[:ylimits][1]
 
     # Get the widths of the axis
-    plot_widths::Vec2{Int64} = pixelarea(gui.axes[:topo].scene)[].widths
+    plot_widths::Vec2{Int64} = pixelarea(get_ax(gui, :topo).scene)[].widths
 
     # Calculate the conversion factor
     x_factor::Float64 = x_range / plot_widths[1]
@@ -27,36 +28,39 @@ that neighbouring icons do not overlap.
 """
 function update_distances!(gui::GUI)
     min_d::Float64 = Inf
-    for component ∈ gui.design.components
-        if length(gui.design.components) > 1
+    design = get_design(gui)
+    components = get_components(design)
+    if length(components) > 1
+        for component ∈ components
             d::Float64 = minimum([
-                norm(collect(component.xy[] .- component2.xy[])) for
-                component2 ∈ gui.design.components if component != component2
+                norm(collect(get_xy(component)[] .- get_xy(component2)[])) for
+                component2 ∈ components if component != component2
             ])
             if d < min_d
                 min_d = d
             end
         end
     end
-    gui.vars[:minimum_distance] = min_d
+    get_vars(gui)[:minimum_distance] = min_d
     return new_global_delta_h(gui)
 end
 
 """
     new_global_delta_h(gui::GUI)
 
-Recalculate the sizes of the boxes in `gui.axes[:topo]` such that their size is independent
+Recalculate the sizes of the boxes in `get_axes(gui)[:topo]` such that their size is independent
 of zooming an resizing the window.
 """
 function new_global_delta_h(gui::GUI)
-    xyWidths::Vec{2,Float32} = gui.axes[:topo].finallimits[].widths
-    plot_widths::Vec2{Int64} = pixelarea(gui.axes[:topo].scene)[].widths
-    #gui.vars[:Δh][] = minimum(Vector(gui.vars[:Δh_px] * xyWidths ./ plot_widths))
-    gui.vars[:Δh][] = maximum([
-        maximum(Vector(0.5 * gui.vars[:Δh_px] * xyWidths ./ plot_widths)),
+    vars = get_vars(gui)
+    axes = get_axes(gui)
+    xyWidths::Vec{2,Float32} = axes[:topo].finallimits[].widths
+    plot_widths::Vec2{Int64} = pixelarea(axes[:topo].scene)[].widths
+    vars[:Δh][] = maximum([
+        maximum(Vector(0.5 * vars[:Δh_px] * xyWidths ./ plot_widths)),
         minimum([
-            minimum(Vector(gui.vars[:Δh_px] * xyWidths ./ plot_widths)),
-            gui.vars[:minimum_distance] / 2, # Do this to avoid overlapping squares
+            minimum(Vector(vars[:Δh_px] * xyWidths ./ plot_widths)),
+            vars[:minimum_distance] / 2, # Do this to avoid overlapping squares
         ]),
     ])
 end
@@ -68,15 +72,15 @@ Handle different keyboard inputs (events) and return changes in x, y coordinates
 design object `gui`.
 """
 get_change(::GUI, ::Val) = (0.0, 0.0)
-get_change(gui::GUI, ::Val{Keyboard.up}) = (0.0, +gui.vars[:Δh][] / 5)
-get_change(gui::GUI, ::Val{Keyboard.down}) = (0.0, -gui.vars[:Δh][] / 5)
-get_change(gui::GUI, ::Val{Keyboard.left}) = (-gui.vars[:Δh][] / 5, 0.0)
-get_change(gui::GUI, ::Val{Keyboard.right}) = (+gui.vars[:Δh][] / 5, 0.0)
+get_change(gui::GUI, ::Val{Keyboard.up}) = (0.0, +get_var(gui, :Δh)[] / 5)
+get_change(gui::GUI, ::Val{Keyboard.down}) = (0.0, -get_var(gui, :Δh)[] / 5)
+get_change(gui::GUI, ::Val{Keyboard.left}) = (-get_var(gui, :Δh)[] / 5, 0.0)
+get_change(gui::GUI, ::Val{Keyboard.right}) = (+get_var(gui, :Δh)[] / 5, 0.0)
 
 """
     align(gui::GUI, align::Symbol)
 
-Align components in `gui.vars[:selected_systems]` based on the value of Symbol `align`.
+Align components in `get_selected_systems(gui)` based on the value of Symbol `align`.
 
 The following values are allowed
 
@@ -86,7 +90,7 @@ The following values are allowed
 function align(gui::GUI, align::Symbol)
     xs::Vector{Real} = Real[]
     ys::Vector{Real} = Real[]
-    for sub_design ∈ gui.vars[:selected_systems]
+    for sub_design ∈ get_selected_systems(gui)
         if isa(sub_design, EnergySystemDesign)
             x, y = sub_design.xy[]
             push!(xs, x)
@@ -101,7 +105,7 @@ function align(gui::GUI, align::Symbol)
         sum(xs) / length(xs)
     end
 
-    for sub_design ∈ gui.vars[:selected_systems]
+    for sub_design ∈ get_selected_systems(gui)
         if isa(sub_design, EnergySystemDesign)
             x, y = sub_design.xy[]
 
@@ -121,7 +125,7 @@ Initialize the plot of the topology of design object `gui` given an EnergySystem
 `design`.
 """
 function initialize_plot!(gui::GUI, design::EnergySystemDesign)
-    for component ∈ design.components
+    for component ∈ get_components(design)
         initialize_plot!(gui, component)
         add_component!(gui, component)
     end
@@ -133,23 +137,23 @@ end
         gui::GUI, design::EnergySystemDesign; visible::Bool=true, expand_all::Bool=true
     )
 
-Plot the topology of gui.design (only if not already available), and toggle visibility
+Plot the topology of get_design(gui) (only if not already available), and toggle visibility
 based on the optional argument `visible`.
 """
 function plot_design!(
     gui::GUI, design::EnergySystemDesign; visible::Bool=true, expand_all::Bool=true
 )
-    for component ∈ design.components
-        component_visibility::Bool = (component == gui.design) || expand_all
+    for component ∈ get_components(design)
+        component_visibility::Bool = (component == get_design(gui)) || expand_all
         plot_design!(gui, component; visible=component_visibility, expand_all)
     end
-    if gui.design == design
+    if get_design(gui) == design
         update_distances!(gui)
     end
-    for component ∈ design.components, plot ∈ component.plots
+    for component ∈ get_components(design), plot ∈ component.plots
         plot.visible = visible
     end
-    for connection ∈ design.connections, plots ∈ connection.plots, plot ∈ plots[]
+    for connection ∈ get_connections(design), plots ∈ get_plots(connection), plot ∈ plots[]
         plot.visible = visible
     end
 end
@@ -161,12 +165,14 @@ Draws lines between connected nodes/areas in GUI `gui` using EnergySystemDesign 
 """
 function connect!(gui::GUI, design::EnergySystemDesign)
     # Find optimal placement of label by finding the wall that has the least number of connections
-    for component ∈ design.components
+    connections = get_connections(design)
+    components = get_components(design)
+    for component ∈ components
         linked_to_component::Vector{Connection} = filter(
-            x -> component.system[:node].id == x.connection.to.id, design.connections
+            x -> component.system[:node].id == get_connection(x).to.id, connections
         )
         linked_from_component::Vector{Connection} = filter(
-            x -> component.system[:node].id == x.connection.from.id, design.connections
+            x -> component.system[:node].id == get_connection(x).from.id, connections
         )
         on(component.xy; priority=4) do _
             angles::Vector{Float64} = vcat(
@@ -194,20 +200,19 @@ function connect!(gui::GUI, design::EnergySystemDesign)
         notify(component.xy)
     end
 
-    for connection ∈ design.connections
+    for conn ∈ connections
         # Check if link between two elements goes in both directions (two_way)
-        connection_con = connection.connection
+        link = get_connection(conn)
         two_way::Bool = false
-        for connection2 ∈ design.connections
-            connection2_con = connection2.connection
-            if connection2_con.to.id == connection_con.from.id &&
-                connection2_con.from.id == connection_con.to.id
+        for conn2 ∈ connections
+            link2 = get_connection(conn2)
+            if link2.to.id == link.from.id && link2.from.id == link.to.id
                 two_way = true
             end
         end
 
         # Plot line for connection with decorations
-        connect!(gui, connection, two_way)
+        connect!(gui, conn, two_way)
     end
 end
 
@@ -236,15 +241,15 @@ function connect!(gui::GUI, connection::Connection, two_way::Bool)
     # Allocate and store objects
     line_connections::Observable{Vector{Any}} = Observable(Vector{Any}(undef, 0))
     arrow_heads::Observable{Vector{Any}} = Observable(Vector{Any}(undef, 0))
-    push!(connection.plots, line_connections)
-    push!(connection.plots, arrow_heads)
+    push!(get_plots(connection), line_connections)
+    push!(get_plots(connection), arrow_heads)
     linestyle = get_linestyle(gui, connection)
 
     # Create function to be run on changes in connection.from and connection.to
     update =
         () -> begin
             markersize_lengths::Tuple{Float64,Float64} = pixel_to_data(
-                gui, gui.vars[:markersize]
+                gui, get_var(gui, :markersize)
             )
             xy_1::Vector{Real} = collect(connection.from.xy[])
             xy_2::Vector{Real} = collect(connection.to.xy[])
@@ -257,10 +262,10 @@ function connect!(gui::GUI, connection::Connection, two_way::Bool)
             end
 
             lines_shift::Tuple{Float64,Float64} =
-                pixel_to_data(gui, gui.vars[:connection_linewidth]) .+
-                pixel_to_data(gui, gui.vars[:line_sep_px])
+                pixel_to_data(gui, get_var(gui, :connection_linewidth)) .+
+                pixel_to_data(gui, get_var(gui, :line_sep_px))
             two_way_sep::Tuple{Float64,Float64} = pixel_to_data(
-                gui, gui.vars[:two_way_sep_px][]
+                gui, get_var(gui, :two_way_sep_px)[]
             )
             θ::Float64 = atan(xy_2[2] - xy_1[2], xy_2[1] - xy_1[1])
             cosθ::Float64 = cos(θ)
@@ -268,9 +273,9 @@ function connect!(gui::GUI, connection::Connection, two_way::Bool)
             cosϕ::Float64 = -sinθ # where ϕ = θ+π/2
             sinϕ::Float64 = cosθ
 
-            Δ::Float64 = gui.vars[:Δh][] / 2 # half width of a box
-            if !isempty(connection.from.components)
-                Δ *= gui.vars[:parent_scaling]
+            Δ::Float64 = get_var(gui, :Δh)[] / 2 # half width of a box
+            if !isempty(get_components(connection.from))
+                Δ *= get_var(gui, :parent_scaling)
             end
 
             for j ∈ 1:no_colors
@@ -307,30 +312,30 @@ function connect!(gui::GUI, connection::Connection, two_way::Bool)
 
                 if length(arrow_heads[]) < j
                     sctr = scatter!(
-                        gui.axes[:topo],
+                        get_axes(gui)[:topo],
                         xy_midpoint[1],
                         xy_midpoint[2];
                         marker=arrow_parts[j],
-                        markersize=gui.vars[:markersize],
+                        markersize=get_var(gui, :markersize),
                         rotations=θ,
                         color=colors[j],
                         inspectable=false,
                     )
                     lns = lines!(
-                        gui.axes[:topo],
+                        get_axes(gui)[:topo],
                         xs,
                         ys;
                         color=colors[j],
-                        linewidth=gui.vars[:connection_linewidth],
+                        linewidth=get_var(gui, :connection_linewidth),
                         linestyle=linestyle,
                         inspector_label=(self, i, p) ->
                             get_hover_string(connection.connection),
                         inspectable=true,
                     )
-                    Makie.translate!(sctr, 0, 0, gui.vars[:z_translate_lines])
-                    gui.vars[:z_translate_lines] += 1
-                    Makie.translate!(lns, 0, 0, gui.vars[:z_translate_lines])
-                    gui.vars[:z_translate_lines] += 1
+                    Makie.translate!(sctr, 0, 0, get_var(gui, :z_translate_lines))
+                    get_vars(gui)[:z_translate_lines] += 1
+                    Makie.translate!(lns, 0, 0, get_var(gui, :z_translate_lines))
+                    get_vars(gui)[:z_translate_lines] += 1
                     push!(arrow_heads[], sctr)
                     push!(line_connections[], lns)
                 else
@@ -376,7 +381,7 @@ get_linestyle(gui::GUI, design::EnergySystemDesign) = get_linestyle(gui, design.
 function get_linestyle(gui::GUI, system::Dict)
     if haskey(system, :node)
         if EMI.has_investment(system[:node])
-            return gui.vars[:investment_lineStyle]
+            return get_var(gui, :investment_lineStyle)
         end
     end
     return :solid
@@ -392,7 +397,7 @@ function get_linestyle(gui::GUI, connection::Connection)
     t = connection.connection
     if isa(t, Transmission)
         if EMI.has_investment(t)
-            return gui.vars[:investment_lineStyle]
+            return get_var(gui, :investment_lineStyle)
         else
             return :solid
         end
@@ -400,11 +405,11 @@ function get_linestyle(gui::GUI, connection::Connection)
 
     # For Links, simply use dashed style if from or to node has investments
     linestyle::Union{Symbol,Makie.Linestyle} = get_linestyle(gui, connection.from)
-    if linestyle == gui.vars[:investment_lineStyle]
+    if linestyle == get_var(gui, :investment_lineStyle)
         return linestyle
     end
     linestyle = get_linestyle(gui, connection.to)
-    if linestyle == gui.vars[:investment_lineStyle]
+    if linestyle == get_var(gui, :investment_lineStyle)
         return linestyle
     end
     return :solid
@@ -419,7 +424,7 @@ function draw_box!(gui::GUI, design::EnergySystemDesign)
     linestyle::Union{Symbol,Makie.Linestyle} = get_linestyle(gui, design)
 
     # if the design has components, draw an enlarged box around it.
-    if !isempty(design.components)
+    if !isempty(get_components(design))
         xo2::Observable{Vector{Real}} = Observable(zeros(5))
         yo2::Observable{Vector{Real}} = Observable(zeros(5))
         vertices2::Vector{Tuple{Real,Real}} = [
@@ -427,13 +432,13 @@ function draw_box!(gui::GUI, design::EnergySystemDesign)
         ]
 
         white_rect2 = poly!(
-            gui.axes[:topo], vertices2; color=:white, strokewidth=0, inspectable=false
+            get_axes(gui)[:topo], vertices2; color=:white, strokewidth=0, inspectable=false
         ) # Create a white background rectangle to hide lines from connections
         add_inspector_to_poly!(
-            white_rect2, (self, i, p) -> get_hover_string(design.system[:node])
+            white_rect2, (self, i, p) -> get_hover_string(get_system_node(design))
         )
-        Makie.translate!(white_rect2, 0, 0, gui.vars[:z_translate_components])
-        gui.vars[:z_translate_components] += 1
+        Makie.translate!(white_rect2, 0, 0, get_var(gui, :z_translate_components))
+        get_vars(gui)[:z_translate_components] += 1
         push!(design.plots, white_rect2)
 
         # observe changes in design coordinates and update enlarged box position
@@ -441,23 +446,25 @@ function draw_box!(gui::GUI, design::EnergySystemDesign)
             x = val[1]
             y = val[2]
 
-            xo2[], yo2[] = box(x, y, gui.vars[:Δh][] / 2 * gui.vars[:parent_scaling])
+            xo2[], yo2[] = box(
+                x, y, get_var(gui, :Δh)[] / 2 * get_var(gui, :parent_scaling)
+            )
             white_rect2[1] = [
                 (x, y) for (x, y) ∈ zip(xo2[][1:(end - 1)], yo2[][1:(end - 1)])
             ]
         end
 
         box_boundary2 = lines!(
-            gui.axes[:topo],
+            get_axes(gui)[:topo],
             xo2,
             yo2;
             color=design.color,
-            linewidth=gui.vars[:linewidth],
+            linewidth=get_var(gui, :linewidth),
             linestyle=:solid,
             inspectable=false,
         )
-        Makie.translate!(box_boundary2, 0, 0, gui.vars[:z_translate_components])
-        gui.vars[:z_translate_components] += 1
+        Makie.translate!(box_boundary2, 0, 0, get_var(gui, :z_translate_components))
+        get_vars(gui)[:z_translate_components] += 1
         push!(design.plots, box_boundary2)
     end
 
@@ -469,13 +476,13 @@ function draw_box!(gui::GUI, design::EnergySystemDesign)
     white_rect = Observable(Makie.GeometryBasics.HyperRectangle{2,Int64})
 
     white_rect = poly!(
-        gui.axes[:topo], vertices; color=:white, strokewidth=0, inspectable=false
+        get_axes(gui)[:topo], vertices; color=:white, strokewidth=0, inspectable=false
     ) # Create a white background rectangle to hide lines from connections
     add_inspector_to_poly!(
-        white_rect, (self, i, p) -> get_hover_string(design.system[:node])
+        white_rect, (self, i, p) -> get_hover_string(get_system_node(design))
     )
-    Makie.translate!(white_rect, 0, 0, gui.vars[:z_translate_components])
-    gui.vars[:z_translate_components] += 1
+    Makie.translate!(white_rect, 0, 0, get_var(gui, :z_translate_components))
+    get_vars(gui)[:z_translate_components] += 1
 
     push!(design.plots, white_rect)
 
@@ -484,21 +491,21 @@ function draw_box!(gui::GUI, design::EnergySystemDesign)
         x::Real = val[1]
         y::Real = val[2]
 
-        xo[], yo[] = box(x, y, gui.vars[:Δh][] / 2)
+        xo[], yo[] = box(x, y, get_var(gui, :Δh)[] / 2)
         white_rect[1] = [(x, y) for (x, y) ∈ zip(xo[][1:(end - 1)], yo[][1:(end - 1)])]
     end
 
     box_boundary = lines!(
-        gui.axes[:topo],
+        get_axes(gui)[:topo],
         xo,
         yo;
         color=design.color,
-        linewidth=gui.vars[:linewidth],
+        linewidth=get_var(gui, :linewidth),
         linestyle=linestyle,
         inspectable=false,
     )
-    Makie.translate!(box_boundary, 0, 0, gui.vars[:z_translate_components])
-    gui.vars[:z_translate_components] += 1
+    Makie.translate!(box_boundary, 0, 0, get_var(gui, :z_translate_components))
+    get_vars(gui)[:z_translate_components] += 1
     return push!(design.plots, box_boundary)
 end
 
@@ -515,20 +522,20 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
         y::Real = val[2]
 
         xo[] = [
-            x - gui.vars[:Δh][] * gui.vars[:icon_scale] / 2,
-            x + gui.vars[:Δh][] * gui.vars[:icon_scale] / 2,
+            x - get_var(gui, :Δh)[] * get_var(gui, :icon_scale) / 2,
+            x + get_var(gui, :Δh)[] * get_var(gui, :icon_scale) / 2,
         ]
         yo[] = [
-            y - gui.vars[:Δh][] * gui.vars[:icon_scale] / 2,
-            y + gui.vars[:Δh][] * gui.vars[:icon_scale] / 2,
+            y - get_var(gui, :Δh)[] * get_var(gui, :icon_scale) / 2,
+            y + get_var(gui, :Δh)[] * get_var(gui, :icon_scale) / 2,
         ]
     end
 
     if isempty(design.icon) # No path to an icon has been found
-        node::EMB.Node = if typeof(design.system[:node]) <: EMB.Node
-            design.system[:node]
+        node::EMB.Node = if typeof(get_system_node(design)) <: EMB.Node
+            get_system_node(design)
         else
-            design.system[:node].node
+            get_system_node(design).node
         end
 
         colors_input::Vector{RGB} = get_resource_colors(
@@ -562,16 +569,16 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
                 sector = get_sector_points()
 
                 network_poly = poly!(
-                    gui.axes[:topo], sector; color=color, inspectable=false
+                    get_axes(gui)[:topo], sector; color=color, inspectable=false
                 )
                 add_inspector_to_poly!(
-                    network_poly, (self, i, p) -> get_hover_string(design.system[:node])
+                    network_poly, (self, i, p) -> get_hover_string(get_system_node(design))
                 )
-                Makie.translate!(network_poly, 0, 0, gui.vars[:z_translate_components])
-                gui.vars[:z_translate_components] += 1
+                Makie.translate!(network_poly, 0, 0, get_var(gui, :z_translate_components))
+                get_vars(gui)[:z_translate_components] += 1
                 push!(design.plots, network_poly)
                 on(design.xy; priority=3) do c
-                    Δ = gui.vars[:Δh][] * gui.vars[:icon_scale] / 2
+                    Δ = get_var(gui, :Δh)[] * get_var(gui, :icon_scale) / 2
                     sector = get_sector_points(; c, Δ, θ₁=θᵢ, θ₂=θᵢ₊₁, geometry=geometry)
                     network_poly[1][] = sector
                 end
@@ -581,19 +588,19 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
         if isa(node, NetworkNode)
             # Add a vertical white separation line to distinguis input resources from output resources
             center_box = lines!(
-                gui.axes[:topo],
+                get_axes(gui)[:topo],
                 zeros(4),
                 zeros(4);
                 color=:black,
-                linewidth=gui.vars[:linewidth],
-                inspector_label=(self, i, p) -> get_hover_string(design.system[:node]),
+                linewidth=get_var(gui, :linewidth),
+                inspector_label=(self, i, p) -> get_hover_string(get_system_node(design)),
                 inspectable=true,
             )
-            Makie.translate!(center_box, 0, 0, gui.vars[:z_translate_components])
-            gui.vars[:z_translate_components] += 1
+            Makie.translate!(center_box, 0, 0, get_var(gui, :z_translate_components))
+            get_vars(gui)[:z_translate_components] += 1
             push!(design.plots, center_box)
             on(design.xy; priority=3) do center
-                radius = gui.vars[:Δh][] * gui.vars[:icon_scale] / 2
+                radius = get_var(gui, :Δh)[] * get_var(gui, :icon_scale) / 2
                 x_coords, y_coords = box(center[1], center[2], radius / 4)
                 center_box[1][] = Vector{Point{2,Float32}}([
                     [x, y] for (x, y) ∈ zip(x_coords, y_coords)
@@ -603,10 +610,14 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
     else
         @debug "$(design.icon)"
         icon_image = image!(
-            gui.axes[:topo], xo, yo, rotr90(FileIO.load(design.icon)); inspectable=false
+            get_axes(gui)[:topo],
+            xo,
+            yo,
+            rotr90(FileIO.load(design.icon));
+            inspectable=false,
         )
-        Makie.translate!(icon_image, 0, 0, gui.vars[:z_translate_components])
-        gui.vars[:z_translate_components] += 1
+        Makie.translate!(icon_image, 0, 0, get_var(gui, :z_translate_components))
+        get_vars(gui)[:z_translate_components] += 1
         push!(design.plots, icon_image)
     end
 end
@@ -628,17 +639,17 @@ function draw_label!(gui::GUI, component::EnergySystemDesign)
         y = val[2]
 
         if component.wall[] == :E
-            xo[] = x + gui.vars[:Δh][] * scale
+            xo[] = x + get_var(gui, :Δh)[] * scale
             yo[] = y
         elseif component.wall[] == :S
             xo[] = x
-            yo[] = y - gui.vars[:Δh][] * scale
+            yo[] = y - get_var(gui, :Δh)[] * scale
         elseif component.wall[] == :W
-            xo[] = x - gui.vars[:Δh][] * scale
+            xo[] = x - get_var(gui, :Δh)[] * scale
             yo[] = y
         elseif component.wall[] == :N
             xo[] = x
-            yo[] = y + gui.vars[:Δh][] * scale
+            yo[] = y + get_var(gui, :Δh)[] * scale
         end
         alignment[] = get_text_alignment(component.wall[])
     end
@@ -646,30 +657,31 @@ function draw_label!(gui::GUI, component::EnergySystemDesign)
         node = component.system[:node]
         label = isa(node.id, Number) ? string(node) : string(node.id)
         label_text = text!(
-            gui.axes[:topo],
+            get_axes(gui)[:topo],
             xo,
             yo;
             text=label,
             align=alignment,
-            fontsize=gui.vars[:fontsize],
+            fontsize=get_var(gui, :fontsize),
             inspectable=false,
         )
-        Makie.translate!(label_text, 0, 0, gui.vars[:z_translate_components])
-        gui.vars[:z_translate_components] += 1
-        push!(component.plots, label_text)
+        Makie.translate!(label_text, 0, 0, get_var(gui, :z_translate_components))
+        get_vars(gui)[:z_translate_components] += 1
+        push!(get_plots(component), label_text)
     end
 end
 
 """
     adjust_limits!(gui::GUI)
 
-Adjust the limits of gui.axes[:topo] based on its content.
+Adjust the limits of get_axes(gui)[:topo] based on its content.
 """
 function adjust_limits!(gui::GUI)
-    min_x, max_x, min_y, max_y = find_min_max_coordinates(gui.design)
+    vars = get_vars(gui)
+    min_x, max_x, min_y, max_y = find_min_max_coordinates(get_design(gui))
     Δ_lim_x = max_x - min_x
     Δ_lim_y = max_y - min_y
-    boundary_add = gui.vars[:boundary_add]
+    boundary_add = vars[:boundary_add]
     min_x -= Δ_lim_x * boundary_add
     max_x += Δ_lim_x * boundary_add
     min_y -= Δ_lim_y * boundary_add
@@ -679,10 +691,10 @@ function adjust_limits!(gui::GUI)
     x_center = (min_x + max_x) / 2
     y_center = (min_y + max_y) / 2
     if Δ_lim_y > Δ_lim_x
-        Δ_lim_x = Δ_lim_y * gui.vars[:ax_aspect_ratio]
+        Δ_lim_x = Δ_lim_y * vars[:ax_aspect_ratio]
     else
         Δ_lim_y < Δ_lim_x
-        Δ_lim_y = Δ_lim_x / gui.vars[:ax_aspect_ratio]
+        Δ_lim_y = Δ_lim_x / vars[:ax_aspect_ratio]
     end
     min_x = x_center - Δ_lim_x / 2
     max_x = x_center + Δ_lim_x / 2
@@ -696,37 +708,41 @@ function adjust_limits!(gui::GUI)
         min_y -= boundary_add
         max_y += boundary_add
     end
-    gui.vars[:xlimits] = [min_x, max_x]
-    gui.vars[:ylimits] = [min_y, max_y]
-    limits!(gui.axes[:topo], gui.vars[:xlimits], gui.vars[:ylimits])
+    vars[:xlimits] = [min_x, max_x]
+    vars[:ylimits] = [min_y, max_y]
+    ax = get_ax(gui, :topo)
+    limits!(ax, vars[:xlimits], vars[:ylimits])
 
     # Fix the axis limits (needed to avoid resetting limits when adding objects along
     # connection lines upon zoom)
-    return gui.axes[:topo].autolimitaspect = nothing
+    ax.autolimitaspect = nothing
 end
 
 """
     update_title!(gui::GUI)
 
-Update the title of `gui.axes[:topo]` based on `gui.design`.
+Update the title of `get_axes(gui)[:topo]` based on `get_design(gui)`.
 """
 function update_title!(gui::GUI)
-    return gui.vars[:title][] = if isnothing(gui.design.parent)
+    design = get_design(gui)
+    parent = get_parent(design)
+    get_var(gui, :title)[] = if isnothing(parent)
         "top_level"
     else
-        "$(gui.design.parent).$(gui.design.system[:node])"
+        system = get_system(design)
+        "$(parent).$(system[:node])"
     end
 end
 
 """
     toggle_selection_color!(gui::GUI, selection, selected::Bool)
 
-Set the color of selection to `gui.vars[:selection_color]` if selected, and its original
+Set the color of selection to `get_selection_color(gui)` if selected, and its original
 color otherwise using the argument `selected`.
 """
 function toggle_selection_color!(gui::GUI, selection::EnergySystemDesign, selected::Bool)
     if selected
-        selection.color[] = gui.vars[:selection_color]
+        selection.color[] = get_selection_color(gui)
     else
         selection.color[] = :black
     end
@@ -736,7 +752,7 @@ function toggle_selection_color!(gui::GUI, selection::Connection, selected::Bool
     if selected
         for plot ∈ plots
             for plot_sub ∈ plot[]
-                plot_sub.color = gui.vars[:selection_color]
+                plot_sub.color = get_selection_color(gui)
             end
         end
     else
@@ -751,7 +767,7 @@ function toggle_selection_color!(gui::GUI, selection::Connection, selected::Bool
 end
 function toggle_selection_color!(gui::GUI, selection::Dict{Symbol,Any}, selected::Bool)
     if selected
-        selection[:plot].color[] = gui.vars[:selection_color]
+        selection[:plot].color[] = get_selection_color(gui)
     else
         selection[:plot].color[] = selection[:color]
     end
@@ -765,7 +781,7 @@ Check if a system is found under the mouse pointer and if it is an `EnergySystem
 and update state variables.
 """
 function pick_component!(gui::GUI; pick_topo_component=false, pick_results_component=false)
-    plt, _ = pick(gui.fig)
+    plt, _ = pick(get_fig(gui))
 
     if isnothing(plt)
         clear_selection(
@@ -773,24 +789,28 @@ function pick_component!(gui::GUI; pick_topo_component=false, pick_results_compo
         )
     else
         if pick_topo_component
+            design = get_design(gui)
+            components = get_components(design)
+            connections = get_connections(design)
             # Loop through the design to find if the object under the pointer matches any
             # of the object link to any of the components
-            for component ∈ gui.design.components
-                for plot ∈ component.plots
+            for component ∈ components
+                for plot ∈ get_plots(component)
                     if plot === plt || plot === plt.parent || plot === plt.parent.parent
                         toggle_selection_color!(gui, component, true)
-                        push!(gui.vars[:selected_systems], component)
+                        push!(get_selected_systems(gui), component)
                         return nothing
                     end
                 end
-                if !isempty(component.components) && gui.vars[:expand_all]
-                    for sub_component ∈ component.components
-                        for plot ∈ sub_component.plots
+                sub_components = get_components(component)
+                if !isempty(sub_components) && get_var(gui, :expand_all)
+                    for sub_component ∈ sub_components
+                        for plot ∈ get_plots(sub_component)
                             if plot === plt ||
                                 plot === plt.parent ||
                                 plot === plt.parent.parent
                                 toggle_selection_color!(gui, sub_component, true)
-                                push!(gui.vars[:selected_systems], sub_component)
+                                push!(get_selected_systems(gui), sub_component)
                                 return nothing
                             end
                         end
@@ -799,29 +819,30 @@ function pick_component!(gui::GUI; pick_topo_component=false, pick_results_compo
             end
 
             # Update the variables selections with the current selection
-            for connection ∈ gui.design.connections
-                for plot ∈ connection.plots
+            for connection ∈ connections
+                for plot ∈ get_plots(connection)
                     for plot_sub ∈ plot[]
                         if plot_sub === plt ||
                             plot_sub === plt.parent ||
                             plot_sub === plt.parent.parent
                             toggle_selection_color!(gui, connection, true)
-                            push!(gui.vars[:selected_systems], connection)
+                            push!(get_selected_systems(gui), connection)
                             return nothing
                         end
                     end
                 end
             end
-            for component ∈ gui.design.components
-                if !isempty(component.components) && gui.vars[:expand_all]
-                    for connection ∈ component.connections
-                        for plot ∈ connection.plots
+            for component ∈ components
+                sub_components = get_components(component)
+                if !isempty(sub_components) && get_var(gui, :expand_all)
+                    for connection ∈ sub_components
+                        for plot ∈ get_plots(connection)
                             for plot_sub ∈ plot[]
                                 if plot_sub === plt ||
                                     plot_sub === plt.parent ||
                                     plot_sub === plt.parent.parent
                                     toggle_selection_color!(gui, connection, true)
-                                    push!(gui.vars[:selected_systems], connection)
+                                    push!(get_selected_systems(gui), connection)
                                     return nothing
                                 end
                             end
@@ -831,16 +852,16 @@ function pick_component!(gui::GUI; pick_topo_component=false, pick_results_compo
             end
         end
         if pick_results_component
-            time_axis = gui.menus[:time].selection[]
-            for vis_obj ∈ gui.vars[:visible_plots][time_axis]
+            time_axis = get_menus(gui)[:time].selection[]
+            for vis_obj ∈ get_var(gui, :visible_data)[time_axis]
                 plot = vis_obj[:plot]
                 if plot === plt ||
                     plot === plt.parent ||
                     plot === plt.parent.parent ||
                     plot === plt.parent.parent.parent
-                    if !(vis_obj ∈ gui.vars[:selected_plots])
+                    if !(vis_obj ∈ get_selected_plots(gui))
                         toggle_selection_color!(gui, vis_obj, true)
-                        push!(gui.vars[:selected_plots], vis_obj)
+                        push!(get_selected_plots(gui), vis_obj)
                     end
                     return nothing
                 end

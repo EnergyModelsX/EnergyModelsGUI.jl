@@ -11,6 +11,7 @@
 * Remove redundant `EMB.` and `EMG.` prefixes
 * Simplify the input argument of the function update_limits!
 * Add more comments and clean up EnergySystemDesign constructor
+* Introduced functions for accessing fields of types to simplify potential changes in field names and cleaned up code
 
 ## Version 0.5.0 (2024-04-19)
 

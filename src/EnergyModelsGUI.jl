@@ -68,6 +68,7 @@ include("utils_GUI/GUI_utils.jl")
 include("utils_GUI/topo_axis_utils.jl")
 include("utils_GUI/info_axis_utils.jl")
 include("utils_GUI/results_axis_utils.jl")
+include("utils_GUI/event_functions.jl")
 include("setup_GUI.jl")
 
 # Export types

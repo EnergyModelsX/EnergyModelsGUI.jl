@@ -118,7 +118,7 @@ end
 Export results based on the state of `gui`.
 """
 function export_to_file(gui::GUI)
-    path = gui.vars[:path_to_results]
+    path = get_var(gui, :path_to_results)
     if isempty(path)
         @error "Path not specified for exporting results; use GUI(case; path_to_results = \
                 \"<path to exporting folder>\")"
@@ -127,10 +127,11 @@ function export_to_file(gui::GUI)
     if !isdir(path)
         mkpath(path)
     end
-    axes_str::String = gui.menus[:axes].selection[]
-    time = string(gui.menus[:time].selection[])
-    file_ending = gui.menus[:export_type].selection[]
-    filename::String = joinpath(path, axes_str * "_" * time * "." * file_ending)
+    axes_str::String = get_menu(gui, :axes).selection[]
+    time_axis = get_menu(gui, :time).selection[]
+    time_axis_str = string(time_axis)
+    file_ending = get_menu(gui, :export_type).selection[]
+    filename::String = joinpath(path, axes_str * "_" * time_axis_str * "." * file_ending)
     if file_ending ∈ ["bmp", "tiff", "tif", "jpg", "jpeg", "svg", "png"]
         CairoMakie.activate!() # Set CairoMakie as backend for proper export quality
         cairo_makie_activated = true
@@ -143,44 +144,43 @@ function export_to_file(gui::GUI)
             @warn "Exporting the entire figure to an $file_ending file is not implemented"
             flag = 1
         elseif file_ending == "xlsx"
-            flag = export_xlsx(gui.model, filename)
+            flag = export_xlsx(get_model(gui), filename)
         elseif file_ending == "lp" || file_ending == "mps"
             try
-                write_to_file(gui.model, filename)
+                write_to_file(get_model(gui), filename)
                 flag = 0
             catch
                 flag = 2
             end
         else
             try
-                save(filename, gui.fig)
+                save(filename, get_fig(gui))
                 flag = 0
             catch
                 flag = 2
             end
         end
     else
-        time_axis = gui.menus[:time].selection[]
         if file_ending == "svg"
-            flag = export_svg(gui.axes[time_axis], filename)
+            flag = export_svg(get_ax(gui, time_axis), filename)
         elseif file_ending == "xlsx"
             if time_axis == :topo
                 @warn "Exporting the topology to an xlsx file is not implemented"
                 flag = 1
             else
-                plots = gui.vars[:visible_plots][time_axis]
+                plots = get_visible_data(gui, time_axis)
                 flag = export_xlsx(plots, filename, time_axis)
             end
         elseif file_ending == "lp" || file_ending == "mps"
             try
-                write_to_file(gui.model, filename)
+                write_to_file(get_model(gui), filename)
                 flag = 0
             catch
                 flag = 2
             end
         else
             try
-                save(filename, colorbuffer(gui.axes[time_axis]))
+                save(filename, colorbuffer(get_ax(gui, time_axis)))
                 flag = 0
             catch
                 flag = 2

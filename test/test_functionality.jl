@@ -6,9 +6,12 @@
     # Test print functionalities of GUI structures to the REPL
     @testset "Test Base.show() functions" begin
         println(gui)
-        println(gui.design)
-        println(gui.design.components[1])
-        println(gui.design.connections[1])
+        design = EMGUI.get_design(gui)
+        println(design)
+        components = EMGUI.get_components(design)
+        connections = EMGUI.get_connections(design)
+        println(components[1])
+        println(connections[1])
         @test true
     end
 end

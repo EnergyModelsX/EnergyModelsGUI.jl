@@ -185,7 +185,7 @@ function save_design(design::EnergySystemDesign)
 
     design_dict::Dict = Dict()
 
-    for component ∈ design.components
+    for component ∈ get_components(design)
         # Extract x,y-coordinates
         x, y = component.xy[]
 
@@ -194,7 +194,7 @@ function save_design(design::EnergySystemDesign)
         )
 
         # Also save the coordinates from sub designs
-        if !isempty(component.components)
+        if !isempty(get_components(component))
             save_design(component)
         end
     end

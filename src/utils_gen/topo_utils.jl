@@ -79,7 +79,7 @@ function find_min_max_coordinates(
         max_y = max(max_y, y)
     end
 
-    for child ∈ design.components
+    for child ∈ get_components(design)
         min_x, max_x, min_y, max_y = find_min_max_coordinates(
             child, min_x, max_x, min_y, max_y
         )
@@ -148,8 +148,8 @@ Update the coordinates of a subsystem of design based on the movement of EnergyS
 `design`.
 """
 function update_sub_system_locations!(design::EnergySystemDesign, Δ::Tuple{Real,Real})
-    for component ∈ design.components
-        component.xy[] = component.xy[] .+ Δ
+    for component ∈ get_components(design)
+        get_xy(component)[] = get_xy(component)[] .+ Δ
     end
 end
 

@@ -1,5 +1,14 @@
 using CairoMakie
 using YAML
+import EnergyModelsGUI:
+    get_vars,
+    get_menu,
+    get_button,
+    get_root_design,
+    get_components,
+    get_selected_systems,
+    update!,
+    toggle_selection_color!
 
 """
     create_colors_visualization_image()
@@ -57,45 +66,52 @@ function create_EMI_geography_images()
     include(joinpath(@__DIR__, "..", "examples", "EMI_geography.jl"))
 
     # Create examples.png image
-    gui.vars[:path_to_results] = joinpath(@__DIR__, "src", "figures")
-    gui.menus[:axes].selection[] = "All"
-    gui.menus[:export_type].selection[] = "png"
-    notify(gui.buttons[:export].clicks)
+    path_to_results = joinpath(@__DIR__, "src", "figures")
+    get_vars(gui)[:path_to_results] = path_to_results
+    get_menu(gui, :axes).selection[] = "All"
+    get_menu(gui, :export_type).selection[] = "png"
+    export_button = get_button(gui, :export)
+    open_button = get_button(gui, :open)
+    available_data_menu = get_menu(gui, :available_data)
+    notify(export_button.clicks)
     mv(
-        joinpath(gui.vars[:path_to_results], "All.png"),
-        joinpath(gui.vars[:path_to_results], "example.png"),
+        joinpath(path_to_results, "All.png"),
+        joinpath(path_to_results, "example.png"),
         force=true,
     )
 
     # Create EMI_geography.png image
-    sub_component = gui.root_design.components[1] # fetch the Oslo area
-    push!(gui.vars[:selected_systems], sub_component) # Manually add to :selected_systems
-    EMGUI.update!(gui)
-    EMGUI.toggle_selection_color!(gui, sub_component, true)
-    available_data = [x[2][:name] for x ∈ collect(gui.menus[:available_data].options[])]
+    root_design = get_root_design(gui)
+    components = get_components(root_design)
+    component = components[1] # fetch the Oslo area
+    push!(get_selected_systems(gui), component) # Manually add to :selected_systems
+    update!(gui)
+    toggle_selection_color!(gui, component, true)
+    available_data = [x[2][:name] for x ∈ collect(available_data_menu.options[])]
     i_selected = findfirst(x -> x == "area_exchange", available_data)
-    gui.menus[:available_data].i_selected = i_selected # Select flow_out (CO2)
-    notify(gui.buttons[:export].clicks)
+    available_data_menu.i_selected = i_selected # Select flow_out (CO2)
+    notify(export_button.clicks)
     mv(
-        joinpath(gui.vars[:path_to_results], "All.png"),
-        joinpath(gui.vars[:path_to_results], "EMI_geography.png"),
+        joinpath(path_to_results, "All.png"),
+        joinpath(path_to_results, "EMI_geography.png"),
         force=true,
     )
 
     # Create EMI_geography_Oslo.png image
-    notify(gui.buttons[:open].clicks)
-    sub_component = gui.root_design.components[1].components[2] # fetch the Oslo area
-    empty!(gui.vars[:selected_systems])
-    push!(gui.vars[:selected_systems], sub_component) # Manually add to :selected_systems
-    EMGUI.update!(gui)
-    EMGUI.toggle_selection_color!(gui, sub_component, true)
-    available_data = [x[2][:name] for x ∈ collect(gui.menus[:available_data].options[])]
+    notify(open_button.clicks)
+    sub_component = components[1].components[2] # fetch the Oslo area
+    selected_systems = get_selected_systems(gui)
+    empty!(selected_systems)
+    push!(selected_systems, sub_component) # Manually add to :selected_systems
+    update!(gui)
+    toggle_selection_color!(gui, sub_component, true)
+    available_data = [x[2][:name] for x ∈ collect(available_data_menu.options[])]
     i_selected = findfirst(x -> x == "cap_add", available_data)
-    gui.menus[:available_data].i_selected = i_selected # Select flow_out (CO2)
-    notify(gui.buttons[:export].clicks)
+    available_data_menu.i_selected = i_selected # Select flow_out (CO2)
+    notify(export_button.clicks)
     mv(
-        joinpath(gui.vars[:path_to_results], "All.png"),
-        joinpath(gui.vars[:path_to_results], "EMI_geography_Oslo.png"),
+        joinpath(path_to_results, "All.png"),
+        joinpath(path_to_results, "EMI_geography_Oslo.png"),
         force=true,
     )
 end

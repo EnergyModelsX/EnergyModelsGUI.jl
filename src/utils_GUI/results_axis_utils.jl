@@ -7,7 +7,7 @@
         pre_desc::String="",
     )
 
-Update the `container` with a description (from `gui.vars[:descriptive_names]` if available),
+Update the `container` with a description (from `get_var(gui,:descriptive_names)` if available),
 and add `container` to `available_data`.
 """
 function add_description!(
@@ -23,7 +23,7 @@ function add_description!(
     end
     description = pre_desc
     try
-        description *= String(get_nested_value(gui.vars[:descriptive_names], key_str))
+        description *= String(get_nested_value(get_var(gui, :descriptive_names), key_str))
     catch
         description = key_str[(findfirst('.', key_str) + 1):end]
         @warn "Could't find a description for $description. \
@@ -163,46 +163,45 @@ function add_description!(
 end
 
 """
-    extract_combinations!(
-        gui::GUI,
-        available_data::Vector{Dict},
-        dict::Symbol,
-        model
-    )
+    extract_combinations!(gui::GUI, available_data::Vector{Dict}, var::Symbol)
 
-Extract all combinations of available resources in `model[dict]`, add descriptions to
+Extract all combinations of available resources in `model[var]`, add descriptions to
 `container`, and add `container` to `available_data`
 """
-function extract_combinations!(gui::GUI, available_data::Vector{Dict}, dict::Symbol, model)
-    resources::Vector{Resource} = unique([key[2] for key ∈ keys(model[dict].data)])
+function extract_combinations!(gui::GUI, available_data::Vector{Dict}, var::Symbol)
+    model = get_model(gui)
+    resources::Vector{Resource} = unique([key[2] for key ∈ keys(model[var].data)])
     for res ∈ resources
-        dict_str = string(dict)
-        container = Dict(:name => dict_str, :is_jump_data => true, :selection => [res])
-        add_description!(available_data, container, gui, "variables.$dict_str")
+        var_str = string(var)
+        container = Dict(:name => var_str, :is_jump_data => true, :selection => [res])
+        add_description!(available_data, container, gui, "variables.$var_str")
     end
 end
 
 """
-    extract_combinations!(available_data::Vector{Dict}, dict::Symbol, element::Plotable, model)
+    extract_combinations!(
+        gui::GUI, available_data::Vector{Dict}, var::Symbol, element::Plotable
+    )
 
-Extract all combinations of available resources in `model[dict]` for a given `element`, add
+Extract all combinations of available resources in `model[var]` for a given `element`, add
 descriptions to `container`, and add `container` to `available_data`
 """
 function extract_combinations!(
-    gui::GUI, available_data::Vector{Dict}, dict::Symbol, element::Plotable, model
+    gui::GUI, available_data::Vector{Dict}, var::Symbol, element::Plotable
 )
-    if isa(model[dict], SparseVariables.IndexedVarArray)
-        dict_str = string(dict)
-        container = Dict(:name => dict_str, :is_jump_data => true, :selection => [element])
-        add_description!(available_data, container, gui, "variables.$dict_str")
+    model = get_model(gui)
+    if isa(model[var], SparseVariables.IndexedVarArray)
+        var_str = string(var)
+        container = Dict(:name => var_str, :is_jump_data => true, :selection => [element])
+        add_description!(available_data, container, gui, "variables.$var_str")
     else
-        resources = unique([key[2] for key ∈ keys(model[dict][element, :, :].data)])
+        resources = unique([key[2] for key ∈ keys(model[var][element, :, :].data)])
         for res ∈ resources
-            dict_str = string(dict)
+            var_str = string(var)
             container = Dict(
-                :name => dict_str, :is_jump_data => true, :selection => [element, res]
+                :name => var_str, :is_jump_data => true, :selection => [element, res]
             )
-            add_description!(available_data, container, gui, "variables.$dict_str")
+            add_description!(available_data, container, gui, "variables.$var_str")
         end
     end
 end
@@ -335,7 +334,7 @@ end
 """
     create_label(selection::Vector{Any})
 
-Return a label for a given `selection` to be used in the gui.menus[:available_data] menu.
+Return a label for a given `selection` to be used in the get_menus(gui)[:available_data] menu.
 """
 function create_label(selection::Dict{Symbol,Any})
     label::String = selection[:is_jump_data] ? "" : "Case data: "
@@ -368,11 +367,21 @@ end
 """
     update_plot!(gui::GUI, element)
 
-Based on `element` update the results in `gui.axes[:results]`.
+Based on `element` update the results in `get_axes(gui)[:results]`.
 """
 function update_plot!(gui::GUI, element::Plotable)
-    T = gui.root_design.system[:T]
-    selection = gui.menus[:available_data].selection[]
+    # Get global time structure
+    T = get_root_design(gui).system[:T]
+
+    # Extract menu objects from gui
+    time_menu = get_menu(gui, :time)
+    period_menu = get_menu(gui, :period)
+    representative_period_menu = get_menu(gui, :representative_period)
+    scenario_menu = get_menu(gui, :scenario)
+    available_data_menu = get_menu(gui, :available_data)
+
+    # Get data selection
+    selection = available_data_menu.selection[]
     if !isnothing(selection)
         xlabel = "Time"
         if haskey(selection, :description)
@@ -380,11 +389,11 @@ function update_plot!(gui::GUI, element::Plotable)
         else
             ylabel = selection[:name]
         end
-        sp = gui.menus[:period].selection[]
-        rp = gui.menus[:representative_period].selection[]
-        sc = gui.menus[:scenario].selection[]
+        sp = period_menu.selection[]
+        rp = representative_period_menu.selection[]
+        sc = scenario_menu.selection[]
 
-        periods, y_values, time_axis = get_data(gui.model, selection, T, sp, rp, sc)
+        periods, y_values, time_axis = get_data(get_model(gui), selection, T, sp, rp, sc)
 
         label::String = create_label(selection)
         if !isnothing(element)
@@ -421,26 +430,25 @@ function update_plot!(gui::GUI, element::Plotable)
             # For FixedProfile, make values constant over the operational period
             points = [Point{2,Float64}(x, y) for (x, y) ∈ zip(x_values_step, y_values_step)]
             custom_ticks = (0:no_pts, string.(0:no_pts))
-            gui.menus[:time].i_selected[] = 3
+            time_menu.i_selected[] = 3
         else
             points = [Point{2,Float64}(x, y) for (x, y) ∈ zip(1:no_pts, y_values)]
             custom_ticks = (1:no_pts, [string(t) for t ∈ periods])
             if time_axis == :results_sp
-                gui.menus[:time].i_selected[] = 1
+                time_menu.i_selected[] = 1
             else
-                gui.menus[:time].i_selected[] = 2
+                time_menu.i_selected[] = 2
             end
         end
-        notify(gui.menus[:time].selection) # In case the new plot is on an other time type
-        time_axis = gui.menus[:time].selection[]
-        pinned_plots = [x[:plot] for x ∈ gui.vars[:pinned_plots][time_axis]]
-        visible_plots = [x[:plot] for x ∈ gui.vars[:visible_plots][time_axis]]
+        notify(time_menu.selection) # In case the new plot is on an other time type
+        pinned_plots = [x[:plot] for x ∈ get_pinned_data(gui, time_axis)]
+        visible_plots = [x[:plot] for x ∈ get_visible_data(gui, time_axis)]
         plots = filter(
             x ->
                 (isa(x, Combined) || isa(x, Lines)) &&
                     !isa(x, Wireframe) &&
                     !(x ∈ pinned_plots),
-            gui.axes[time_axis].scene.plots,
+            get_axes(gui)[time_axis].scene.plots,
         ) # Extract non-pinned plots. Only extract Lines and Combined (bars). Done to avoid Wireframe-objects
 
         plot = getfirst(x -> x ∈ visible_plots, plots) # get first non-pinned visible plots
@@ -456,7 +464,7 @@ function update_plot!(gui::GUI, element::Plotable)
             if !isnothing(plot) # Overwrite a hidden plots
                 @debug "Found a hidden plot to overwrite"
                 push!(
-                    gui.vars[:visible_plots][time_axis],
+                    get_visible_data(gui, time_axis),
                     Dict(
                         :plot => plot,
                         :name => selection[:name],
@@ -470,10 +478,10 @@ function update_plot!(gui::GUI, element::Plotable)
         else # Overwrite the non-pinned visible plot
             @debug "Found a visible plot to overwrite"
             # remove the plot to be overwritten
-            filter!(x -> x[:plot] != plot, gui.vars[:visible_plots][time_axis])
+            filter!(x -> x[:plot] != plot, get_visible_data(gui, time_axis))
 
             push!(
-                gui.vars[:visible_plots][time_axis],
+                get_visible_data(gui, time_axis),
                 Dict(
                     :plot => plot,
                     :name => selection[:name],
@@ -484,7 +492,7 @@ function update_plot!(gui::GUI, element::Plotable)
                 ),
             )
         end
-
+        ax = get_ax(gui, time_axis)
         if !isnothing(plot)
             plot[1][] = points
             plot.visible = true # If it has been hidden after a "Remove Plot" action
@@ -492,11 +500,11 @@ function update_plot!(gui::GUI, element::Plotable)
         else
             @debug "Could not find anything to overwrite, creating new plot instead"
             if time_axis == :results_op
-                plot = lines!(gui.axes[time_axis], points; label=label)
+                plot = lines!(ax, points; label=label)
             else
-                n_visible = length(gui.vars[:visible_plots][time_axis]) + 1
+                n_visible = length(get_visible_data(gui, time_axis)) + 1
                 plot = barplot!(
-                    gui.axes[time_axis],
+                    ax,
                     points;
                     dodge=n_visible * ones(Int, length(points)),
                     n_dodge=n_visible,
@@ -506,7 +514,7 @@ function update_plot!(gui::GUI, element::Plotable)
                 )
             end
             push!(
-                gui.vars[:visible_plots][time_axis],
+                get_visible_data(gui, time_axis),
                 Dict(
                     :plot => plot,
                     :name => selection[:name],
@@ -524,25 +532,55 @@ function update_plot!(gui::GUI, element::Plotable)
             toggle_inspector!(plot, false)
         end
 
-        if isempty(gui.vars[:results_legend]) # Initialize the legend box
+        legend = get_results_legend(gui)
+        if isempty(legend) # Initialize the legend box
             push!(
-                gui.vars[:results_legend],
-                axislegend(
-                    gui.axes[time_axis], [plot], [label]; labelsize=gui.vars[:fontsize]
-                ),
+                legend, axislegend(ax, [plot], [label]; labelsize=get_var(gui, :fontsize))
             ) # Add legends inside axes[:results] area
         else
             update_legend!(gui)
         end
 
         if time_axis == :results_op
-            gui.axes[time_axis].xticks = Makie.automatic
+            ax.xticks = Makie.automatic
         else
-            gui.axes[time_axis].xticks = custom_ticks
+            ax.xticks = custom_ticks
         end
-        gui.axes[time_axis].xlabel = xlabel
-        gui.axes[time_axis].ylabel = ylabel
+        ax.xlabel = xlabel
+        ax.ylabel = ylabel
     end
+end
+
+"""
+    update_plot!(gui::GUI)
+
+Based on `selected_systems` update plots
+"""
+function update_plot!(gui)
+    selected_systems = get_selected_systems(gui)
+    if isempty(selected_systems)
+        update_plot!(gui, nothing)
+    else
+        update_plot!(gui, selected_systems[end])
+    end
+end
+
+"""
+    update_plot!(gui::GUI, design::EnergySystemDesign)
+
+Based on `connection` update plots
+"""
+function update_plot!(gui::GUI, connection::Connection)
+    return update_plot!(gui, get_connection(connection))
+end
+
+"""
+    update_plot!(gui::GUI, design::EnergySystemDesign)
+
+Based on `design` update plots
+"""
+function update_plot!(gui::GUI, design::EnergySystemDesign)
+    return update_plot!(gui, get_system_node(design))
 end
 
 """
@@ -551,36 +589,19 @@ end
 Update the legend based on the visible plots of type `time_axis`
 """
 function update_legend!(gui::GUI)
-    time_axis = gui.menus[:time].selection[]
-    if !isempty(gui.vars[:results_legend])
-        gui.vars[:results_legend][1].entrygroups[] = [(
+    time_axis = get_menu(gui, :time).selection[]
+    legend = get_results_legend(gui)
+    if !isempty(legend)
+        legend[1].entrygroups[] = [(
             nothing,
             #! format: off
             [
-                LegendEntry(x[:plot].label, x[:plot], gui.vars[:results_legend][1])
-                for x ∈ gui.vars[:visible_plots][time_axis]
+                LegendEntry(x[:plot].label, x[:plot], legend[1])
+                for x ∈ get_visible_data(gui,time_axis)
             ],
             #! format: on
         )]
     end
-end
-
-"""
-    update_plot!(gui::GUI, design::EnergySystemDesign)
-
-Based on `connection.connection` update the results in `gui.axes[:results]`
-"""
-function update_plot!(gui::GUI, connection::Connection)
-    return update_plot!(gui, connection.connection)
-end
-
-"""
-    update_plot!(gui::GUI, design::EnergySystemDesign)
-
-Based on `design.system[:element]` update the results in `gui.axes[:results]`
-"""
-function update_plot!(gui::GUI, design::EnergySystemDesign)
-    return update_plot!(gui, design.system[:node])
 end
 
 """
@@ -603,10 +624,11 @@ end
 Update the barplot of the state of the GUI (such that the bars are dodged away from each other)
 """
 function update_barplot_dodge!(gui::GUI)
-    if gui.menus[:time].selection[] != :results_op
-        time_axis = gui.menus[:time].selection[]
-        n_visible = length(gui.vars[:visible_plots][time_axis])
-        for (i, x) ∈ enumerate(gui.vars[:visible_plots][time_axis])
+    time_axis = get_menu(gui, :time).selection[]
+    if time_axis != :results_op
+        visible_data = get_visible_data(gui, time_axis)
+        n_visible = length(visible_data)
+        for (i, x) ∈ enumerate(visible_data)
             x[:plot].n_dodge = n_visible
             x[:plot].dodge = i * ones(Int, length(x[:plot].dodge[]))
         end

@@ -1,19 +1,19 @@
 """
     update_info_box!(gui::GUI, element; indent::Int64=0)
 
-Based on `element` update the text in `gui.axes[:info]`
+Based on `element` update the text in info box
 """
 function update_info_box!(gui::GUI, element; indent::Int64=0)
-    infoBox = gui.axes[:info].scene.plots[1][1]
+    infoBox = get_ax(gui, :info).scene.plots[1][1]
     if isnothing(element)
-        infoBox[] = gui.vars[:default_text]
+        infoBox[] = get_var(gui, :default_text)
         return nothing
     end
     if indent == 0
         infoBox[] = "$element ($(typeof(element)))\n"
     end
     indent += 1
-    indent_str = "  "^indent
+    indent_str::String = "  "^indent
     is_iterable(x) =
         isa(x, Vector) || isa(x, Dict) || typeof(x) <: EMB.Node || typeof(x) <: Resource
     if isa(element, Vector)

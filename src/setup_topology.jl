@@ -80,17 +80,26 @@ function EnergySystemDesign(
     # Add  `Transmission`s and `Link`s to `connections` as a `Connection`
     if haskey(system, :areas) && haskey(system, :transmission)
         for transmission ∈ system[:transmission]
-            from = getfirst(x -> x.system[:node].node == transmission.from.node, components)
-            to = getfirst(x -> x.system[:node].node == transmission.to.node, components)
+            # Find the EnergySystemDesign corresponding to transmission.from.node
+            from = getfirst(x -> x.system[:node] == transmission.from, components)
 
+            # Find the EnergySystemDesign corresponding to transmission.to.node
+            to = getfirst(x -> x.system[:node] == transmission.to, components)
+
+            # If `EnergySystemDesign`s found, create a new `Connection`
             if !isnothing(from) && !isnothing(to)
                 push!(connections, Connection(from, to, transmission, id_to_color_map))
             end
         end
     elseif haskey(system, :nodes) && haskey(system, :links)
         for link ∈ system[:links]
+            # Find the EnergySystemDesign corresponding to link.from
             from = getfirst(x -> x.system[:node] == link.from, components)
+
+            # Find the EnergySystemDesign corresponding to link.to
             to = getfirst(x -> x.system[:node] == link.to, components)
+
+            # If `EnergySystemDesign`s found, create a new `Connection`
             if !isnothing(from) && !isnothing(to)
                 push!(connections, Connection(from, to, link, id_to_color_map))
             end
