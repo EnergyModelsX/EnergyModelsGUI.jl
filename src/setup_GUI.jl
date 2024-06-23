@@ -145,8 +145,6 @@ function GUI(
     )
     vars[:dragging] = Ref(false)
     vars[:ctrl_is_pressed] = Ref(false)
-    vars[:time_axes_labels] = ["Strategic", "Representative", "Operational"]
-    vars[:time_axes] = [:results_sp, :results_rp, :results_op]
 
     # Construct the makie figure and its objects
     fig, buttons, menus, toggles, axes = create_makie_objects(vars, root_design)
@@ -468,7 +466,10 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
     )
     time_menu = Makie.Menu(
         gridlayout_results_taskbar[1, 3];
-        options=zip(vars[:time_axes_labels], vars[:time_axes]),
+        options=zip(
+            ["Strategic", "Representative", "Operational"],
+            [:results_sp, :results_rp, :results_op],
+        ),
         halign=:left,
         width=120 * vars[:fontsize] / 12,
         fontsize=vars[:fontsize],

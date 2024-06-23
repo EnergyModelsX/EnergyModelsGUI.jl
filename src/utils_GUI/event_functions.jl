@@ -263,7 +263,7 @@ function define_event_functions(gui::GUI)
     time_menu = get_menu(gui, :time)
     on(get_button(gui, :pin_plot).clicks; priority=10) do _
         @info "Current plot pinned"
-        time_axis = get_var(gui, :time_axes)[time_menu.i_selected[]]
+        time_axis = time_menu.selection[]
         plots = get_ax(gui, time_axis).scene.plots
         if !isempty(plots) # Check if any plots exist
             pinned_data = get_pinned_data(gui, time_axis)
@@ -286,7 +286,7 @@ function define_event_functions(gui::GUI)
         if isempty(get_selected_plots(gui))
             return Consume(false)
         end
-        time_axis = get_var(gui, :time_axes)[time_menu.i_selected[]]
+        time_axis = time_menu.selection[]
         for plot_selected ∈ get_selected_plots(gui)
             plot_selected[:plot].visible = false
             toggle_selection_color!(gui, plot_selected, false)
@@ -303,7 +303,7 @@ function define_event_functions(gui::GUI)
 
     # Clear all plots
     on(get_button(gui, :clear_all).clicks; priority=10) do _
-        time_axis = get_var(gui, :time_axes)[time_menu.i_selected[]]
+        time_axis = time_menu.selection[]
         for data_selected ∈ get_visible_data(gui, time_axis)
             data_selected[:plot].visible = false
             toggle_selection_color!(gui, data_selected, false)
@@ -344,7 +344,7 @@ function define_event_functions(gui::GUI)
         if get_menu(gui, :export_type).selection[] == "REPL"
             axes_str::String = get_menu(gui, :axes).selection[]
             if axes_str == "Plots"
-                time_axis = get_var(gui, :time_axes)[time_menu.i_selected[]]
+                time_axis = time_menu.selection[]
                 vis_plots = get_visible_data(gui, time_axis)
                 if !isempty(vis_plots) # Check if any plots exist
                     t = vis_plots[1][:t]
