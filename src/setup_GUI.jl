@@ -63,7 +63,7 @@ function GUI(
     # Set variables
     vars::Dict{Symbol,Any} = Dict(
         :title => Observable("top_level"),
-        :Δh => Observable(0.05),    # Sidelength of main box
+        :Δh => 0.05,                # Sidelength of main box
         :coarse_coast_lines => coarse_coast_lines,
         :Δh_px => 50,               # Pixel size of a box for nodes
         :markersize => 15,          # Marker size for arrows in connections
@@ -75,7 +75,7 @@ function GUI(
         :linewidth => 1.2,          # Width of the line around boxes
         :parent_scaling => 1.1,     # Scale for enlargement of boxes around main boxes for nodes for parent systems
         :icon_scale => 0.9,         # scale icons w.r.t. the surrounding box in fraction of Δh
-        :two_way_sep_px => Observable(10), # No pixels between set of lines for nodes having connections both ways
+        :two_way_sep_px => 10,      # No pixels between set of lines for nodes having connections both ways
         :selection_color => :green2, # Colors for box boundaries when selection objects
         :investment_lineStyle => Linestyle([1.0, 1.5, 2.0, 2.5] .* 5), # linestyle for investment connections and box boundaries for nodes
         :path_to_results => path_to_results, # Path to the location where axes[:results] can be exported
@@ -174,7 +174,7 @@ function GUI(
 
     # Enable inspector (such that hovering objects shows information)
     # Linewidth set to zero as this boundary is slightly laggy on movement
-    DataInspector(fig; range=10, indicator_linewidth=0, enable_indicator=false)
+    DataInspector(fig; range=10, indicator_linewidth=0)
 
     # display the figure
     display(fig)
@@ -193,11 +193,9 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
     GLMakie.activate!() # use GLMakie as backend
 
     # Set the fontsize for the entire figure (if not otherwise specified, the fontsize will inherit this number)
-    GLMakie.set_theme!(; fontsize=Float32(vars[:fontsize]))
+    GLMakie.set_theme!(; fontsize=vars[:fontsize])
 
-    fig::Figure = Figure(;
-        resolution=vars[:plot_widths], backgroundcolor=vars[:backgroundcolor]
-    )
+    fig::Figure = Figure(; size=vars[:plot_widths], backgroundcolor=vars[:backgroundcolor])
 
     # Create grid layout structure of the window
     gridlayout_taskbar::GridLayout = fig[1, 1:2] = GridLayout()
@@ -228,22 +226,12 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
             gridlayout_topology_ax[1, 1];
             source=source,
             dest=dest,
-            backgroundcolor=:lightblue1,
             aspect=DataAspect(),
             alignmode=Outside(),
         )
 
         if vars[:coarse_coast_lines] # Use low resolution coast lines
-            land = GeoMakie.land()
-            coastlns = poly!(
-                ax,
-                land;
-                color=:honeydew,
-                colormap=:dense,
-                strokecolor=:gray50,
-                strokewidth=0.5,
-                inspectable=false,
-            )
+            countries = GeoMakie.land()
         else # Use high resolution coast lines
             # Define the URL and the local file path
             resolution = "10m" # "10m", "50m", "110m"
@@ -259,19 +247,20 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
             end
 
             # Now read the data from the file
-            countries::GeoJSON.FeatureCollection{2,Float32} = GeoJSON.read(
-                read(local_file_path, String)
-            )
-            coastlns = poly!(
-                ax,
-                countries;
-                color=:honeydew,
-                colormap=:dense,
-                strokecolor=:gray50,
-                strokewidth=0.5,
-                inspectable=false,
-            )
+            countries_geo_json = GeoJSON.read(read(local_file_path, String))
+
+            # Create GeoMakie plotable object
+            countries = GeoMakie.to_multipoly(countries_geo_json.geometry)
         end
+        poly!(
+            ax,
+            countries;
+            color=:honeydew,
+            colormap=:dense,
+            strokecolor=:gray50,
+            strokewidth=0.5,
+            inspectable=false,
+        )
     else # The design does not use the EnergyModelsGeography package: Create a simple Makie axis
         ax = Axis(gridlayout_topology_ax[1, 1]; aspect=DataAspect(), alignmode=Outside())
     end

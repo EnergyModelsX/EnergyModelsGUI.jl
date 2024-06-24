@@ -162,15 +162,15 @@ import EnergyModelsGUI:
 
         period_menu.i_selected = 1
         data_point = get_ax(gui, time_axis).scene.plots[1][1][][35][2]
-        @test data_point == 2.1003003f0
+        @test data_point ≈ 2.1003003f0 atol = 1e-5
 
         period_menu.i_selected = 2
         data_point = get_ax(gui, time_axis).scene.plots[1][1][][35][2]
-        @test data_point == 3.3003004f0
+        @test data_point ≈ 3.3003004f0 atol = 1e-5
 
         period_menu.i_selected = 3
         data_point = get_ax(gui, time_axis).scene.plots[1][1][][35][2]
-        @test data_point == 1.2f0
+        @test data_point ≈ 1.2f0 atol = 1e-5
     end
 
     @testset "get_menu(gui,:representative_period).i_selected" begin
@@ -186,12 +186,12 @@ import EnergyModelsGUI:
         representative_period_menu.i_selected = 2
         notify(representative_period_menu.selection)
         data_point = get_ax(gui, time_axis).scene.plots[1][1][][10][2]
-        @test data_point == 0.2f0
+        @test data_point ≈ 0.2f0 atol = 1e-5
 
         representative_period_menu.i_selected = 1
         notify(representative_period_menu.selection)
         data_point = get_ax(gui, time_axis).scene.plots[1][1][][10][2]
-        @test data_point == 2.0f0
+        @test data_point ≈ 2.0f0 atol = 1e-5
     end
 
     @testset "pin_plot_button.clicks" begin
@@ -212,9 +212,9 @@ import EnergyModelsGUI:
         available_data_menu.i_selected = i_selected # Select flow_out (CO2)
         notify(pin_plot_button.clicks)
         data_point = get_ax(gui, time_axis).scene.plots[1][1][][10][2]
-        @test data_point == 0.25f0
+        @test data_point ≈ 0.25f0 atol = 1e-5
         data_point = get_ax(gui, time_axis).scene.plots[2][1][][10][2]
-        @test data_point == 0.6f0
+        @test data_point ≈ 0.6f0 atol = 1e-5
     end
 
     @testset "get_button(gui,:export).clicks" begin

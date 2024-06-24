@@ -212,7 +212,9 @@ function update_available_data_menu!(gui::GUI, element::Plotable)
     available_data = get_available_data(gui)
     container = available_data[element][:container]
     container_strings = available_data[element][:container_strings]
-    get_menu(gui, :available_data).options = zip(container_strings, container)
+    if !isempty(container) # needed to resolve bug introduced in Makie
+        get_menu(gui, :available_data).options = zip(container_strings, container)
+    end
 end
 
 """

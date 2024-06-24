@@ -54,9 +54,9 @@ of zooming an resizing the window.
 function new_global_delta_h(gui::GUI)
     vars = get_vars(gui)
     axes = get_axes(gui)
-    xyWidths::Vec{2,Float32} = axes[:topo].finallimits[].widths
+    xyWidths::Vec = axes[:topo].finallimits[].widths
     plot_widths::Vec2{Int64} = pixelarea(axes[:topo].scene)[].widths
-    vars[:Δh][] = maximum([
+    vars[:Δh] = maximum([
         maximum(Vector(0.5 * vars[:Δh_px] * xyWidths ./ plot_widths)),
         minimum([
             minimum(Vector(vars[:Δh_px] * xyWidths ./ plot_widths)),
@@ -72,10 +72,10 @@ Handle different keyboard inputs (events) and return changes in x, y coordinates
 design object `gui`.
 """
 get_change(::GUI, ::Val) = (0.0, 0.0)
-get_change(gui::GUI, ::Val{Keyboard.up}) = (0.0, +get_var(gui, :Δh)[] / 5)
-get_change(gui::GUI, ::Val{Keyboard.down}) = (0.0, -get_var(gui, :Δh)[] / 5)
-get_change(gui::GUI, ::Val{Keyboard.left}) = (-get_var(gui, :Δh)[] / 5, 0.0)
-get_change(gui::GUI, ::Val{Keyboard.right}) = (+get_var(gui, :Δh)[] / 5, 0.0)
+get_change(gui::GUI, ::Val{Keyboard.up}) = (0.0, +get_var(gui, :Δh) / 5)
+get_change(gui::GUI, ::Val{Keyboard.down}) = (0.0, -get_var(gui, :Δh) / 5)
+get_change(gui::GUI, ::Val{Keyboard.left}) = (-get_var(gui, :Δh) / 5, 0.0)
+get_change(gui::GUI, ::Val{Keyboard.right}) = (+get_var(gui, :Δh) / 5, 0.0)
 
 """
     align(gui::GUI, align::Symbol)
@@ -265,7 +265,7 @@ function connect!(gui::GUI, connection::Connection, two_way::Bool)
                 pixel_to_data(gui, get_var(gui, :connection_linewidth)) .+
                 pixel_to_data(gui, get_var(gui, :line_sep_px))
             two_way_sep::Tuple{Float64,Float64} = pixel_to_data(
-                gui, get_var(gui, :two_way_sep_px)[]
+                gui, get_var(gui, :two_way_sep_px)
             )
             θ::Float64 = atan(xy_2[2] - xy_1[2], xy_2[1] - xy_1[1])
             cosθ::Float64 = cos(θ)
@@ -273,7 +273,7 @@ function connect!(gui::GUI, connection::Connection, two_way::Bool)
             cosϕ::Float64 = -sinθ # where ϕ = θ+π/2
             sinϕ::Float64 = cosθ
 
-            Δ::Float64 = get_var(gui, :Δh)[] / 2 # half width of a box
+            Δ::Float64 = get_var(gui, :Δh) / 2 # half width of a box
             if !isempty(get_components(connection.from))
                 Δ *= get_var(gui, :parent_scaling)
             end
@@ -317,7 +317,7 @@ function connect!(gui::GUI, connection::Connection, two_way::Bool)
                         xy_midpoint[2];
                         marker=arrow_parts[j],
                         markersize=get_var(gui, :markersize),
-                        rotations=θ,
+                        rotation=θ,
                         color=colors[j],
                         inspectable=false,
                     )
@@ -339,14 +339,16 @@ function connect!(gui::GUI, connection::Connection, two_way::Bool)
                     push!(arrow_heads[], sctr)
                     push!(line_connections[], lns)
                 else
-                    arrow_heads[][j][1][] = [Point{2,Float32}(xy_midpoint[1], xy_midpoint[2])]
-                    arrow_heads[][j][:rotations] = θ
+                    arrow_heads[][j][1][] = [Point{2,Float64}(xy_midpoint[1], xy_midpoint[2])]
+                    arrow_heads[][j][:rotation] = θ
                     arrow_heads[][j].visible = true
                     line_connections[][j][1][] = [
-                        Point{2,Float32}(x, y) for (x, y) ∈ zip(xs, ys)
+                        Point{2,Float64}(x, y) for (x, y) ∈ zip(xs, ys)
                     ]
                     line_connections[][j].visible = true
                 end
+                line_connections[][j].kw[:EMGUI_obj] = connection
+                arrow_heads[][j].kw[:EMGUI_obj] = connection
             end
         end
 
@@ -446,9 +448,7 @@ function draw_box!(gui::GUI, design::EnergySystemDesign)
             x = val[1]
             y = val[2]
 
-            xo2[], yo2[] = box(
-                x, y, get_var(gui, :Δh)[] / 2 * get_var(gui, :parent_scaling)
-            )
+            xo2[], yo2[] = box(x, y, get_var(gui, :Δh) / 2 * get_var(gui, :parent_scaling))
             white_rect2[1] = [
                 (x, y) for (x, y) ∈ zip(xo2[][1:(end - 1)], yo2[][1:(end - 1)])
             ]
@@ -466,6 +466,8 @@ function draw_box!(gui::GUI, design::EnergySystemDesign)
         Makie.translate!(box_boundary2, 0, 0, get_var(gui, :z_translate_components))
         get_vars(gui)[:z_translate_components] += 1
         push!(design.plots, box_boundary2)
+        box_boundary2.kw[:EMGUI_obj] = design
+        white_rect2.kw[:EMGUI_obj] = design
     end
 
     xo::Observable{Vector{Real}} = Observable(zeros(5))
@@ -473,8 +475,6 @@ function draw_box!(gui::GUI, design::EnergySystemDesign)
     vertices::Vector{Tuple{Real,Real}} = [
         (x, y) for (x, y) ∈ zip(xo[][1:(end - 1)], yo[][1:(end - 1)])
     ]
-    white_rect = Observable(Makie.GeometryBasics.HyperRectangle{2,Int64})
-
     white_rect = poly!(
         get_axes(gui)[:topo], vertices; color=:white, strokewidth=0, inspectable=false
     ) # Create a white background rectangle to hide lines from connections
@@ -491,7 +491,7 @@ function draw_box!(gui::GUI, design::EnergySystemDesign)
         x::Real = val[1]
         y::Real = val[2]
 
-        xo[], yo[] = box(x, y, get_var(gui, :Δh)[] / 2)
+        xo[], yo[] = box(x, y, get_var(gui, :Δh) / 2)
         white_rect[1] = [(x, y) for (x, y) ∈ zip(xo[][1:(end - 1)], yo[][1:(end - 1)])]
     end
 
@@ -506,7 +506,9 @@ function draw_box!(gui::GUI, design::EnergySystemDesign)
     )
     Makie.translate!(box_boundary, 0, 0, get_var(gui, :z_translate_components))
     get_vars(gui)[:z_translate_components] += 1
-    return push!(design.plots, box_boundary)
+    push!(design.plots, box_boundary)
+    box_boundary.kw[:EMGUI_obj] = design
+    white_rect.kw[:EMGUI_obj] = design
 end
 
 """
@@ -522,12 +524,12 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
         y::Real = val[2]
 
         xo[] = [
-            x - get_var(gui, :Δh)[] * get_var(gui, :icon_scale) / 2,
-            x + get_var(gui, :Δh)[] * get_var(gui, :icon_scale) / 2,
+            x - get_var(gui, :Δh) * get_var(gui, :icon_scale) / 2,
+            x + get_var(gui, :Δh) * get_var(gui, :icon_scale) / 2,
         ]
         yo[] = [
-            y - get_var(gui, :Δh)[] * get_var(gui, :icon_scale) / 2,
-            y + get_var(gui, :Δh)[] * get_var(gui, :icon_scale) / 2,
+            y - get_var(gui, :Δh) * get_var(gui, :icon_scale) / 2,
+            y + get_var(gui, :Δh) * get_var(gui, :icon_scale) / 2,
         ]
     end
 
@@ -576,9 +578,10 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
                 )
                 Makie.translate!(network_poly, 0, 0, get_var(gui, :z_translate_components))
                 get_vars(gui)[:z_translate_components] += 1
+                network_poly.kw[:EMGUI_obj] = design
                 push!(design.plots, network_poly)
                 on(design.xy; priority=3) do c
-                    Δ = get_var(gui, :Δh)[] * get_var(gui, :icon_scale) / 2
+                    Δ = get_var(gui, :Δh) * get_var(gui, :icon_scale) / 2
                     sector = get_sector_points(; c, Δ, θ₁=θᵢ, θ₂=θᵢ₊₁, geometry=geometry)
                     network_poly[1][] = sector
                 end
@@ -598,11 +601,12 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
             )
             Makie.translate!(center_box, 0, 0, get_var(gui, :z_translate_components))
             get_vars(gui)[:z_translate_components] += 1
+            center_box.kw[:EMGUI_obj] = design
             push!(design.plots, center_box)
             on(design.xy; priority=3) do center
-                radius = get_var(gui, :Δh)[] * get_var(gui, :icon_scale) / 2
+                radius = get_var(gui, :Δh) * get_var(gui, :icon_scale) / 2
                 x_coords, y_coords = box(center[1], center[2], radius / 4)
-                center_box[1][] = Vector{Point{2,Float32}}([
+                center_box[1][] = Vector{Point{2,Float64}}([
                     [x, y] for (x, y) ∈ zip(x_coords, y_coords)
                 ])
             end
@@ -618,6 +622,7 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
         )
         Makie.translate!(icon_image, 0, 0, get_var(gui, :z_translate_components))
         get_vars(gui)[:z_translate_components] += 1
+        icon_image.kw[:EMGUI_obj] = design
         push!(design.plots, icon_image)
     end
 end
@@ -639,17 +644,17 @@ function draw_label!(gui::GUI, component::EnergySystemDesign)
         y = val[2]
 
         if component.wall[] == :E
-            xo[] = x + get_var(gui, :Δh)[] * scale
+            xo[] = x + get_var(gui, :Δh) * scale
             yo[] = y
         elseif component.wall[] == :S
             xo[] = x
-            yo[] = y - get_var(gui, :Δh)[] * scale
+            yo[] = y - get_var(gui, :Δh) * scale
         elseif component.wall[] == :W
-            xo[] = x - get_var(gui, :Δh)[] * scale
+            xo[] = x - get_var(gui, :Δh) * scale
             yo[] = y
         elseif component.wall[] == :N
             xo[] = x
-            yo[] = y + get_var(gui, :Δh)[] * scale
+            yo[] = y + get_var(gui, :Δh) * scale
         end
         alignment[] = get_text_alignment(component.wall[])
     end
@@ -667,6 +672,7 @@ function draw_label!(gui::GUI, component::EnergySystemDesign)
         )
         Makie.translate!(label_text, 0, 0, get_var(gui, :z_translate_components))
         get_vars(gui)[:z_translate_components] += 1
+        label_text.kw[:EMGUI_obj] = component
         push!(get_plots(component), label_text)
     end
 end
@@ -775,101 +781,73 @@ function toggle_selection_color!(gui::GUI, selection::Dict{Symbol,Any}, selected
 end
 
 """
-    pick_component!(gui::GUI)
+    get_EMGUI_obj(plt)
 
-Check if a system is found under the mouse pointer and if it is an `EnergySystemDesign`
-and update state variables.
+Get the `EnergySystemDesign`/`Connection` assosiated with `plt`. Note that due to the nested
+structure of Makie, we must iteratively look through up to three nested layers to find where
+this object is stored.
 """
-function pick_component!(gui::GUI; pick_topo_component=false, pick_results_component=false)
-    plt, _ = pick(get_fig(gui))
-
-    if isnothing(plt)
-        clear_selection(
-            gui; clear_topo=pick_topo_component, clear_results=pick_results_component
-        )
-    else
-        if pick_topo_component
-            design = get_design(gui)
-            components = get_components(design)
-            connections = get_connections(design)
-            # Loop through the design to find if the object under the pointer matches any
-            # of the object link to any of the components
-            for component ∈ components
-                for plot ∈ get_plots(component)
-                    if plot === plt || plot === plt.parent || plot === plt.parent.parent
-                        toggle_selection_color!(gui, component, true)
-                        push!(get_selected_systems(gui), component)
-                        return nothing
-                    end
-                end
-                sub_components = get_components(component)
-                if !isempty(sub_components) && get_var(gui, :expand_all)
-                    for sub_component ∈ sub_components
-                        for plot ∈ get_plots(sub_component)
-                            if plot === plt ||
-                                plot === plt.parent ||
-                                plot === plt.parent.parent
-                                toggle_selection_color!(gui, sub_component, true)
-                                push!(get_selected_systems(gui), sub_component)
-                                return nothing
-                            end
+function get_EMGUI_obj(plt)
+    if isa(plt, AbstractPlot)
+        if haskey(plt.kw, :EMGUI_obj)
+            return plt.kw[:EMGUI_obj]
+        else
+            if isa(plt.parent, AbstractPlot)
+                if haskey(plt.parent.kw, :EMGUI_obj)
+                    return plt.parent.kw[:EMGUI_obj]
+                else
+                    if isa(plt.parent.parent, AbstractPlot)
+                        if haskey(plt.parent.parent.kw, :EMGUI_obj)
+                            return plt.parent.parent.kw[:EMGUI_obj]
                         end
                     end
-                end
-            end
-
-            # Update the variables selections with the current selection
-            for connection ∈ connections
-                for plot ∈ get_plots(connection)
-                    for plot_sub ∈ plot[]
-                        if plot_sub === plt ||
-                            plot_sub === plt.parent ||
-                            plot_sub === plt.parent.parent
-                            toggle_selection_color!(gui, connection, true)
-                            push!(get_selected_systems(gui), connection)
-                            return nothing
-                        end
-                    end
-                end
-            end
-            for component ∈ components
-                sub_components = get_components(component)
-                if !isempty(sub_components) && get_var(gui, :expand_all)
-                    for connection ∈ sub_components
-                        for plot ∈ get_plots(connection)
-                            for plot_sub ∈ plot[]
-                                if plot_sub === plt ||
-                                    plot_sub === plt.parent ||
-                                    plot_sub === plt.parent.parent
-                                    toggle_selection_color!(gui, connection, true)
-                                    push!(get_selected_systems(gui), connection)
-                                    return nothing
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-        end
-        if pick_results_component
-            time_axis = get_menus(gui)[:time].selection[]
-            for vis_obj ∈ get_var(gui, :visible_data)[time_axis]
-                plot = vis_obj[:plot]
-                if plot === plt ||
-                    plot === plt.parent ||
-                    plot === plt.parent.parent ||
-                    plot === plt.parent.parent.parent
-                    if !(vis_obj ∈ get_selected_plots(gui))
-                        toggle_selection_color!(gui, vis_obj, true)
-                        push!(get_selected_plots(gui), vis_obj)
-                    end
-                    return nothing
                 end
             end
         end
     end
 end
 
+"""
+    pick_component!(gui::GUI)
+
+Check if a system is found under the mouse pointer and if it is an `EnergySystemDesign`
+or a `Connection` and update state variables.
+"""
+function pick_component!(gui::GUI; pick_topo_component=false, pick_results_component=false)
+    plt, _ = pick(get_fig(gui))
+
+    pick_component!(gui, plt; pick_topo_component, pick_results_component)
+end
+function pick_component!(
+    gui::GUI, plt::AbstractPlot; pick_topo_component=false, pick_results_component=false
+)
+    if pick_topo_component || pick_results_component
+        element = get_EMGUI_obj(plt)
+        pick_component!(gui, element; pick_topo_component, pick_results_component)
+    end
+end
+function pick_component!(
+    gui::GUI,
+    element::Union{EnergySystemDesign,Connection};
+    pick_topo_component=false,
+    pick_results_component=false,
+)
+    if isnothing(element)
+        clear_selection(
+            gui; clear_topo=pick_topo_component, clear_results=pick_results_component
+        )
+    else
+        push!(gui.vars[:selected_systems], element)
+        toggle_selection_color!(gui, element, true)
+    end
+end
+function pick_component!(
+    gui::GUI, ::Nothing; pick_topo_component=false, pick_results_component=false
+)
+    clear_selection(
+        gui; clear_topo=pick_topo_component, clear_results=pick_results_component
+    )
+end
 """
     get_hover_string(element::Plotable)
 

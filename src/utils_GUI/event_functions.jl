@@ -20,8 +20,8 @@ function define_event_functions(gui::GUI)
     # On zooming, make sure all graphics are adjusted acordingly
     on(get_ax(gui, :topo).finallimits; priority=10) do finallimits
         @debug "Changes in finallimits"
-        widths::Vec{2,Float32} = finallimits.widths
-        origin::Vec{2,Float32} = finallimits.origin
+        widths::Vec = finallimits.widths
+        origin::Vec = finallimits.origin
         get_vars(gui)[:xlimits] = [origin[1], origin[1] + widths[1]]
         get_vars(gui)[:ylimits] = [origin[2], origin[2] + widths[2]]
         update_distances!(gui)
@@ -37,7 +37,7 @@ function define_event_functions(gui::GUI)
     fig = get_fig(gui)
     on(fig.scene.events.window_area; priority=3) do val
         @debug "Changes in window_area"
-        get_vars(gui)[:plot_widths] = Tuple(fig.scene.px_area.val.widths)
+        get_vars(gui)[:plot_widths] = Tuple(fig.scene.viewport.val.widths)
         get_vars(gui)[:ax_aspect_ratio] =
             get_var(gui, :plot_widths)[1] /
             (get_var(gui, :plot_widths)[2] - get_var(gui, :taskbar_height)) / 2
@@ -98,7 +98,7 @@ function define_event_functions(gui::GUI)
         elseif event.action == Keyboard.release
             if is_ctrl(event.key)
                 # Register if any ctrl-key has been released
-                get_vars(gui, :ctrl_is_pressed)[] = false
+                get_var(gui, :ctrl_is_pressed)[] = false
             end
         end
         return Consume(true)
@@ -178,8 +178,8 @@ function define_event_functions(gui::GUI)
             widths::Vec2{Int64} = pixelarea(get_ax(gui, :topo).scene)[].widths
             mouse_pos_loc::Vec2{Float64} = mouse_pos .- origin
 
-            xy_widths::Vec2{Float32} = get_ax(gui, :topo).finallimits[].widths
-            xy_origin::Vec2{Float32} = get_ax(gui, :topo).finallimits[].origin
+            xy_widths::Vec2 = get_ax(gui, :topo).finallimits[].widths
+            xy_origin::Vec2 = get_ax(gui, :topo).finallimits[].origin
 
             xy::Vec2{Float64} = xy_origin .+ mouse_pos_loc .* xy_widths ./ widths
             selected_systems = get_selected_systems(gui)

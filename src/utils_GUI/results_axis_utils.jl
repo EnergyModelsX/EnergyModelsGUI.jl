@@ -382,7 +382,7 @@ function update_plot!(gui::GUI, element::Plotable)
 
     # Get data selection
     selection = available_data_menu.selection[]
-    if !isnothing(selection)
+    if !isnothing(selection) && selection != "no options"
         xlabel = "Time"
         if haskey(selection, :description)
             ylabel = selection[:description]
@@ -524,6 +524,7 @@ function update_plot!(gui::GUI, element::Plotable)
                     :color => plot.color[],
                 ),
             )
+            plot.kw[:EMGUI_obj] = get_visible_data(gui, time_axis)[end]
         end
         update_barplot_dodge!(gui)
         if all(y_values .≈ 0)
@@ -592,15 +593,16 @@ function update_legend!(gui::GUI)
     time_axis = get_menu(gui, :time).selection[]
     legend = get_results_legend(gui)
     if !isempty(legend)
-        legend[1].entrygroups[] = [(
-            nothing,
-            #! format: off
-            [
-                LegendEntry(x[:plot].label, x[:plot], legend[1])
-                for x ∈ get_visible_data(gui,time_axis)
-            ],
-            #! format: on
-        )]
+        legend_defaults = Makie.block_defaults(
+            :Legend, Dict{Symbol,Any}(), get_ax(gui, time_axis).scene
+        )
+        labels = [x[:plot].label for x ∈ get_visible_data(gui, time_axis)]
+        contents = [x[:plot] for x ∈ get_visible_data(gui, time_axis)]
+        title = nothing
+        entry_groups = Makie.to_entry_group(
+            Attributes(legend_defaults), contents, labels, title
+        )
+        legend[1].entrygroups[] = entry_groups
     end
 end
 
@@ -611,8 +613,8 @@ Update the limits based on the visible plots of type `time_axis`
 """
 function update_limits!(ax::Axis)
     autolimits!(ax)
-    yorigin::Float32 = ax.finallimits[].origin[2]
-    ywidth::Float32 = ax.finallimits[].widths[2]
+    yorigin = ax.finallimits[].origin[2]
+    ywidth = ax.finallimits[].widths[2]
 
     # ensure that the legend box does not overlap the data
     ylims!(ax, yorigin, yorigin + ywidth * 1.1)
