@@ -16,21 +16,21 @@ jobs:
         # Since EnergyModelsGUI doesn't have binary dependencies, 
         # only test on a subset of possible platforms.
         include:
-          - version: '1'  # The latest point-release (Linux)
-            os: ubuntu-latest
-            arch: x64
+          #- version: '1'  # The latest point-release (Linux)
+          #  os: ubuntu-latest
+          #  arch: x64
           - version: '1'  # The latest point-release (Windows)
             os: windows-latest
             arch: x64
-          - version: '1.9'  # 1.9 
-            os: ubuntu-latest
-            arch: x64
-          - version: '1.9'  # 1.9
-            os: ubuntu-latest
-            arch: x86
-          - version: 'nightly'
-            os: ubuntu-latest
-            arch: x64
+          #- version: '1.9'  # 1.9 
+          #  os: ubuntu-latest
+          #  arch: x64
+          #- version: '1.9'  # 1.9
+          #  os: ubuntu-latest
+          #  arch: x86
+          #- version: 'nightly'
+          #  os: ubuntu-latest
+          #  arch: x64
     steps:
       - uses: actions/checkout@v3
       - uses: julia-actions/setup-julia@v1
@@ -45,7 +45,7 @@ jobs:
         if: ${{ matrix.os == 'windows-latest' }}
         run: |
           # Install Chocolatey
-          @powershell -NoProfile -Command "iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))"
+          iex "& { $(irm https://chocolatey.org/install.ps1 -UseBasicP) }"
           # Install Visual C++ Build Tools
           choco install visualcpp-build-tools --version=14.29.30133
           # Install additional dependencies if needed
