@@ -33,7 +33,7 @@ function update_distances!(gui::GUI)
     if length(components) > 1
         for component ∈ components
             d::Float64 = minimum([
-                norm(collect(get_xy(component)[] .- get_xy(component2)[])) for
+                l2_norm(collect(get_xy(component)[] .- get_xy(component2)[])) for
                 component2 ∈ components if component != component2
             ])
             if d < min_d
