@@ -41,15 +41,17 @@ jobs:
       - name: Install Dependencies (Linux)
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: sudo apt-get update && sudo apt-get install -y xorg-dev mesa-utils xvfb libgl1 freeglut3-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libxext-dev xsettingsd x11-xserver-utils
-      #- name: Install Dependencies (Windows)
-        #if: ${{ matrix.os == 'windows-latest' }}
-        #run: |
-          # Install Visual C++ Build Tools (if needed)
-          # choco install visualcpp-build-tools --version=14.29.30133
-          # Update DirectX (optional, often DirectX is updated with Windows updates)
-          # Ensure to have appropriate runtime libraries
-          # Other installations can be added as needed
-        #shell: pwsh
+      - name: Install Dependencies (Windows)
+        if: ${{ matrix.os == 'windows-latest' }}
+        run: |
+          # Install Chocolatey
+          @powershell -NoProfile -Command "iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))"
+          # Install Visual C++ Build Tools
+          choco install visualcpp-build-tools --version=14.29.30133
+          # Install additional dependencies if needed
+          choco install mesa
+          # Note: Mesa is a software OpenGL implementation, you might need this for headless CI environments
+        shell: pwsh
       - uses: julia-actions/julia-buildpkg@v1
       - name: Run the tests (Linux)
         if: ${{ matrix.os == 'ubuntu-latest' }}
@@ -64,7 +66,9 @@ jobs:
         continue-on-error: true
         run: >
           julia --color=yes --project=. -e "using Pkg; Pkg.test(; coverage=true)"
-          set TESTS_SUCCESSFUL=true >> %GITHUB_ENV%
+          if %ERRORLEVEL% EQU 0 (
+            set TESTS_SUCCESSFUL=true >> %GITHUB_ENV%
+          )
       - name: Fail if tests failed
         if: ${{ env.TESTS_SUCCESSFUL != 'true' }}
         run: exit 1
