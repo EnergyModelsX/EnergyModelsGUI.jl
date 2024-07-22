@@ -47,11 +47,7 @@ jobs:
           # Install Visual C++ Build Tools
           choco install visualcpp-build-tools -y
           # Install additional dependencies if needed
-          choco install mesa -y
           choco install directx -y
-          choco install vcredist2022 -y
-          Invoke-WebRequest -Uri "https://downloads.mesa3d.org/mesa-21.3.7-windows-x64.msi" -OutFile "mesa3d.msi"
-          Start-Process -FilePath "mesa3d.msi" -ArgumentList "/quiet" -NoNewWindow -Wait
         shell: pwsh
       - name: Set OpenGL Environment
         if: ${{ matrix.os == 'windows-latest' }}
