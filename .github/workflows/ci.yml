@@ -45,7 +45,7 @@ jobs:
         if: ${{ matrix.os == 'windows-latest' }}
         run: |
           # Install Visual C++ Build Tools (if needed)
-          choco install visualcpp-build-tools --version=14.29.30133
+          # choco install visualcpp-build-tools --version=14.29.30133
           # Update DirectX (optional, often DirectX is updated with Windows updates)
           # Ensure to have appropriate runtime libraries
           # Other installations can be added as needed
