@@ -53,8 +53,9 @@ jobs:
         if: ${{ matrix.os == 'windows-latest' }}
         shell: cmd
         run: |
-          setx PATH "%PATH%;C:\Path\To\OpenGL"
-          setx OPENGL_HOME "C:\Path\To\OpenGL"
+          dir C:\Windows\System32\opengl32.dll
+          setx PATH "%PATH%;C:\Windows\System32\OpenGL"
+          setx OPENGL_HOME "C:\Windows\System32\OpenGL"
       - uses: julia-actions/julia-buildpkg@v1
       - name: Run the tests (Linux)
         if: ${{ matrix.os == 'ubuntu-latest' }}
