@@ -47,7 +47,7 @@ jobs:
           # Install Visual C++ Build Tools
           choco install visualcpp-build-tools -y
           # Install additional dependencies if needed
-          choco install mesa
+          # choco install mesa
           # Note: Mesa is a software OpenGL implementation, you might need this for headless CI environments
         shell: pwsh
       - uses: julia-actions/julia-buildpkg@v1
