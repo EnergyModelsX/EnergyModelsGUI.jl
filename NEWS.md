@@ -2,19 +2,19 @@
 
 ## Unversioned
 
-* Redirect stdout to avoid redundant printouts during testing
-* Create figures for docs and README.md file on the fly (based on current version)
-* Rename variables named type that is not acutually of type DataTypes to avoid confusion
-* Scattered the functions from the utils.jl and GUIutils.jl files onto smaller files in the folders `src/utils_gen` and `src/utils_GUI`
-* Updated docstrings
-* Change variable name from `node` to `element` for variables of type `Plotable`
-* Remove redundant `EMB.` and `EMG.` prefixes
-* Simplify the input argument of the function update_limits!
-* Add more comments and clean up EnergySystemDesign constructor
-* Introduced functions for accessing fields of types to simplify potential changes in field names and cleaned up code
+* Redirect stdout to avoid redundant printouts during testing.
+* Create figures for docs and README.md file on the fly (based on current version).
+* Rename variables named type that is not actually of type DataTypes to avoid confusion.
+* Scattered the functions from the utils.jl and GUIutils.jl files onto smaller files in the folders `src/utils_gen` and `src/utils_GUI`.
+* Updated docstrings.
+* Change variable name from `node` to `element` for variables of type `Plotable`.
+* Remove redundant `EMB.` and `EMG.` prefixes.
+* Simplify the input argument of the function update_limits!.
+* Add more comments and clean up EnergySystemDesign constructor.
+* Introduced functions for accessing fields of types to simplify potential changes in field names and cleaned up code.
 * Provided the user with the ability to provide descriptive_names in the folder `ext/EMGUIExt/descriptive_names.yml` for a EMX package, and/or
   a user defined file, and/or a user defined Dict.
-* Bump Makie versions to improve CI and performance
+* Bump Makie versions to improve CI and performance.
 
 ## Version 0.5.0 (2024-04-19)
 
