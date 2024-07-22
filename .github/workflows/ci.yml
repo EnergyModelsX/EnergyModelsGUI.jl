@@ -49,8 +49,16 @@ jobs:
           # Install additional dependencies if needed
           choco install mesa -y
           choco install directx -y
-          # Note: Mesa is a software OpenGL implementation, you might need this for headless CI environments
+          choco install vcredist2022 -y
+          Invoke-WebRequest -Uri "https://downloads.mesa3d.org/mesa-21.3.7-windows-x64.msi" -OutFile "mesa3d.msi"
+          Start-Process -FilePath "mesa3d.msi" -ArgumentList "/quiet" -NoNewWindow -Wait
         shell: pwsh
+      - name: Set OpenGL Environment
+        if: ${{ matrix.os == 'windows-latest' }}
+        shell: cmd
+        run: |
+          setx PATH "%PATH%;C:\Path\To\OpenGL"
+          setx OPENGL_HOME "C:\Path\To\OpenGL"
       - uses: julia-actions/julia-buildpkg@v1
       - name: Run the tests (Linux)
         if: ${{ matrix.os == 'ubuntu-latest' }}
