@@ -44,10 +44,8 @@ jobs:
       - name: Install Dependencies (Windows)
         if: ${{ matrix.os == 'windows-latest' }}
         run: |
-          # Install Chocolatey
-          iex "& { $(irm https://chocolatey.org/install.ps1 -UseBasicP) }"
           # Install Visual C++ Build Tools
-          choco install visualcpp-build-tools --version=14.29.30133
+          choco install visualcpp-build-tools -y
           # Install additional dependencies if needed
           choco install mesa
           # Note: Mesa is a software OpenGL implementation, you might need this for headless CI environments
