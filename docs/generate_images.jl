@@ -60,7 +60,7 @@ end
 """
     create_EMI_geography_images()
 
-Create figures of the GUI based on the EMI_geography.jl example to be used for docs and README.md
+Create figures of the GUI based on the EMI_geography.jl example to be used for docs and README.md.
 """
 function create_EMI_geography_images()
     include(joinpath(@__DIR__, "..", "examples", "EMI_geography.jl"))

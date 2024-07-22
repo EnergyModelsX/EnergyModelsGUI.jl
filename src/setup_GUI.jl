@@ -11,24 +11,24 @@ Initialize the EnergyModelsGUI window and visualize the topology of a system `ca
 
 # Keyword arguments:
 
-- **`design_path::String=""`** is a file path or identifier related to the design
+- **`design_path::String=""`** is a file path or identifier related to the design.
 - **`id_to_color_map::Dict=Dict()` is a dict that maps `Resource`s `id` to colors.
 - **`id_to_icon_map::Dict=Dict()` is a dict that maps `Node/Area` `id` to .png files for icons.
 - **`model::JuMP.Model=JuMP.Model()`** is the solved JuMP model with results for the `case`.
 - **`hide_topo_ax_decorations::Bool=true`** is a visibility toggle of ticks, ticklabels and
   grids for the topology axis.
 - **`expand_all::Bool=false`** is the default option for toggling visibility of all nodes
-  in all areas
+  in all areas.
 - **`periods_labels::Vector=[]`** are descriptive labels for strategic periods.
 - **`representative_periods_labels::Vector=[]`** are descriptive labels for the
   representative periods.
 - **`scenarios_labels::Vector=[]`** are descriptive labels for scenarios.
 - **`path_to_results::String=""`** is the path to where exported files are stored.
 - **`path_to_descriptive_names::String=""` is the Path to a .yml file where JuMP variables
-  are described
+  are described.
 - **`coarse_coast_lines::Bool=true`** is a toggle for coarse or fine resolution coastlines.
 - **`backgroundcolor=GLMakie.RGBf(0.99, 0.99, 0.99)`** is the background color of the
-  main window
+  main window.
 - **`fontsize::Int64=12`** is the general fontsize.
 - **`plot_widths::Tuple{Int64,Int64}=(1920, 1080)`** is the resolution of the window.
 """

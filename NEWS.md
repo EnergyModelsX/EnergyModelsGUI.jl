@@ -14,6 +14,7 @@
 * Introduced functions for accessing fields of types to simplify potential changes in field names and cleaned up code
 * Provided the user with the ability to provide descriptive_names in the folder `ext/EMGUIExt/descriptive_names.yml` for a EMX package, and/or
   a user defined file, and/or a user defined Dict.
+* Bump Makie versions to improve CI and performance
 
 ## Version 0.5.0 (2024-04-19)
 

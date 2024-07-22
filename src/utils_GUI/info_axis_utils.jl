@@ -1,7 +1,7 @@
 """
     update_info_box!(gui::GUI, element; indent::Int64=0)
 
-Based on `element` update the text in info box
+Based on `element` update the text in info box.
 """
 function update_info_box!(gui::GUI, element; indent::Int64=0)
     infoBox = get_ax(gui, :info).scene.plots[1][1]

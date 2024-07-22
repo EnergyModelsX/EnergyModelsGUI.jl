@@ -120,7 +120,7 @@ end
 """
     get_text_alignment(wall::Symbol)
 
-Get the text alignment for a label attached to a wall
+Get the text alignment for a label attached to a wall.
 """
 get_text_alignment(wall::Symbol) = get_text_alignment(Val(wall))
 get_text_alignment(::Val{:E}) = (:left, :center)

@@ -42,7 +42,7 @@ end
     update!(gui::GUI, element::Plotable; updateplot::Bool=true)
 
 Based on `element`, update the text in `get_axes(gui)[:info]` and update plot in
-`get_axes(gui)[:results]` if `updateplot = true`
+`get_axes(gui)[:results]` if `updateplot = true`.
 """
 function update!(gui::GUI, element::Plotable; updateplot::Bool=true)
     update_info_box!(gui, element)
@@ -56,7 +56,7 @@ end
     update!(gui::GUI, connection::Connection; updateplot::Bool=true)
 
 Based on `connection.connection`, update the text in `get_axes(gui)[:info]`
-and update plot in `get_axes(gui)[:results]` if `updateplot = true`
+and update plot in `get_axes(gui)[:results]` if `updateplot = true`.
 """
 function update!(gui::GUI, connection::Connection; updateplot::Bool=true)
     return update!(gui, get_connection(connection); updateplot)
@@ -66,7 +66,7 @@ end
     update!(gui::GUI, design::EnergySystemDesign; updateplot::Bool=true)
 
 Based on `get_system_node(design)`, update the text in `get_axes(gui)[:info]`
-and update plot in `get_axes(gui)[:results]` if `updateplot = true`
+and update plot in `get_axes(gui)[:results]` if `updateplot = true`.
 """
 function update!(gui::GUI, design::EnergySystemDesign; updateplot::Bool=true)
     return update!(gui, get_system_node(design); updateplot)
@@ -223,10 +223,10 @@ end
 Update the dictionary of `descriptive_names` where the Dict is appended/overwritten in the
 following order:
 
-- The default descriptive names found in `src/descriptive_names.yml`
-- Any descriptive_names.yml file found in the ext/EMGUIExt folder of any other EMX package
-- Descriptive names from a user defined file (from the GUI input argument `path_to_descriptive_names`)
-- Descriptive names from a user defined Dict (from the GUI input argument `descriptive_names_dict`)
+- The default descriptive names found in `src/descriptive_names.yml`.
+- Any descriptive_names.yml file found in the ext/EMGUIExt folder of any other EMX package.
+- Descriptive names from a user defined file (from the GUI input argument `path_to_descriptive_names`).
+- Descriptive names from a user defined Dict (from the GUI input argument `descriptive_names_dict`).
 """
 function update_descriptive_names!(gui::GUI)
     descriptive_names = YAML.load_file(

@@ -77,8 +77,8 @@ Mutable type for providing a flexible data structure for connections between
 - **`to::EnergySystemDesign`** is the `EnergySystemDesign` to which the connection is
   linked to.
 - **`connection::Union{Link,Transmission}`** is the EMX connection structure.
-- **`colors::Vector{RGB}`** is the associated colors of the connection
-- **`plots::Vector{Any}`** is a vector with all Makie object associated with this object
+- **`colors::Vector{RGB}`** is the associated colors of the connection.
+- **`plots::Vector{Any}`** is a vector with all Makie object associated with this object.
 """
 mutable struct Connection
     from::EnergySystemDesign
@@ -189,244 +189,244 @@ end
 """
     get_parent(design::EnergySystemDesign)
 
-Returns the `parent` field of a `EnergySystemDesign` `design`
+Returns the `parent` field of a `EnergySystemDesign` `design`.
 """
 get_parent(design::EnergySystemDesign) = design.parent
 
 """
     get_system(design::EnergySystemDesign)
 
-Returns the `system` field of a `EnergySystemDesign` `design`
+Returns the `system` field of a `EnergySystemDesign` `design`.
 """
 get_system(design::EnergySystemDesign) = design.system
 
 """
     get_system_node(design::EnergySystemDesign)
 
-Returns the system node (i.e. availability node for areas) of a `EnergySystemDesign` `design`
+Returns the system node (i.e. availability node for areas) of a `EnergySystemDesign` `design`.
 """
 get_system_node(design::EnergySystemDesign) = design.system[:node]
 
 """
     get_components(design::EnergySystemDesign)
 
-Returns the `components` field of a `EnergySystemDesign` `design`
+Returns the `components` field of a `EnergySystemDesign` `design`.
 """
 get_components(design::EnergySystemDesign) = design.components
 
 """
     get_connections(design::EnergySystemDesign)
 
-Returns the `connections` field of a `EnergySystemDesign` `design`
+Returns the `connections` field of a `EnergySystemDesign` `design`.
 """
 get_connections(design::EnergySystemDesign) = design.connections
 
 """
     get_xy(design::EnergySystemDesign)
 
-Returns the `xy` field of a `EnergySystemDesign` `design`
+Returns the `xy` field of a `EnergySystemDesign` `design`.
 """
 get_xy(design::EnergySystemDesign) = design.xy
 
 """
     get_icon(design::EnergySystemDesign)
 
-Returns the `icon` field of a `EnergySystemDesign` `design`
+Returns the `icon` field of a `EnergySystemDesign` `design`.
 """
 get_icon(design::EnergySystemDesign) = design.icon
 
 """
     get_color(design::EnergySystemDesign)
 
-Returns the `color` field of a `EnergySystemDesign` `design`
+Returns the `color` field of a `EnergySystemDesign` `design`.
 """
 get_color(design::EnergySystemDesign) = design.color
 
 """
     get_wall(design::EnergySystemDesign)
 
-Returns the `wall` field of a `EnergySystemDesign` `design`
+Returns the `wall` field of a `EnergySystemDesign` `design`.
 """
 get_wall(design::EnergySystemDesign) = design.wall
 
 """
     get_file(design::EnergySystemDesign)
 
-Returns the `file` field of a `EnergySystemDesign` `design`
+Returns the `file` field of a `EnergySystemDesign` `design`.
 """
 get_file(design::EnergySystemDesign) = design.file
 
 """
     get_plots(design::EnergySystemDesign)
 
-Returns the `plots` field of a `EnergySystemDesign` `design`
+Returns the `plots` field of a `EnergySystemDesign` `design`.
 """
 get_plots(design::EnergySystemDesign) = design.plots
 
 """
     get_from(conn::Connection)
 
-Returns the `from` field of a `Connection` `conn`
+Returns the `from` field of a `Connection` `conn`.
 """
 get_from(conn::Connection) = conn.from
 
 """
     get_to(conn::Connection)
 
-Returns the `to` field of a `Connection` `conn`
+Returns the `to` field of a `Connection` `conn`.
 """
 get_to(conn::Connection) = conn.to
 
 """
     get_connection(conn::Connection)
 
-Returns the `connection` field of a `Connection` `conn`
+Returns the `connection` field of a `Connection` `conn`.
 """
 get_connection(conn::Connection) = conn.connection
 
 """
     get_colors(conn::Connection)
 
-Returns the `colors` field of a `Connection` `conn`
+Returns the `colors` field of a `Connection` `conn`.
 """
 get_colors(conn::Connection) = conn.colors
 
 """
     get_plots(conn::Connection)
 
-Returns the `plots` field of a `Connection` `conn`
+Returns the `plots` field of a `Connection` `conn`.
 """
 get_plots(conn::Connection) = conn.plots
 
 """
     get_fig(gui::GUI)
 
-Returns the `fig` field of a `GUI` `gui`
+Returns the `fig` field of a `GUI` `gui`.
 """
 get_fig(gui::GUI) = gui.fig
 
 """
     get_axes(gui::GUI)
 
-Returns the `axes` field of a `GUI` `gui`
+Returns the `axes` field of a `GUI` `gui`.
 """
 get_axes(gui::GUI) = gui.axes
 
 """
     get_ax(gui::GUI, ax_name::Symbol)
 
-Returns the `ax` object with name `ax_name` of a `GUI` `gui`
+Returns the `ax` object with name `ax_name` of a `GUI` `gui`.
 """
 get_ax(gui::GUI, ax_name) = gui.axes[ax_name]
 
 """
     get_button(gui::GUI, button_name::Symbol)
 
-Returns the `button` with name `button_name` of a `GUI` `gui`
+Returns the `button` with name `button_name` of a `GUI` `gui`.
 """
 get_button(gui::GUI, button_name::Symbol) = gui.buttons[button_name]
 
 """
     get_menus(gui::GUI)
 
-Returns the `menus` field of a `GUI` `gui`
+Returns the `menus` field of a `GUI` `gui`.
 """
 get_menus(gui::GUI) = gui.menus
 
 """
     get_menu(gui::GUI, menu_name::Symbol)
 
-Returns the `menu` with name `menu_name` of a `GUI` `gui`
+Returns the `menu` with name `menu_name` of a `GUI` `gui`.
 """
 get_menu(gui::GUI, menu_name::Symbol) = gui.menus[menu_name]
 
 """
     get_toggles(gui::GUI, toggle_name::Symbol)
 
-Returns the `toggle` with name `toggle_name` of a `GUI` `gui`
+Returns the `toggle` with name `toggle_name` of a `GUI` `gui`.
 """
 get_toggle(gui::GUI, toggle_name::Symbol) = gui.toggles[toggle_name]
 
 """
     get_root_design(gui::GUI)
 
-Returns the `root_design` field of a `GUI` `gui`
+Returns the `root_design` field of a `GUI` `gui`.
 """
 get_root_design(gui::GUI) = gui.root_design
 
 """
     get_design(gui::GUI)
 
-Returns the `design` field of a `GUI` `gui`
+Returns the `design` field of a `GUI` `gui`.
 """
 get_design(gui::GUI) = gui.design
 
 """
     get_model(gui::GUI)
 
-Returns the `model` field of a `GUI` `gui`
+Returns the `model` field of a `GUI` `gui`.
 """
 get_model(gui::GUI) = gui.model
 
 """
     get_vars(gui::GUI)
 
-Returns the `vars` field of a `GUI` `gui`
+Returns the `vars` field of a `GUI` `gui`.
 """
 get_vars(gui::GUI) = gui.vars
 
 """
     get_var(gui::GUI, key::Symbol)
 
-Returns the `vars` field at `key` of a `GUI` `gui`
+Returns the `vars` field at `key` of a `GUI` `gui`.
 """
 get_var(gui::GUI, key::Symbol) = gui.vars[key]
 
 """
     get_selected_systems(gui::GUI)
 
-Get the selected systems from the `gui`
+Get the selected systems from the `gui`.
 """
 get_selected_systems(gui::GUI) = get_var(gui, :selected_systems)
 
 """
     get_selected_plots(gui::GUI)
 
-Get the selected plots from the `gui`
+Get the selected plots from the `gui`.
 """
 get_selected_plots(gui::GUI) = get_var(gui, :selected_plots)
 
 """
     get_visible_data(gui::GUI, time_axes::Symbol)
 
-Get the visible plots from the `gui` for the `time_axes`
+Get the visible plots from the `gui` for the `time_axes`.
 """
 get_visible_data(gui::GUI, time_axes::Symbol) = get_var(gui, :visible_data)[time_axes]
 
 """
     get_pinned_data(gui::GUI, time_axes::Symbol)
 
-Get the pinned plots from the `gui` for the `time_axes`
+Get the pinned plots from the `gui` for the `time_axes`.
 """
 get_pinned_data(gui::GUI, time_axes::Symbol) = get_var(gui, :pinned_data)[time_axes]
 
 """
     get_results_legend(gui::GUI)
 
-Get the legend from the current visible time axis from the `gui`
+Get the legend from the current visible time axis from the `gui`.
 """
 get_results_legend(gui::GUI) = get_var(gui, :results_legend)
 
 """
     get_available_data(gui::GUI)
 
-Get the vector of containers for the available data from the `gui`
+Get the vector of containers for the available data from the `gui`.
 """
 get_available_data(gui::GUI) = get_var(gui, :available_data)
 
 """
     get_selection_color(gui::GUI)
 
-Get the selection color for the `gui`
+Get the selection color for the `gui`.
 """
 get_selection_color(gui::GUI) = get_var(gui, :selection_color)

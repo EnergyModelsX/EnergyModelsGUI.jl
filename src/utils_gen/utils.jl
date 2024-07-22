@@ -22,7 +22,7 @@ end
     get_scenario_indices(T::TS.TimeStructure, sp::Int64, rp::Int64)
 
 Return indices of the scenarios in the time structure `T` for strategic period number `sp`
-and representative period `rp`
+and representative period `rp`.
 """
 function get_scenario_indices(T::TS.TimeStructure, sp::Int64, rp::Int64)
     if eltype(T.operational) <: TS.RepresentativePeriods
@@ -58,7 +58,7 @@ end
     ) where {S <: Number, T <: Number}
 
 For a data set (`x`,`y`) add intermediate points to obtain a stepwise function and add a
-point at zero if `start_at_zero = true`
+point at zero if `start_at_zero = true`.
 """
 function stepify(
     x::Vector{S}, y::Vector{T}; start_at_zero::Bool=true
@@ -162,7 +162,7 @@ end
 """
     merge_dicts(dict1::Dict, dict2::Dict)
 
-Merge `dict1` and `dict2` (in case of overlap, `dict2` overwrites entries in `dict1`)
+Merge `dict1` and `dict2` (in case of overlap, `dict2` overwrites entries in `dict1`).
 """
 function merge_dicts(dict1::Dict, dict2::Dict)
     merged = deepcopy(dict1)

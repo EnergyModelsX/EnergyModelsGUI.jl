@@ -166,7 +166,7 @@ end
     extract_combinations!(gui::GUI, available_data::Vector{Dict}, var::Symbol)
 
 Extract all combinations of available resources in `model[var]`, add descriptions to
-`container`, and add `container` to `available_data`
+`container`, and add `container` to `available_data`.
 """
 function extract_combinations!(gui::GUI, available_data::Vector{Dict}, var::Symbol)
     model = get_model(gui)
@@ -184,7 +184,7 @@ end
     )
 
 Extract all combinations of available resources in `model[var]` for a given `element`, add
-descriptions to `container`, and add `container` to `available_data`
+descriptions to `container`, and add `container` to `available_data`.
 """
 function extract_combinations!(
     gui::GUI, available_data::Vector{Dict}, var::Symbol, element::Plotable
@@ -245,7 +245,7 @@ end
 
 Get the values from the JuMP `model` for a JuMP variable `var` at `selection` containing all
 indices except for the time index from which we want to extract all values in the vector `periods`).
-The time dimension is located at `i_T` of `model[var]`
+The time dimension is located at `i_T` of `model[var]`.
 """
 function get_jump_values(
     model::JuMP.Model, var::Symbol, selection::Vector, periods::Vector, i_T::Int64
@@ -555,7 +555,7 @@ end
 """
     update_plot!(gui::GUI)
 
-Based on `selected_systems` update plots
+Based on `selected_systems` update plots.
 """
 function update_plot!(gui)
     selected_systems = get_selected_systems(gui)
@@ -569,7 +569,7 @@ end
 """
     update_plot!(gui::GUI, design::EnergySystemDesign)
 
-Based on `connection` update plots
+Based on `connection` update plots.
 """
 function update_plot!(gui::GUI, connection::Connection)
     return update_plot!(gui, get_connection(connection))
@@ -578,7 +578,7 @@ end
 """
     update_plot!(gui::GUI, design::EnergySystemDesign)
 
-Based on `design` update plots
+Based on `design` update plots.
 """
 function update_plot!(gui::GUI, design::EnergySystemDesign)
     return update_plot!(gui, get_system_node(design))
@@ -587,7 +587,7 @@ end
 """
     update_legend!(gui::GUI)
 
-Update the legend based on the visible plots of type `time_axis`
+Update the legend based on the visible plots of type `time_axis`.
 """
 function update_legend!(gui::GUI)
     time_axis = get_menu(gui, :time).selection[]
@@ -609,7 +609,7 @@ end
 """
     update_limits!(gui::GUI)
 
-Update the limits based on the visible plots of type `time_axis`
+Update the limits based on the visible plots of type `time_axis`.
 """
 function update_limits!(ax::Axis)
     autolimits!(ax)
@@ -623,7 +623,7 @@ end
 """
     update_barplot_dodge!(gui::GUI)
 
-Update the barplot of the state of the GUI (such that the bars are dodged away from each other)
+Update the barplot of the state of the GUI (such that the bars are dodged away from each other).
 """
 function update_barplot_dodge!(gui::GUI)
     time_axis = get_menu(gui, :time).selection[]

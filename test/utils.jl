@@ -1,7 +1,7 @@
 """
     run_through_all(gui::GUI)
 
-Loop through all components of get_root_design(gui) and display all available data
+Loop through all components of get_root_design(gui) and display all available data.
 """
 function run_through_all(gui::GUI; break_after_first::Bool=true)
     @info "Running through all components"
@@ -11,7 +11,7 @@ end
 """
     run_through_all(gui::GUI, design::EnergySystemDesign)
 
-Loop through all components of design and display all available data
+Loop through all components of design and display all available data.
 """
 function run_through_all(gui::GUI, design::EnergySystemDesign, break_after_first::Bool)
     for component ∈ get_components(design)
