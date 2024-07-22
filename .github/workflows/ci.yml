@@ -51,12 +51,20 @@ jobs:
           # Other installations can be added as needed
         #shell: pwsh
       - uses: julia-actions/julia-buildpkg@v1
-      - name: Run the tests
-        id: EMGUI_tests
+      - name: Run the tests (Linux)
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        id: EMGUI_tests_linux
         continue-on-error: true
         run: >
           DISPLAY=:0 xvfb-run -s '-screen 0 1024x768x24' julia --color=yes --project=. -e 'using Pkg; Pkg.test(; coverage=true)'
           && echo "TESTS_SUCCESSFUL=true" >> $GITHUB_ENV
+      - name: Run the tests (Windows)
+        if: ${{ matrix.os == 'windows-latest' }}
+        id: EMGUI_tests_windows
+        continue-on-error: true
+        run: >
+          julia --color=yes --project=. -e "using Pkg; Pkg.test(; coverage=true)"
+          set TESTS_SUCCESSFUL=true >> %GITHUB_ENV%
       - name: Fail if tests failed
         if: ${{ env.TESTS_SUCCESSFUL != 'true' }}
         run: exit 1
