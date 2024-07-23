@@ -94,95 +94,11 @@ function initialize_available_data!(gui)
         # Find appearances of node/area/link/transmission in the model
         available_data = Vector{Dict}(undef, 0)
         if termination_status(model) == MOI.OPTIMAL # Plot results if available
-            for dict ∈ collect(keys(object_dictionary(model)))
-                if isempty(model[dict])
+            for sym ∈ collect(keys(object_dictionary(model)))
+                if isempty(model[sym])
                     continue
                 end
-                if typeof(model[dict]) <: JuMP.Containers.DenseAxisArray
-                    # nodes/areas found in structure
-                    if any(eltype.(axes(model[dict])) .<: Union{EMB.Node,Area})
-                        # only add dict if used by element (assume element is located at first Dimension)
-                        if exists(model[dict], element)
-                            if length(axes(model[dict])) > 2
-                                for res ∈ model[dict].axes[3]
-                                    container = Dict(
-                                        :name => string(dict),
-                                        :is_jump_data => true,
-                                        :selection => [element, res],
-                                    )
-                                    key_str = "variables.$dict"
-                                    add_description!(
-                                        available_data, container, gui, key_str
-                                    )
-                                end
-                            else
-                                container = Dict(
-                                    :name => string(dict),
-                                    :is_jump_data => true,
-                                    :selection => [element],
-                                )
-                                key_str = "variables.$dict"
-                                add_description!(available_data, container, gui, key_str)
-                            end
-                        end
-                    elseif any(eltype.(axes(model[dict])) .<: TransmissionMode) # element found in structure
-                        if isa(element, Transmission)
-                            for mode ∈ modes(element)
-                                # only add dict if used by element (assume element is located at first Dimension)
-                                if exists(model[dict], mode)
-                                    # do not include element (<: Transmission) here
-                                    # as the mode is unique to this transmission
-                                    container = Dict(
-                                        :name => string(dict),
-                                        :is_jump_data => true,
-                                        :selection => [mode],
-                                    )
-                                    key_str = "variables.$dict"
-                                    add_description!(
-                                        available_data, container, gui, key_str
-                                    )
-                                end
-                            end
-                        end
-                    elseif isnothing(element)
-                        if length(axes(model[dict])) > 1
-                            for res ∈ model[dict].axes[2]
-                                container = Dict(
-                                    :name => string(dict),
-                                    :is_jump_data => true,
-                                    :selection => [res],
-                                )
-                                key_str = "variables.$dict"
-                                add_description!(available_data, container, gui, key_str)
-                            end
-                        else
-                            container = Dict(
-                                :name => string(dict),
-                                :is_jump_data => true,
-                                :selection => EMB.Node[],
-                            )
-                            key_str = "variables.$dict"
-                            add_description!(available_data, container, gui, key_str)
-                        end
-                    end
-                elseif typeof(model[dict]) <: SparseVars
-                    fieldtypes = typeof.(first(keys(model[dict].data)))
-                    if any(fieldtypes .<: Union{EMB.Node,Link,Area}) # nodes/area/links found in structure
-                        if exists(model[dict], element) # current element found in structure
-                            extract_combinations!(gui, available_data, dict, element)
-                        end
-                    elseif any(fieldtypes .<: TransmissionMode) # TransmissionModes found in structure
-                        if isa(element, Transmission)
-                            for mode ∈ modes(element)
-                                if exists(model[dict], mode) # current mode found in structure
-                                    extract_combinations!(gui, available_data, dict, mode)
-                                end
-                            end
-                        end
-                    elseif isnothing(element)
-                        extract_combinations!(gui, available_data, dict)
-                    end
-                end
+                add_description!(available_data, model[sym], sym, element, gui)
             end
         end
 

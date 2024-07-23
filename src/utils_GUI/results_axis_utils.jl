@@ -163,45 +163,151 @@ function add_description!(
 end
 
 """
-    extract_combinations!(gui::GUI, available_data::Vector{Dict}, var::Symbol)
+    add_description!(
+        available_data::Vector{Dict},
+        var::JuMP.Containers.DenseAxisArray,
+        sym::Symbol,
+        element::Plotable,
+        gui::GUI,
+    )
 
-Extract all combinations of available resources in `model[var]`, add descriptions to
+Add description to `available_data` for the JuMP variable `var` (with name `sym`) for `element`.
+"""
+function add_description!(
+    available_data::Vector{Dict},
+    var::JuMP.Containers.DenseAxisArray,
+    sym::Symbol,
+    element::Plotable,
+    gui::GUI,
+)
+    # nodes/areas found in structure
+    if any(eltype.(axes(var)) .<: Union{EMB.Node,Area})
+        # only add var if used by element (assume element is located at first Dimension)
+        if exists(var, element)
+            if length(axes(var)) > 2
+                for res ∈ var.axes[3]
+                    container = Dict(
+                        :name => string(sym),
+                        :is_jump_data => true,
+                        :selection => [element, res],
+                    )
+                    key_str = "variables.$sym"
+                    add_description!(available_data, container, gui, key_str)
+                end
+            else
+                container = Dict(
+                    :name => string(sym), :is_jump_data => true, :selection => [element]
+                )
+                key_str = "variables.$sym"
+                add_description!(available_data, container, gui, key_str)
+            end
+        end
+    elseif any(eltype.(axes(var)) .<: TransmissionMode) # element found in structure
+        if isa(element, Transmission)
+            for mode ∈ modes(element)
+                # only add dict if used by element (assume element is located at first Dimension)
+                if exists(var, mode)
+                    # do not include element (<: Transmission) here
+                    # as the mode is unique to this transmission
+                    container = Dict(
+                        :name => string(sym), :is_jump_data => true, :selection => [mode]
+                    )
+                    key_str = "variables.$sym"
+                    add_description!(available_data, container, gui, key_str)
+                end
+            end
+        end
+    elseif isnothing(element)
+        if length(axes(var)) > 1
+            for res ∈ var.axes[2]
+                container = Dict(
+                    :name => string(sym), :is_jump_data => true, :selection => [res]
+                )
+                key_str = "variables.$sym"
+                add_description!(available_data, container, gui, key_str)
+            end
+        else
+            container = Dict(
+                :name => string(sym), :is_jump_data => true, :selection => EMB.Node[]
+            )
+            key_str = "variables.$sym"
+            add_description!(available_data, container, gui, key_str)
+        end
+    end
+end
+
+"""
+    add_description!(
+        available_data::Vector{Dict},
+        var::SparseVars,
+        sym::Symbol,
+        element::Plotable,
+        gui::GUI,
+    )
+
+Add description to `available_data` for the JuMP variable `var` (with name `sym`) for `element`.
+"""
+function add_description!(
+    available_data::Vector{Dict}, var::SparseVars, sym::Symbol, element::Plotable, gui::GUI
+)
+    fieldtypes = typeof.(first(keys(var.data)))
+    if any(fieldtypes .<: Union{EMB.Node,Link,Area}) # nodes/area/links found in structure
+        if exists(var, element) # current element found in structure
+            extract_combinations!(gui, available_data, sym, element)
+        end
+    elseif any(fieldtypes .<: TransmissionMode) # TransmissionModes found in structure
+        if isa(element, Transmission)
+            for mode ∈ modes(element)
+                if exists(var, mode) # current mode found in structure
+                    extract_combinations!(gui, available_data, sym, mode)
+                end
+            end
+        end
+    elseif isnothing(element)
+        extract_combinations!(gui, available_data, sym)
+    end
+end
+
+"""
+    extract_combinations!(gui::GUI, available_data::Vector{Dict}, sym::Symbol)
+
+Extract all combinations of available resources in `model[sym]`, add descriptions to
 `container`, and add `container` to `available_data`.
 """
-function extract_combinations!(gui::GUI, available_data::Vector{Dict}, var::Symbol)
+function extract_combinations!(gui::GUI, available_data::Vector{Dict}, sym::Symbol)
     model = get_model(gui)
-    resources::Vector{Resource} = unique([key[2] for key ∈ keys(model[var].data)])
+    resources::Vector{Resource} = unique([key[2] for key ∈ keys(model[sym].data)])
     for res ∈ resources
-        var_str = string(var)
-        container = Dict(:name => var_str, :is_jump_data => true, :selection => [res])
-        add_description!(available_data, container, gui, "variables.$var_str")
+        sym_str = string(sym)
+        container = Dict(:name => sym_str, :is_jump_data => true, :selection => [res])
+        add_description!(available_data, container, gui, "variables.$sym_str")
     end
 end
 
 """
     extract_combinations!(
-        gui::GUI, available_data::Vector{Dict}, var::Symbol, element::Plotable
+        gui::GUI, available_data::Vector{Dict}, sym::Symbol, element::Plotable
     )
 
-Extract all combinations of available resources in `model[var]` for a given `element`, add
+Extract all combinations of available resources in `model[sym]` for a given `element`, add
 descriptions to `container`, and add `container` to `available_data`.
 """
 function extract_combinations!(
-    gui::GUI, available_data::Vector{Dict}, var::Symbol, element::Plotable
+    gui::GUI, available_data::Vector{Dict}, sym::Symbol, element::Plotable
 )
     model = get_model(gui)
-    if isa(model[var], SparseVariables.IndexedVarArray)
-        var_str = string(var)
-        container = Dict(:name => var_str, :is_jump_data => true, :selection => [element])
-        add_description!(available_data, container, gui, "variables.$var_str")
+    if isa(model[sym], SparseVariables.IndexedVarArray)
+        sym_str = string(sym)
+        container = Dict(:name => sym_str, :is_jump_data => true, :selection => [element])
+        add_description!(available_data, container, gui, "variables.$sym_str")
     else
-        resources = unique([key[2] for key ∈ keys(model[var][element, :, :].data)])
+        resources = unique([key[2] for key ∈ keys(model[sym][element, :, :].data)])
         for res ∈ resources
-            var_str = string(var)
+            sym_str = string(sym)
             container = Dict(
-                :name => var_str, :is_jump_data => true, :selection => [element, res]
+                :name => sym_str, :is_jump_data => true, :selection => [element, res]
             )
-            add_description!(available_data, container, gui, "variables.$var_str")
+            add_description!(available_data, container, gui, "variables.$sym_str")
         end
     end
 end
@@ -223,15 +329,15 @@ function get_data(
     model::JuMP.Model, selection::Dict, T::TS.TimeStructure, sp::Int64, rp::Int64, sc::Int64
 )
     if selection[:is_jump_data]
-        var = Symbol(selection[:name])
-        i_T, type = get_time_axis(model[var])
+        sym = Symbol(selection[:name])
+        i_T, type = get_time_axis(model[sym])
     else
         field_data = selection[:field_data]
         type = typeof(field_data)
     end
     periods, time_axis = get_periods(T, type, sp, rp, sc)
     if selection[:is_jump_data]
-        y_values = get_jump_values(model, var, selection[:selection], periods, i_T)
+        y_values = get_jump_values(model, sym, selection[:selection], periods, i_T)
     else
         y_values = field_data[periods]
     end
@@ -240,18 +346,18 @@ end
 
 """
     get_jump_values(
-        model::JuMP.Model, var::Symbol, selection::Vector, periods::Vector, i_T::Int64
+        model::JuMP.Model, sym::Symbol, selection::Vector, periods::Vector, i_T::Int64
     )
 
-Get the values from the JuMP `model` for a JuMP variable `var` at `selection` containing all
+Get the values from the JuMP `model` for a JuMP variable `sym` at `selection` containing all
 indices except for the time index from which we want to extract all values in the vector `periods`).
-The time dimension is located at `i_T` of `model[var]`.
+The time dimension is located at `i_T` of `model[sym]`.
 """
 function get_jump_values(
-    model::JuMP.Model, var::Symbol, selection::Vector, periods::Vector, i_T::Int64
+    model::JuMP.Model, sym::Symbol, selection::Vector, periods::Vector, i_T::Int64
 )
     return [
-        value(model[var][vcat(selection[1:(i_T - 1)], t, selection[i_T:end])...]) for
+        value(model[sym][vcat(selection[1:(i_T - 1)], t, selection[i_T:end])...]) for
         t ∈ periods
     ]
 end
