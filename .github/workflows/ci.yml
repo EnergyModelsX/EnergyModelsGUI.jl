@@ -44,16 +44,21 @@ jobs:
       - name: Install Dependencies (Windows)
         if: ${{ matrix.os == 'windows-latest' }}
         run: |
-          # Install Visual C++ Build Tools
-          choco install visualcpp-build-tools -y
-          # Install additional dependencies if needed
-          choco install directx -y
+          ## Install Visual C++ Build Tools
+          # choco install visualcpp-build-tools -y
+          ## Install additional dependencies if needed
+          # choco install directx -y
+          # Download and extract Mesa3D
+          powershell -Command "Invoke-WebRequest -Uri 'https://github.com/mesa3d/mesa/releases/download/<version>/mesa-<version>-win64.zip' -OutFile 'mesa.zip'"
+          powershell -Command "Expand-Archive -Path 'mesa.zip' -DestinationPath 'C:\Mesa3D'"
+          # Add Mesa3D to PATH
+          setx PATH "%PATH%;C:\Mesa3D\bin"
+          setx MESA_HOME "C:\Mesa3D"
         shell: pwsh
       - name: Set OpenGL Environment
         if: ${{ matrix.os == 'windows-latest' }}
         shell: cmd
         run: |
-          dir C:\Windows\System32\opengl32.dll
           setx PATH "%PATH%;C:\Windows\System32"
           setx OPENGL_HOME "C:\Windows\System32"
       - uses: julia-actions/julia-buildpkg@v1
