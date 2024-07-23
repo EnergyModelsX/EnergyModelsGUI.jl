@@ -519,6 +519,8 @@ Draw an icon for EnergySystemDesign `design`.
 function draw_icon!(gui::GUI, design::EnergySystemDesign)
     xo::Observable{Vector{Real}} = Observable([0.0, 0.0])
     yo::Observable{Vector{Real}} = Observable([0.0, 0.0])
+    xo_image = Observable(0.0 .. 0.0)
+    yo_image = Observable(0.0 .. 0.0)
     on(design.xy; priority=3) do val
         x::Real = val[1]
         y::Real = val[2]
@@ -531,6 +533,8 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
             y - get_var(gui, :Δh) * get_var(gui, :icon_scale) / 2,
             y + get_var(gui, :Δh) * get_var(gui, :icon_scale) / 2,
         ]
+        xo_image[] = xo[][1] .. xo[][2]
+        yo_image[] = yo[][1] .. yo[][2]
     end
 
     if isempty(design.icon) # No path to an icon has been found
@@ -615,8 +619,8 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
         @debug "$(design.icon)"
         icon_image = image!(
             get_axes(gui)[:topo],
-            xo,
-            yo,
+            xo_image,
+            yo_image,
             rotr90(FileIO.load(design.icon));
             inspectable=false,
         )
