@@ -795,17 +795,12 @@ function get_EMGUI_obj(plt)
     if isa(plt, AbstractPlot)
         if haskey(plt.kw, :EMGUI_obj)
             return plt.kw[:EMGUI_obj]
-        else
-            if isa(plt.parent, AbstractPlot)
-                if haskey(plt.parent.kw, :EMGUI_obj)
-                    return plt.parent.kw[:EMGUI_obj]
-                else
-                    if isa(plt.parent.parent, AbstractPlot)
-                        if haskey(plt.parent.parent.kw, :EMGUI_obj)
-                            return plt.parent.parent.kw[:EMGUI_obj]
-                        end
-                    end
-                end
+        elseif isa(plt.parent, AbstractPlot)
+            if haskey(plt.parent.kw, :EMGUI_obj)
+                return plt.parent.kw[:EMGUI_obj]
+            elseif isa(plt.parent.parent, AbstractPlot) &&
+                haskey(plt.parent.parent.kw, :EMGUI_obj)
+                return plt.parent.parent.kw[:EMGUI_obj]
             end
         end
     end
