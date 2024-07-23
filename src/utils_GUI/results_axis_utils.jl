@@ -655,6 +655,7 @@ function update_plot!(gui::GUI, element::Plotable)
         end
         ax.xlabel = xlabel
         ax.ylabel = ylabel
+        update_limits!(ax)
     end
 end
 
@@ -722,7 +723,7 @@ function update_limits!(ax::Axis)
     yorigin = ax.finallimits[].origin[2]
     ywidth = ax.finallimits[].widths[2]
 
-    # ensure that the legend box does not overlap the data
+    # try to avoid legend box overlapping data
     ylims!(ax, yorigin, yorigin + ywidth * 1.1)
 end
 

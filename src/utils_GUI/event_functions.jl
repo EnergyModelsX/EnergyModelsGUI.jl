@@ -296,7 +296,7 @@ function define_event_functions(gui::GUI)
         end
         update_legend!(gui)
         update_barplot_dodge!(gui)
-        update_limits!(get_ax(gui, time_menu.selection[]))
+        update_limits!(get_ax(gui, time_axis))
         empty!(get_selected_plots(gui))
         return Consume(false)
     end
