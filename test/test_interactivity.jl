@@ -16,7 +16,9 @@ import EnergyModelsGUI:
     get_toggle,
     get_ax,
     update_info_box!,
-    update_available_data_menu!
+    update_available_data_menu!,
+    update_sub_system_locations!,
+    pick_component!
 
 # Test specific GUI functionalities
 @testset "Test interactivity" verbose = true begin
@@ -38,31 +40,35 @@ import EnergyModelsGUI:
     # Test color toggling
     @testset "Toggle colors" begin
         area1 = components[1] # fetch Area 1
-        toggle_selection_color!(gui, area1, true)
+        plt_area1 = area1.plots[1]
+        pick_component!(gui, plt_area1; pick_topo_component=true)
         update!(gui)
         @test area1.color[] == get_selection_color(gui)
-        toggle_selection_color!(gui, area1, false)
+        pick_component!(gui, nothing; pick_topo_component=true)
         @test area1.color[] == :black
 
         node2 = get_components(components[1])[2] # fetch node El 1
-        toggle_selection_color!(gui, node2, true)
+        plt_node2 = node2.plots[1]
+        pick_component!(gui, plt_node2; pick_topo_component=true)
         update!(gui)
         @test node2.color[] == get_selection_color(gui)
-        toggle_selection_color!(gui, node2, false)
+        pick_component!(gui, nothing; pick_topo_component=true)
         @test node2.color[] == :black
 
         connection1 = connections[1] # fetch the Area 1 - Area 2 transmission
-        toggle_selection_color!(gui, connection1, true)
+        plt_connection1 = connection1.plots[1][][1]
+        pick_component!(gui, plt_connection1; pick_topo_component=true)
         update!(gui)
         @test get_plots(connection1)[1][][1].color[] == get_selection_color(gui)
-        toggle_selection_color!(gui, connection1, false)
+        pick_component!(gui, nothing; pick_topo_component=true)
         @test get_plots(connection1)[1][][1].color[] == connection1.colors[1]
 
         link1 = get_connections(components[1])[5] # fetch the link to heat pump
-        toggle_selection_color!(gui, link1, true)
+        plt_link1 = link1.plots[1][][1]
+        pick_component!(gui, plt_link1; pick_topo_component=true)
         update!(gui)
         @test get_plots(link1)[1][][1].color[] == get_selection_color(gui)
-        toggle_selection_color!(gui, link1, false)
+        pick_component!(gui, nothing; pick_topo_component=true)
         for plot ∈ link1.plots
             for (i, color) ∈ enumerate(link1.colors)
                 @test plot[][i].color[] == color
@@ -125,7 +131,14 @@ import EnergyModelsGUI:
 
     # Test reset view button
     @testset "get_button(gui,:reset_view).clicks" begin
-        components[3].xy[] = (-92.5, 37)
+        change::Tuple{Real,Real} = (1.3, -5.5)
+        xy = components[3].xy
+        xc::Real = xy[][1]
+        yc::Real = xy[][2]
+
+        xy[] = (xc + change[1], yc + change[2])
+
+        update_sub_system_locations!(components[3], change)
         notify(get_button(gui, :reset_view).clicks) # Reset view
         @test true # Hard to have a test here that works on CI
     end

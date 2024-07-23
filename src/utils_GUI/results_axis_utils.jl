@@ -272,7 +272,10 @@ end
     extract_combinations!(gui::GUI, available_data::Vector{Dict}, sym::Symbol)
 
 Extract all combinations of available resources in `model[sym]`, add descriptions to
-`container`, and add `container` to `available_data`.
+`container`, and add `container` to `available_data`. Note that this routine is only used
+for `SparseVars` JuMP objects begin independent of a `Node`/`Link`/`Area`/`TransmissionMode`
+(i.e. `emissions_total` and `emissions_strategic` being of type `JuMP.Containers.DenseAxisArray`
+is not included here).
 """
 function extract_combinations!(gui::GUI, available_data::Vector{Dict}, sym::Symbol)
     model = get_model(gui)
@@ -518,8 +521,8 @@ function update_plot!(gui::GUI, element::Plotable)
                 else
                     label *= " for strategic period $sp and representative period $rp"
                 end
-            elseif eltype(T.operational) <: TS.RepresentativePeriods
-                label *= " for strategic period $sp and representative period $rp"
+            elseif eltype(T.operational) <: TS.OperationalScenarios
+                label *= " for strategic period $sp and scenario $sc"
             else
                 label *= " for strategic period $sp"
             end

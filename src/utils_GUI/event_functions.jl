@@ -69,7 +69,7 @@ function define_event_functions(gui::GUI)
 
                         sub_design.xy[] = (xc + change[1], yc + change[2])
 
-                        update_sub_system_locations!(sub_design, Tuple(change))
+                        update_sub_system_locations!(sub_design, change)
                     end
 
                     notify_components()
