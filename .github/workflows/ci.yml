@@ -16,21 +16,21 @@ jobs:
         # Since EnergyModelsGUI doesn't have binary dependencies, 
         # only test on a subset of possible platforms.
         include:
-          #- version: '1'  # The latest point-release (Linux)
-          #  os: ubuntu-latest
-          #  arch: x64
-          - version: '1'  # The latest point-release (Windows)
-            os: windows-latest
+          - version: '1'  # The latest point-release (Linux)
+            os: ubuntu-latest
             arch: x64
-          #- version: '1.9'  # 1.9 
-          #  os: ubuntu-latest
+          #- version: '1'  # The latest point-release (Windows)
+          #  os: windows-latest
           #  arch: x64
+          - version: '1.9'  # 1.9 
+            os: ubuntu-latest
+            arch: x64
           #- version: '1.9'  # 1.9
           #  os: ubuntu-latest
           #  arch: x86
-          #- version: 'nightly'
-          #  os: ubuntu-latest
-          #  arch: x64
+          - version: 'nightly'
+            os: ubuntu-latest
+            arch: x64
     steps:
       - uses: actions/checkout@v3
       - uses: julia-actions/setup-julia@v1
@@ -45,15 +45,9 @@ jobs:
         if: ${{ matrix.os == 'windows-latest' }}
         run: |
           ## Install Visual C++ Build Tools
-          # choco install visualcpp-build-tools -y
+          choco install visualcpp-build-tools -y
           ## Install additional dependencies if needed
-          # choco install directx -y
-          # Download and extract Mesa3D
-          powershell -Command "Invoke-WebRequest -Uri 'https://github.com/mesa3d/mesa/releases/download/<version>/mesa-<version>-win64.zip' -OutFile 'mesa.zip'"
-          powershell -Command "Expand-Archive -Path 'mesa.zip' -DestinationPath 'C:\Mesa3D'"
-          # Add Mesa3D to PATH
-          setx PATH "%PATH%;C:\Mesa3D\bin"
-          setx MESA_HOME "C:\Mesa3D"
+          choco install directx -y
         shell: pwsh
       - name: Set OpenGL Environment
         if: ${{ matrix.os == 'windows-latest' }}
