@@ -1,7 +1,10 @@
 # [Customize colors](@id customize_colors)
 
 EnergyModelsGUI provides a set of colors for a set of frequently used `Resource`-`id`s.
-These can be found in `src/colors.toml`.
+These can be found in `src/colors.yml` and are visualized below
+
+![Visualization of the colors](../figures/colors_visualization.png)
+
 If you have a `Resource` with another `id` or you want to alter the default colors, you need to specify the `id_to_color_map` option in the `GUI` function.
 
 Say that your `case[:products]` contains the following products
@@ -17,5 +20,5 @@ and you want to alter the color of `Coal` and provide a custom color for the new
 
 ```julia
 id_to_color_map = Dict(new_id.id => :yellow, NG.id => "#FF9876")
-gui = GUI(case; id_to_color_map);
+gui = GUI(case; id_to_color_map=id_to_color_map);
 ```

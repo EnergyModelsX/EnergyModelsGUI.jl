@@ -5,7 +5,7 @@ In order to do this, you needs to provide the path to which the files can be exp
 This is done with the keyword input argument `path_to_results` as follows
 
 ```julia
-gui = GUI(case; path_to_results);
+gui = GUI(case; path_to_results=path_to_results);
 ```
 
 In the opened GUI you will now be able to export results to different file formats.
