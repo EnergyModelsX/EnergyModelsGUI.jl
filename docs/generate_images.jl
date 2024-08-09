@@ -27,7 +27,7 @@ function create_colors_visualization_image()
     height = markersize * length(colors_name)
 
     # Create the figure
-    fig = Figure(resolution=(width, height))
+    fig = Figure(size=(width, height))
 
     ax = Axis(
         fig[1, 1],
