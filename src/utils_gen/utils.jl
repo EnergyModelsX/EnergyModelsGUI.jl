@@ -179,3 +179,19 @@ function merge_dicts(dict1::Dict, dict2::Dict)
     end
     return merged
 end
+
+"""
+    get_project_version(project_toml_file::String)
+
+Get the version number from the Project.toml file located at `project_toml_file`
+"""
+function get_project_version(project_toml_file::String)
+    # Read the contents of the Project.toml file
+    project_toml_content = read(project_toml_file, String)
+
+    # Parse the TOML content
+    parsed_toml = TOML.parse(project_toml_content)
+
+    # Extract the version number
+    return parsed_toml["version"]
+end

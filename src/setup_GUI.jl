@@ -177,7 +177,8 @@ function GUI(
     DataInspector(fig; range=10, indicator_linewidth=0)
 
     # display the figure
-    display(fig)
+    version = get_project_version(joinpath(@__DIR__, "..", "Project.toml"))
+    display(GLMakie.Screen(title = "EnergyModelsGUI v$version"), fig)
 
     return gui
 end
