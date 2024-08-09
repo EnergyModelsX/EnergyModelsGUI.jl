@@ -535,10 +535,8 @@ function update_plot!(gui::GUI, element::Plotable)
         end
         if time_axis == :results_op
             x_values = get_op.(periods)
-            x_values_step, y_values_step = stepify(vec(x_values), vec(y_values))
-            # For FixedProfile, make values constant over the operational period
-            points = [Point{2,Float64}(x, y) for (x, y) ∈ zip(x_values_step, y_values_step)]
-            custom_ticks = (0:no_pts, string.(0:no_pts))
+            points = [Point{2,Float64}(x, y) for (x, y) ∈ zip(x_values, y_values)]
+            custom_ticks = (1:no_pts, string.(1:no_pts))
             time_menu.i_selected[] = 3
         else
             points = [Point{2,Float64}(x, y) for (x, y) ∈ zip(1:no_pts, y_values)]
@@ -609,7 +607,7 @@ function update_plot!(gui::GUI, element::Plotable)
         else
             @debug "Could not find anything to overwrite, creating new plot instead"
             if time_axis == :results_op
-                plot = lines!(ax, points; label=label)
+                plot = stairs!(ax, points; step=:pre, label=label)
             else
                 n_visible = length(get_visible_data(gui, time_axis)) + 1
                 plot = barplot!(

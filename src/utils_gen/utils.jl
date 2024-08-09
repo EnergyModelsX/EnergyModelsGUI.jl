@@ -52,25 +52,6 @@ function get_op(tp::TS.TimePeriod)
 end
 
 """
-    stepify(x::Vector{S},
-        y::Vector{T};
-        start_at_zero::Bool = true
-    ) where {S <: Number, T <: Number}
-
-For a data set (`x`,`y`) add intermediate points to obtain a stepwise function and add a
-point at zero if `start_at_zero = true`.
-"""
-function stepify(
-    x::Vector{S}, y::Vector{T}; start_at_zero::Bool=true
-) where {S<:Number,T<:Number}
-    return if start_at_zero
-        (vcat(0, repeat(x[1:(end - 1)]; inner=2), x[end]), repeat(y; inner=2))
-    else
-        (vcat(repeat(x; inner=2), x[end]), vcat(y[1], repeat(y[2:end]; inner=2)))
-    end
-end
-
-"""
     get_supertypes(x::Any)
 
 Return the vector of the supertypes of `x`.

@@ -174,15 +174,15 @@ import EnergyModelsGUI:
         time_axis = time_menu.selection[]
 
         period_menu.i_selected = 1
-        data_point = get_ax(gui, time_axis).scene.plots[1][1][][35][2]
+        data_point = get_ax(gui, time_axis).scene.plots[1][1][][17][2]
         @test data_point ≈ 2.1003003f0 atol = 1e-5
 
         period_menu.i_selected = 2
-        data_point = get_ax(gui, time_axis).scene.plots[1][1][][35][2]
+        data_point = get_ax(gui, time_axis).scene.plots[1][1][][17][2]
         @test data_point ≈ 3.3003004f0 atol = 1e-5
 
         period_menu.i_selected = 3
-        data_point = get_ax(gui, time_axis).scene.plots[1][1][][35][2]
+        data_point = get_ax(gui, time_axis).scene.plots[1][1][][17][2]
         @test data_point ≈ 1.2f0 atol = 1e-5
     end
 
@@ -224,9 +224,9 @@ import EnergyModelsGUI:
         i_selected = findfirst(x -> x == "cap", available_data)
         available_data_menu.i_selected = i_selected # Select flow_out (CO2)
         notify(pin_plot_button.clicks)
-        data_point = get_ax(gui, time_axis).scene.plots[1][1][][10][2]
+        data_point = get_ax(gui, time_axis).scene.plots[1][1][][5][2]
         @test data_point ≈ 0.25f0 atol = 1e-5
-        data_point = get_ax(gui, time_axis).scene.plots[2][1][][10][2]
+        data_point = get_ax(gui, time_axis).scene.plots[2][1][][5][2]
         @test data_point ≈ 0.6f0 atol = 1e-5
     end
 

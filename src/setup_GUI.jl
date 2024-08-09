@@ -178,7 +178,7 @@ function GUI(
 
     # display the figure
     version = get_project_version(joinpath(@__DIR__, "..", "Project.toml"))
-    display(GLMakie.Screen(title = "EnergyModelsGUI v$version"), fig)
+    display(GLMakie.Screen(title="EnergyModelsGUI v$version"), fig)
 
     return gui
 end
