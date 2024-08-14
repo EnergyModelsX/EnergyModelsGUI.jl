@@ -50,6 +50,7 @@ function GUI(
     backgroundcolor=GLMakie.RGBf(0.99, 0.99, 0.99),
     fontsize::Int64=12,
     plot_widths::Tuple{Int64,Int64}=(1920, 1080),
+    case_name::String="",
 )
     # Generate the system topology:
     @info raw"Setting up the topology design structure"
@@ -178,7 +179,11 @@ function GUI(
 
     # display the figure
     version = get_project_version(joinpath(@__DIR__, "..", "Project.toml"))
-    display(GLMakie.Screen(title="EnergyModelsGUI v$version"), fig)
+    fig_title = "EnergyModelsGUI v$version"
+    if !isempty(case_name)
+        fig_title *= ": $case_name"
+    end
+    display(GLMakie.Screen(title=fig_title), fig)
 
     return gui
 end
