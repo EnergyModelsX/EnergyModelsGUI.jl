@@ -427,6 +427,19 @@ function define_event_functions(gui::GUI)
         if length(representative_periods_in_sp) < current_representative_period
             representative_period_menu.i_selection = length(representative_periods_in_sp)
         end
+
+        current_scenario = scenario_menu.selection[]
+        scenarios_in_rp = get_scenario_indices(
+            T, period_menu.selection[], representative_period_menu.selection[]
+        )
+        scenario_menu.options = zip(
+            get_var(gui, :scenarios_labels)[scenarios_in_rp], scenarios_in_rp
+        )
+
+        # If previously chosen scenario is out of range, update it to be the largest number available
+        if length(scenarios_in_rp) < current_scenario
+            scenario_menu.i_selection = length(scenarios_in_rp)
+        end
         update_plot!(gui)
         return Consume(false)
     end
@@ -434,7 +447,6 @@ function define_event_functions(gui::GUI)
     # Representative period menu: Handle menu selection
     on(representative_period_menu.selection; priority=10) do _
         # Initialize representative_periods to be the representative_periods of the first operational period
-        representative_period_menu = get_menu(gui, :period)
         current_scenario = scenario_menu.selection[]
         scenarios_in_rp = get_scenario_indices(
             T, period_menu.selection[], representative_period_menu.selection[]
@@ -453,7 +465,6 @@ function define_event_functions(gui::GUI)
 
     # Scenario menu: Handle menu selection
     on(scenario_menu.selection; priority=10) do _
-        selected_systems = get_selected_systems(gui)
         update_plot!(gui)
         return Consume(false)
     end

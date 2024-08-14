@@ -29,7 +29,7 @@ function get_scenario_indices(T::TS.TimeStructure, sp::Int64, rp::Int64)
         if eltype(T.operational[sp].rep_periods) <: TS.OperationalScenarios
             return (1:(T.operational[sp].rep_periods[rp].len))
         else
-            return (1:(T.operational[sp].len))
+            return [1]
         end
     elseif eltype(T.operational) <: TS.OperationalScenarios
         return (1:(T.operational[sp].len))
