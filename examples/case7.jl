@@ -45,8 +45,8 @@ function read_data()
 
     # Create operational model (global data)
     em_limits = Dict(CO2 => StrategicProfile(0.0 * ones(noSP)))   # Emission cap for CO2 in t/year
-    em_cost = Dict(CO2 => FixedProfile(1e9))  # Emission price for CO2 in NOK/t
-    discount_rate = 0.0
+    em_cost = Dict(CO2 => FixedProfile(0))  # Emission price for CO2 in NOK/t
+    discount_rate = 0.05 # discount rate in the investment optimization
     model = InvestmentModel(em_limits, em_cost, CO2, discount_rate)
 
     # Create input data for the areas
@@ -140,12 +140,12 @@ function get_sub_system_data(a_id, products, T)
         CelsiusToKelvin = x -> x + 273              # Conversion function for temperature from Celsius to Kelvin
         T_hot = CelsiusToKelvin(60)                 # Condensation temperature (indoor)
         T_cold = CelsiusToKelvin(10)                # Evaporation temperature (outdoor)
-        COP_Carnot = T_hot / (T_hot - T_cold)         # Find the coefficient of performance
+        COP_Carnot = T_hot / (T_hot - T_cold)       # Find the coefficient of performance
         efficiency = 0.5                            # Efficiency compared with an ideal heat pump
-        conversion = COP_Carnot * efficiency          # Conversion factor
+        conversion = COP_Carnot * efficiency        # Conversion factor
 
         heatpump_output_capacity = 1                # Set the maximum amount of heat the heat pump can produce
-        cap = heatpump_output_capacity / conversion   # heat pump capacity usage cap
+        cap = heatpump_output_capacity / conversion # heat pump capacity usage cap
 
         # Construct nodes
         el_busbar_11125 = GeoAvailability(
@@ -183,7 +183,7 @@ function get_sub_system_data(a_id, products, T)
             "Heating 1",                        # Node id
             RepresentativeProfile(Heat_demand), # cap: the demand
             Dict(                               # penality: penalties for surplus or deficits
-                :surplus => FixedProfile(1),    # Penalty for surplus
+                :surplus => FixedProfile(0),    # Penalty for surplus
                 :deficit => FixedProfile(1e5),   # Penalty for deficit
             ),
             Dict(Heat => 1),                     # input `Resource`s with conversion value `Real`
@@ -199,20 +199,21 @@ function get_sub_system_data(a_id, products, T)
         )
         heat_pump = RefNetworkNode(
             "Heat pump",                            # Node id
-            FixedProfile(0),                      # cap: Installed capacity
-            FixedProfile(0),                      # opex_var: variational operational vost per energy unit produced
+            FixedProfile(0),                        # cap: Installed capacity
+            FixedProfile(0),                        # opex_var: variational operational vost per energy unit produced
             FixedProfile(0),                        # opex_fixed: is the fixed operational costs
             Dict(Power => 1, Heat => conversion - 1), # input: input `Resource`s with conversion value `Real`
             Dict(Heat => conversion),               # output: generated `Resource`s with conversion value `Real`
             [
                 SingleInvData(
-                    #FixedProfile(1e3/cap),  # Capex [NOK/MW]
-                    FixedProfile(0),  # Capex [NOK/MW]
-                    FixedProfile(cap),  # Max installed capacity [MW]
-                    0,                  # initial capacity [MW]
-                    BinaryInvestment(FixedProfile(cap)), # Investment mode
+                    FixedProfile(1e7 / cap), # Capex [NOK/MW]
+                    FixedProfile(cap),       # Max installed capacity [MW]
+                    0,                       # initial capacity [MW]
+                    BinaryInvestment(
+                        FixedProfile(cap),   # Investment mode
+                    ),
                     RollingLife(
-                        FixedProfile(30), # life_mode: type of handling the lifetime
+                        FixedProfile(30),    # life_mode: type of handling the lifetime
                     ),
                 ),
             ],
@@ -225,10 +226,12 @@ function get_sub_system_data(a_id, products, T)
             Dict(Heat => 1),            # The generated resources with conversion value 1
             [
                 SingleInvData(
-                    FixedProfile(0),              # Capex [NOK/MW]
-                    FixedProfile(1),              # Max installed capacity [MW]
-                    0,                              # initial capacity [MW]
-                    BinaryInvestment(FixedProfile(1)),             # Investment mode
+                    FixedProfile(0),      # Capex [NOK/MW]
+                    FixedProfile(1),      # Max installed capacity [MW]
+                    0,                    # initial capacity [MW]
+                    BinaryInvestment(
+                        FixedProfile(1),  # Investment mode
+                    ),
                     RollingLife(
                         FixedProfile(30), # life_mode: type of handling the lifetime
                     ),
@@ -419,4 +422,5 @@ gui = GUI(
     representative_periods_labels=["Winter", "Remaining"],
     expand_all=true,
     path_to_results=path_to_results,
+    case_name=case_name,
 )

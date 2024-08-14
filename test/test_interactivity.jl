@@ -24,6 +24,24 @@ import EnergyModelsGUI:
 @testset "Test interactivity" verbose = true begin
     # Test GUI interactivity with the case7 example
     include("../examples/case7.jl")
+
+    op_cost = [3371970.004, 5382390.006, 2010420.002]
+    inv_cost = [0.0, 0.0, 29536224.88]
+    @testset "Compare with Integrate results" begin
+        T = case[:T]
+        for (i, t) ∈ enumerate(strategic_periods(T))
+            if haskey(m, :cap_capex)
+                tot_capex_sp = sum(value.(m[:cap_capex][:, t])) / duration_strat(t)
+                @test inv_cost[i] ≈ tot_capex_sp
+            end
+        end
+
+        for (i, t) ∈ enumerate(strategic_periods(T))
+            tot_opex_sp =
+                sum(value.(m[:opex_fixed][:, t])) + sum(value.(m[:opex_var][:, t]))
+            @test op_cost[i] ≈ tot_opex_sp
+        end
+    end
     root_design = get_root_design(gui)
     components = get_components(root_design)
     connections = get_connections(root_design)
@@ -175,11 +193,11 @@ import EnergyModelsGUI:
 
         period_menu.i_selected = 1
         data_point = get_ax(gui, time_axis).scene.plots[1][1][][17][2]
-        @test data_point ≈ 2.1003003f0 atol = 1e-5
+        @test data_point ≈ 2.8f0 atol = 1e-5
 
         period_menu.i_selected = 2
         data_point = get_ax(gui, time_axis).scene.plots[1][1][][17][2]
-        @test data_point ≈ 3.3003004f0 atol = 1e-5
+        @test data_point ≈ 4.0f0 atol = 1e-5
 
         period_menu.i_selected = 3
         data_point = get_ax(gui, time_axis).scene.plots[1][1][][17][2]
