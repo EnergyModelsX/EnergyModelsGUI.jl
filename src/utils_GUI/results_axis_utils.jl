@@ -724,6 +724,15 @@ function update_limits!(ax::Axis)
     yorigin = ax.finallimits[].origin[2]
     ywidth = ax.finallimits[].widths[2]
 
+    # Do the following for data with machine epsilon precision noice around zero that causes
+    # the warning "Warning: No strict ticks found"
+    if abs(ywidth) < 1e-15
+        yorigin = -1e-12
+    end
+    if abs(ywidth) < 1e-15
+        ywidth = 2e-12
+    end
+
     # try to avoid legend box overlapping data
     ylims!(ax, yorigin, yorigin + ywidth * 1.1)
 end
