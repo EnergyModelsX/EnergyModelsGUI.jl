@@ -64,14 +64,14 @@ function read_data()
 
     # Create operational model (global data)
     em_limits = Dict(
-        CO₂ => StrategicProfile(1e6 * ones(noSP)),
-        NOx => StrategicProfile(1e6 * ones(noSP)),
-        CO => StrategicProfile(1e6 * ones(noSP)),
+        CO₂ => StrategicProfile(1e10 * ones(noSP)),
+        NOx => StrategicProfile(1e10 * ones(noSP)),
+        CO => StrategicProfile(1e10 * ones(noSP)),
     )   # Emission cap for CO₂ in t/year
     em_cost = Dict(
         CO₂ => FixedProfile(0.0), NOx => FixedProfile(0.0), CO => FixedProfile(0.0)
     )  # Emission price for CO₂ in NOK/t
-    discount_rate = 0.0 # discount rate in the investment optimization
+    discount_rate = 0.05 # discount rate in the investment optimization
     model = InvestmentModel(em_limits, em_cost, CO₂, discount_rate)
 
     # Create input data for the areas
@@ -177,7 +177,7 @@ function read_data()
     opex_fix = FixedProfile(0.0) # No fixed cost in operating the power line
     direction = 2 # Power flow direction can go two ways
 
-    PH_Pipe_Length = 1000
+    DH_Pipe_Length = 1000
     pipe_capacity = 20
     users_heat_loss_factor = 10
     trans_cap_heat = FixedProfile(pipe_capacity)
@@ -287,7 +287,6 @@ end
 
 # Subsystem test data for geography package
 function get_sub_system_data(a_id, products, T, with_scenarios)
-    s = 0 # Capex scaling
     Power = products[1]
     Heat = products[2]
     WarmWater = products[3]
@@ -376,14 +375,14 @@ function get_sub_system_data(a_id, products, T, with_scenarios)
         )
         heat_pump = RefNetworkNode(
             "Heat pump",                            # Node id
-            FixedProfile(cap * s),                      # cap: Installed capacity
+            FixedProfile(0),                        # cap: Installed capacity
             FixedProfile(0),                        # opex_var: variational operational vost per energy unit produced
             FixedProfile(0),                        # opex_fixed: is the fixed operational costs
             Dict(Power => 1, Heat => conversion - 1), # input: input `Resource`s with conversion value `Real`
             Dict(Heat => conversion),               # output: generated `Resource`s with conversion value `Real`
             [
                 SingleInvData(
-                    FixedProfile(1e3 / cap * s), # Capex [NOK/MW]
+                    FixedProfile(1e7 / cap), # Capex [NOK/MW]
                     FixedProfile(cap),     # Max installed capacity [MW]
                     0,                     # initial capacity [MW]
                     BinaryInvestment(
@@ -417,20 +416,11 @@ function get_sub_system_data(a_id, products, T, with_scenarios)
         )
         DH_Load_points_11171 = RefNetworkNode(
             "DH_Load_points_11171",                            # Node id
-            FixedProfile(1e12),                      # cap: Installed capacity
+            FixedProfile(1e10),                      # cap: Installed capacity
             FixedProfile(0.0),                      # opex_var: variational operational vost per energy unit produced
             FixedProfile(0),                        # opex_fixed: is the fixed operational costs
             Dict(Heat => 1), # input: input `Resource`s with conversion value `Real`
             Dict(Heat => 1, WarmWater => 1),               # output: generated `Resource`s with conversion value `Real`
-            #[
-            #    InvData(
-            #        capex_cap = FixedProfile(1e7),    # Capex [NOK/MW]
-            #        cap_max_inst = FixedProfile(cap), # Max installed capacity [MW]
-            #        cap_max_add = FixedProfile(cap),  # Max added capactity per sp [MW]
-            #        cap_min_add = FixedProfile(0),    # Min added capactity per sp [MW]
-            #        inv_mode = BinaryInvestment(),    # Investment mode
-            #    ),
-            #],
         )
         nodes = [
             el_busbar_11125,
@@ -471,9 +461,6 @@ function get_sub_system_data(a_id, products, T, with_scenarios)
                 OperationalProfile(max_outtake * El_cap_sc) for El_cap_sc ∈ El_cap_scenario
             ]) for sp ∈ 1:(T.len)
         ]
-        max_waste_outtake = [
-            i == 1 ? FixedProfile(0.0) : FixedProfile(100.0) for i ∈ 1:(T.len)
-        ] # Make Waste supply available only from 2030
         if with_scenarios
             cap = StrategicProfile(max_outtake_sc) # Cap, installed capacity
         else
@@ -493,22 +480,34 @@ function get_sub_system_data(a_id, products, T, with_scenarios)
             Dict(Power => 1),                   # The generated resources with conversion value 1
         )
         waste_supply = RefSource(
-            "Waste supply",                      # Node id
-            StrategicProfile(max_waste_outtake), # Cap, installed capacity
-            FixedProfile(1),                     # Variable operational cost per unit produced
-            FixedProfile(0),                     # Fixed operational cost per unit produced
-            Dict(Waste => 1),                    # The generated resources with conversion value 1
+            "Waste supply",                     # Node id
+            FixedProfile(100),                  # Cap, installed capacity
+            FixedProfile(1),                    # Variable operational cost per unit produced
+            FixedProfile(0),                    # Fixed operational cost per unit produced
+            Dict(Waste => 1),                   # The generated resources with conversion value 1
         )
+        rated_capacity_chp = 10
         chp_Plant = RefNetworkNode(
-            "CHP Plant",                 # Node id
-            FixedProfile(10),            # cap: Installed capacity
-            FixedProfile(0.0),           # opex_var: variational operational vost per energy unit produced
-            FixedProfile(0),             # opex_fixed: is the fixed operational costs
-            Dict(Waste => 1),            # input: input `Resource`s with conversion value `Real`
-            #Dict(Heat => 1), # output: generated `Resource`s with conversion value `Real`
-            Dict(Heat => 1, CO₂ => 207, NOx => 0.092, CO => 0.037), # output: generated `Resource`s with conversion value `Real`
-            #Dict(Heat => 1, CO₂ => 207), # output: generated `Resource`s with conversion value `Real`
-            [],
+            "CHP Plant",                        # Node id
+            FixedProfile(rated_capacity_chp),   # cap: Installed capacity
+            FixedProfile(0),                    # opex_var: variational operational vost per energy unit produced
+            FixedProfile(0),                    # opex_fixed: is the fixed operational costs
+            Dict(Waste => 1),                   # input: input `Resource`s with conversion value `Real`
+            Dict(Heat => 1),                    # output: generated `Resource`s with conversion value `Real`
+            [
+                SingleInvData(
+                    FixedProfile(1e8 / rated_capacity_chp), # Capex [NOK/MW]
+                    FixedProfile(rated_capacity_chp),     # Max installed capacity [MW]
+                    0,                     # initial capacity [MW]
+                    BinaryInvestment(
+                        FixedProfile(rated_capacity_chp), # Investment mode
+                    ),
+                    RollingLife(
+                        FixedProfile(30),  # life_mode: type of handling the lifetime
+                    ),
+                ),
+                EmissionsProcess(Dict(CO₂ => 0.207, NOx => 0.000092, CO => 0.000037)), # t/MWh
+            ],
         )
         heat_central = RefNetworkNode(
             "Heat central",              # Node id
@@ -591,7 +590,7 @@ function get_sub_system_data(a_id, products, T, with_scenarios)
             Dict(Power => 1),               # output: The generated resources with conversion value 1
             [
                 SingleInvData(
-                    FixedProfile(5e8 / max_max_outtake * s), # Capex [NOK/MW]
+                    FixedProfile(5e8 / max_max_outtake), # Capex [NOK/MW]
                     FixedProfile(max_max_outtake),     # Max installed capacity [MW]
                     0,                                 # initial capacity [MW]
                     BinaryInvestment(
@@ -756,4 +755,5 @@ gui = GUI(
     representative_periods_labels=["Winter", "Remaining"],
     expand_all=true,
     path_to_results=path_to_results,
+    case_name=case_name,
 )
