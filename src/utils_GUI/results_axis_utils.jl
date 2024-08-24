@@ -1,26 +1,13 @@
 """
-    add_description!(
-        available_data::Vector{Dict},
-        container::Dict{Symbol,Any},
+    create_description(
         gui::GUI,
         key_str::String;
         pre_desc::String="",
     )
 
-Update the `container` with a description (from `get_var(gui,:descriptive_names)` if available),
-and add `container` to `available_data`.
+Create description from `get_var(gui,:descriptive_names)` if available
 """
-function add_description!(
-    available_data::Vector{Dict},
-    container::Dict{Symbol,Any},
-    gui::GUI,
-    key_str::String;
-    pre_desc::String="",
-)
-    structure = get_nth_field(key_str, '.', 3)
-    if structure == "to" || structure == "from" # don't add `to` and `from` fields
-        return nothing
-    end
+function create_description(gui::GUI, key_str::String; pre_desc::String="")
     description = pre_desc
     try
         description *= String(get_nested_value(get_var(gui, :descriptive_names), key_str))
@@ -29,8 +16,7 @@ function add_description!(
         @warn "Could't find a description for $description. \
             Using the string $description instead"
     end
-    container[:description] = description
-    push!(available_data, container)
+    return description
 end
 
 """
@@ -56,9 +42,13 @@ function add_description!(
     gui::GUI,
 ) where {T<:TS.TimeProfile}
     container = Dict(
-        :name => name, :is_jump_data => false, :selection => [element], :field_data => field
+        :name => name,
+        :is_jump_data => false,
+        :selection => [element],
+        :field_data => field,
+        :description => create_description(gui, key_str; pre_desc),
     )
-    add_description!(available_data, container, gui, key_str; pre_desc)
+    push!(available_data, container)
 end
 
 """
@@ -143,12 +133,16 @@ and update `available_data` with an added description.
 function add_description!(
     field::Any,
     name::String,
-    ::String,
+    key_str::String,
     pre_desc::String,
     element::Plotable,
     available_data::Vector{Dict},
     gui::GUI,
 )
+    structure = get_nth_field(key_str, '.', 3)
+    if structure == "to" || structure == "from" # don't add `to` and `from` fields
+        return nothing
+    end
     field_type = typeof(field)
     for sub_field_name ∈ fieldnames(field_type)
         sub_field = getfield(field, sub_field_name)
@@ -159,159 +153,6 @@ function add_description!(
         add_description!(
             sub_field, name_field, key_str, pre_desc_sub, element, available_data, gui
         )
-    end
-end
-
-"""
-    add_description!(
-        available_data::Vector{Dict},
-        var::JuMP.Containers.DenseAxisArray,
-        sym::Symbol,
-        element::Plotable,
-        gui::GUI,
-    )
-
-Add description to `available_data` for the JuMP variable `var` (with name `sym`) for `element`.
-"""
-function add_description!(
-    available_data::Vector{Dict},
-    var::JuMP.Containers.DenseAxisArray,
-    sym::Symbol,
-    element::Plotable,
-    gui::GUI,
-)
-    # nodes/areas found in structure
-    if any(eltype.(axes(var)) .<: Union{EMB.Node,Area})
-        # only add var if used by element (assume element is located at first Dimension)
-        if exists(var, element)
-            if length(axes(var)) > 2
-                for res ∈ var.axes[3]
-                    container = Dict(
-                        :name => string(sym),
-                        :is_jump_data => true,
-                        :selection => [element, res],
-                    )
-                    key_str = "variables.$sym"
-                    add_description!(available_data, container, gui, key_str)
-                end
-            else
-                container = Dict(
-                    :name => string(sym), :is_jump_data => true, :selection => [element]
-                )
-                key_str = "variables.$sym"
-                add_description!(available_data, container, gui, key_str)
-            end
-        end
-    elseif any(eltype.(axes(var)) .<: TransmissionMode) # element found in structure
-        if isa(element, Transmission)
-            for mode ∈ modes(element)
-                # only add dict if used by element (assume element is located at first Dimension)
-                if exists(var, mode)
-                    # do not include element (<: Transmission) here
-                    # as the mode is unique to this transmission
-                    container = Dict(
-                        :name => string(sym), :is_jump_data => true, :selection => [mode]
-                    )
-                    key_str = "variables.$sym"
-                    add_description!(available_data, container, gui, key_str)
-                end
-            end
-        end
-    elseif isnothing(element)
-        if length(axes(var)) > 1
-            for res ∈ var.axes[2]
-                container = Dict(
-                    :name => string(sym), :is_jump_data => true, :selection => [res]
-                )
-                key_str = "variables.$sym"
-                add_description!(available_data, container, gui, key_str)
-            end
-        else
-            container = Dict(
-                :name => string(sym), :is_jump_data => true, :selection => EMB.Node[]
-            )
-            key_str = "variables.$sym"
-            add_description!(available_data, container, gui, key_str)
-        end
-    end
-end
-
-"""
-    add_description!(
-        available_data::Vector{Dict},
-        var::SparseVars,
-        sym::Symbol,
-        element::Plotable,
-        gui::GUI,
-    )
-
-Add description to `available_data` for the JuMP variable `var` (with name `sym`) for `element`.
-"""
-function add_description!(
-    available_data::Vector{Dict}, var::SparseVars, sym::Symbol, element::Plotable, gui::GUI
-)
-    fieldtypes = typeof.(first(keys(var.data)))
-    if any(fieldtypes .<: Union{EMB.Node,Link,Area}) # nodes/area/links found in structure
-        if exists(var, element) # current element found in structure
-            extract_combinations!(gui, available_data, sym, element)
-        end
-    elseif any(fieldtypes .<: TransmissionMode) # TransmissionModes found in structure
-        if isa(element, Transmission)
-            for mode ∈ modes(element)
-                if exists(var, mode) # current mode found in structure
-                    extract_combinations!(gui, available_data, sym, mode)
-                end
-            end
-        end
-    elseif isnothing(element)
-        extract_combinations!(gui, available_data, sym)
-    end
-end
-
-"""
-    extract_combinations!(gui::GUI, available_data::Vector{Dict}, sym::Symbol)
-
-Extract all combinations of available resources in `model[sym]`, add descriptions to
-`container`, and add `container` to `available_data`. Note that this routine is only used
-for `SparseVars` JuMP objects begin independent of a `Node`/`Link`/`Area`/`TransmissionMode`
-(i.e. `emissions_total` and `emissions_strategic` being of type `JuMP.Containers.DenseAxisArray`
-is not included here).
-"""
-function extract_combinations!(gui::GUI, available_data::Vector{Dict}, sym::Symbol)
-    model = get_model(gui)
-    resources::Vector{Resource} = unique([key[2] for key ∈ keys(model[sym].data)])
-    for res ∈ resources
-        sym_str = string(sym)
-        container = Dict(:name => sym_str, :is_jump_data => true, :selection => [res])
-        add_description!(available_data, container, gui, "variables.$sym_str")
-    end
-end
-
-"""
-    extract_combinations!(
-        gui::GUI, available_data::Vector{Dict}, sym::Symbol, element::Plotable
-    )
-
-Extract all combinations of available resources in `model[sym]` for a given `element`, add
-descriptions to `container`, and add `container` to `available_data`.
-"""
-function extract_combinations!(
-    gui::GUI, available_data::Vector{Dict}, sym::Symbol, element::Plotable
-)
-    model = get_model(gui)
-    if isa(model[sym], SparseVariables.IndexedVarArray)
-        sym_str = string(sym)
-        container = Dict(:name => sym_str, :is_jump_data => true, :selection => [element])
-        add_description!(available_data, container, gui, "variables.$sym_str")
-    else
-        resources = unique([key[2] for key ∈ keys(model[sym][element, :, :].data)])
-        for res ∈ resources
-            sym_str = string(sym)
-            container = Dict(
-                :name => sym_str, :is_jump_data => true, :selection => [element, res]
-            )
-            add_description!(available_data, container, gui, "variables.$sym_str")
-        end
     end
 end
 
@@ -331,38 +172,24 @@ restricted to strategic period `sp`, representative period `rp`, and scenario `s
 function get_data(
     model::JuMP.Model, selection::Dict, T::TS.TimeStructure, sp::Int64, rp::Int64, sc::Int64
 )
+    field_data = selection[:field_data]
     if selection[:is_jump_data]
         sym = Symbol(selection[:name])
         i_T, type = get_time_axis(model[sym])
     else
-        field_data = selection[:field_data]
-        type = typeof(field_data)
+        type = nested_eltype(field_data)
     end
     periods, time_axis = get_periods(T, type, sp, rp, sc)
     if selection[:is_jump_data]
-        y_values = get_jump_values(model, sym, selection[:selection], periods, i_T)
+        if isa(field_data, JuMP.Containers.SparseAxisArray)
+            y_values = [value(field_data[t]) for t ∈ periods]
+        else
+            y_values = Array(value.(field_data[periods]))
+        end
     else
         y_values = field_data[periods]
     end
     return periods, y_values, time_axis
-end
-
-"""
-    get_jump_values(
-        model::JuMP.Model, sym::Symbol, selection::Vector, periods::Vector, i_T::Int64
-    )
-
-Get the values from the JuMP `model` for a JuMP variable `sym` at `selection` containing all
-indices except for the time index from which we want to extract all values in the vector `periods`).
-The time dimension is located at `i_T` of `model[sym]`.
-"""
-function get_jump_values(
-    model::JuMP.Model, sym::Symbol, selection::Vector, periods::Vector, i_T::Int64
-)
-    return [
-        value(model[sym][vcat(selection[1:(i_T - 1)], t, selection[i_T:end])...]) for
-        t ∈ periods
-    ]
 end
 
 """
@@ -375,10 +202,10 @@ or TS.OperationalPeriod) restricted to the strategic period `sp`, representative
 and the scenario `sc`.
 """
 function get_periods(T::TS.TimeStructure, type::Type, sp::Int64, rp::Int64, sc::Int64)
-    if type <: TS.StrategicPeriod
+    if type <: TS.StrategicProfile || type <: FixedProfile || type <: TS.StrategicPeriod
         return [t for t ∈ TS.strat_periods(T)], :results_sp
-    elseif type <: TS.TimeStructure{T} where {T}
-        return [t for t ∈ TS.repr_periods(T)], :results_rp
+    elseif type <: TS.RepresentativeProfile || type <: TS.RepresentativePeriod
+        return [t for t ∈ TS.repr_periods(T) if t.sp == sp], :results_rp
     else
         if eltype(T.operational) <: TS.RepresentativePeriods
             if eltype(T.operational[sp].rep_periods) <: TS.OperationalScenarios
@@ -395,6 +222,15 @@ function get_periods(T::TS.TimeStructure, type::Type, sp::Int64, rp::Int64, sc::
         else
             return [t for t ∈ T if t.sp == sp], :results_op
         end
+    end
+end
+function get_periods(T::TS.TimeStructure, type::Type)
+    if type <: TS.StrategicPeriod
+        return [t for t ∈ TS.strat_periods(T)]
+    elseif type <: TS.RepresentativePeriod
+        return [t for t ∈ TS.repr_periods(T)]
+    else
+        return collect(T)
     end
 end
 
@@ -446,9 +282,14 @@ end
 Return a label for a given `selection` to be used in the get_menus(gui)[:available_data] menu.
 """
 function create_label(selection::Dict{Symbol,Any})
-    label::String = selection[:is_jump_data] ? "" : "Case data: "
+    label::String =
+        (selection[:is_jump_data] || isempty(selection[:name])) ? "" : "Case data: "
     if haskey(selection, :description)
-        label *= selection[:description] * " ($(selection[:name]))"
+        if isempty(selection[:name])
+            label *= selection[:description]
+        else
+            label *= selection[:description] * " ($(selection[:name]))"
+        end
     else
         label *= selection[:name]
     end
@@ -543,8 +384,20 @@ function update_plot!(gui::GUI, element::Plotable)
             custom_ticks = (1:no_pts, [string(t) for t ∈ periods])
             if time_axis == :results_sp
                 time_menu.i_selected[] = 1
-            else
+
+                # Use customized labels for strategic periods if provided
+                periods_labels = get_var(gui, :periods_labels)
+                if !isempty(periods_labels)
+                    custom_ticks = (1:no_pts, periods_labels)
+                end
+            elseif time_axis == :results_rp
                 time_menu.i_selected[] = 2
+
+                # Use customized labels for representative periods if provided
+                repr_periods_labels = get_var(gui, :representative_periods_labels)
+                if !isempty(repr_periods_labels)
+                    custom_ticks = (1:no_pts, repr_periods_labels)
+                end
             end
         end
         notify(time_menu.selection) # In case the new plot is on an other time type

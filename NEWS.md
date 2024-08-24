@@ -1,5 +1,18 @@
 # Release notes
 
+## Version 0.5.2 (2024-08-24)
+
+### Enhancement
+
+* The extraction of JuMP data is done during initialization of the GUI to improve performance during use.
+* Tests have been improved.
+
+### Feature
+
+* The total opex and capex costs may now be plotted over strategic periods where both quantities may be scaled to a year or the whole strategic period using the boolean input arguments `scale_tot_opex` and `scale_tot_capex`. The calculations are based on the variables listed in `src/descriptive_names.yml` under `total.opex_fields` and `total.capex_fields`.
+* Elements with added investments are now indicated by coloring the label red. What constitutes an added investment is positive values of the variables listed in `src/descriptive_names.yml` under `investment_indicators`.
+* Custom labels (if provided) are now used as x-ticks in the plots.
+
 ## Version 0.5.1 (2024-07-24)
 
 ### Bugfix

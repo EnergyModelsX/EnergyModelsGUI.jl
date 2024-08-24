@@ -18,7 +18,8 @@ import EnergyModelsGUI:
     update_info_box!,
     update_available_data_menu!,
     update_sub_system_locations!,
-    pick_component!
+    pick_component!,
+    clear_selection
 
 # Test specific GUI functionalities
 @testset "Test interactivity" verbose = true begin
@@ -97,7 +98,7 @@ import EnergyModelsGUI:
     # Test the open button functionality
     area1 = components[1] # fetch Area 1
     @testset "get_button(gui,:open).clicks" begin
-        push!(get_selected_systems(gui), area1) # Select Area 1
+        pick_component!(gui, area1; pick_topo_component=true) # Select Area 1
         notify(get_button(gui, :open).clicks) # Open Area 1
         @test get_var(gui, :title)[] == "top_level.Area 1"
     end
@@ -111,18 +112,18 @@ import EnergyModelsGUI:
     # Test the align horz. button (aligning nodes horizontally)
     area2 = components[2] # fetch Area 2
     @testset "get_button(gui,:align_horizontal).clicks" begin
-        push!(get_selected_systems(gui), area1) # Select Area 1
-        push!(get_selected_systems(gui), area2) # Select Area 2
+        pick_component!(gui, area1; pick_topo_component=true) # Select Area 1
+        pick_component!(gui, area2; pick_topo_component=true) # Select Area 2
         notify(get_button(gui, :align_horizontal).clicks) # Align Area 1 and 2 horizontally
         @test get_xy(components[1])[][2] == get_xy(components[2])[][2]
     end
 
     # Test the align vert. button (aligning nodes horizontally)
     area3 = components[3] # fetch Area 3
-    empty!(get_selected_systems(gui))
+    clear_selection(gui; clear_topo=true)
     @testset "get_button(gui,:align_vertical).clicks" begin
-        push!(get_selected_systems(gui), area2) # Select Area 1
-        push!(get_selected_systems(gui), area3) # Select Area 3
+        pick_component!(gui, area2; pick_topo_component=true) # Select Area 2
+        pick_component!(gui, area3; pick_topo_component=true) # Select Area 3
         notify(get_button(gui, :align_vertical).clicks) # Align Area 2 and 3 vertically
         @test get_xy(components[2])[][1] == get_xy(components[3])[][1]
     end
@@ -180,9 +181,9 @@ import EnergyModelsGUI:
     #end
 
     @testset "get_menu(gui,:period).i_selected" begin
-        empty!(get_selected_systems(gui))
+        clear_selection(gui; clear_topo=true)
         sub_component = get_components(components[2])[2] # fetch the n_Power supply node
-        push!(get_selected_systems(gui), sub_component) # Manually add to :selected_systems
+        pick_component!(gui, sub_component; pick_topo_component=true)
         update!(gui)
         available_data = [x[1] for x ∈ collect(available_data_menu.options[])]
         i_selected = findfirst(
@@ -205,9 +206,9 @@ import EnergyModelsGUI:
     end
 
     @testset "get_menu(gui,:representative_period).i_selected" begin
-        empty!(get_selected_systems(gui))
+        clear_selection(gui; clear_topo=true)
         sub_component = get_components(components[1])[4] # fetch the Heating 1 node
-        push!(get_selected_systems(gui), sub_component) # Manually add to :selected_systems
+        pick_component!(gui, sub_component; pick_topo_component=true)
         update!(gui)
         available_data = [x[2][:name] for x ∈ collect(available_data_menu.options[])]
         i_selected = findfirst(x -> x == "flow_in", available_data)
@@ -226,9 +227,9 @@ import EnergyModelsGUI:
     end
 
     @testset "pin_plot_button.clicks" begin
-        empty!(get_selected_systems(gui))
+        clear_selection(gui; clear_topo=true)
         sub_component = get_components(components[4])[2] # fetch the Solar Power node
-        push!(get_selected_systems(gui), sub_component) # Manually add to :selected_systems
+        pick_component!(gui, sub_component; pick_topo_component=true)
         update!(gui)
         available_data = [x[2][:name] for x ∈ collect(available_data_menu.options[])]
         i_selected = findfirst(x -> x == "profile", available_data)
@@ -236,7 +237,7 @@ import EnergyModelsGUI:
         time_axis = time_menu.selection[]
         notify(pin_plot_button.clicks)
         sub_component2 = components[3].components[2] # fetch the EV charger node
-        push!(get_selected_systems(gui), sub_component2) # Manually add to :selected_systems
+        pick_component!(gui, sub_component2; pick_topo_component=true) # Select Area 1
         update!(gui)
         available_data = [x[2][:name] for x ∈ collect(available_data_menu.options[])]
         i_selected = findfirst(x -> x == "cap", available_data)
@@ -274,7 +275,7 @@ import EnergyModelsGUI:
     end
 
     @testset "get_button(gui,:clear_all).clicks" begin
-        empty!(get_selected_systems(gui))
+        clear_selection(gui; clear_topo=true)
         update_available_data_menu!(gui, nothing) # Make sure the menu is updated
         available_data = [x[2][:name] for x ∈ collect(available_data_menu.options[])]
         i_selected = findfirst(x -> x == "emissions_strategic", available_data)

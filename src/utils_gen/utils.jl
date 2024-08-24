@@ -176,3 +176,16 @@ function get_project_version(project_toml_file::String)
     # Extract the version number
     return parsed_toml["version"]
 end
+
+"""
+    nested_eltype(x::TimeProfile)
+
+Return the type of the lowest TimeProfile, of a nested TimeProfile `x`, not being a FixedProfile.
+"""
+function nested_eltype(x::TimeProfile)
+    y = typeof(x)
+    while y <: TimeProfile && length(y.parameters) > 1 && !(y.parameters[2] <: FixedProfile)
+        y = y.parameters[2]
+    end
+    return y
+end

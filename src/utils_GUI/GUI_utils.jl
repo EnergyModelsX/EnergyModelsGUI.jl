@@ -98,10 +98,7 @@ function pick_component!(
     end
 end
 function pick_component!(
-    gui::GUI,
-    element::Dict;
-    pick_topo_component=false,
-    pick_results_component=false,
+    gui::GUI, element::Dict; pick_topo_component=false, pick_results_component=false
 )
     if isnothing(element)
         clear_selection(
@@ -211,21 +208,149 @@ function initialize_available_data!(gui)
     append!(plotables, system[:links])
     if haskey(system, :transmission)
         append!(plotables, system[:transmission])
+        mode_to_transmission = Dict()
+        for t ∈ system[:transmission]
+            for m ∈ t.modes
+                mode_to_transmission[m] = t
+            end
+        end
     end
-    for element ∈ plotables
-        # Find appearances of node/area/link/transmission in the model
-        available_data = Vector{Dict}(undef, 0)
-        if termination_status(model) == MOI.OPTIMAL # Plot results if available
-            for sym ∈ collect(keys(object_dictionary(model)))
-                if isempty(model[sym])
+    gui.vars[:available_data] = Dict{Plotable,Vector{Dict{Symbol,Any}}}(
+        element => Vector{Dict{Symbol,Any}}() for element ∈ plotables
+    )
+
+    # Find appearances of node/area/link/transmission in the model
+    if termination_status(model) == MOI.OPTIMAL # Plot results if available
+        for sym ∈ collect(keys(object_dictionary(model)))
+            var = model[sym]
+            if isempty(var)
+                continue
+            end
+            i_T, type = get_time_axis(model[sym])
+
+            for combination ∈ Iterators.product(get_JuMP_axes(var, i_T)...)
+                selection = collect(combination)
+                if isa(var, SparseVariables.IndexedVarArray)
+                    T = get_design(gui).system[:T]
+                    periods = get_periods(T, type)
+                    field_data = JuMP.Containers.SparseAxisArray(
+                        Dict(
+                            (t,) =>
+                                var[vcat(selection[1:(i_T - 1)], t, selection[i_T:end])...]
+                            for t ∈ periods
+                        ),
+                    )
+                else
+                    field_data = var[vcat(selection[1:(i_T - 1)], :, selection[i_T:end])...]
+                end
+                if isempty(field_data)
                     continue
                 end
-                add_description!(available_data, model[sym], sym, element, gui)
+                element::Plotable = getfirst(
+                    x -> isa(x, Union{EMB.Node,Link,Area,TransmissionMode}), selection
+                )
+                if isa(element, TransmissionMode)
+                    element = mode_to_transmission[element]
+                end
+
+                container = Dict(
+                    :name => string(sym),
+                    :is_jump_data => true,
+                    :selection => selection,
+                    :field_data => field_data,
+                    :description => create_description(gui, "variables.$sym"),
+                )
+                push!(get_available_data(gui)[element], container)
+            end
+        end
+    end
+
+    # Add total quantities
+    if termination_status(model) == MOI.OPTIMAL
+        element = nothing
+        # Calculate total OPEX for each strategic period
+        scale_tot_opex = get_var(gui, :scale_tot_opex)
+        scale_tot_capex = get_var(gui, :scale_tot_capex)
+        T = gui.design.system[:T]
+        𝒯ᴵⁿᵛ = strategic_periods(T)
+        sp_dur = duration_strat.(𝒯ᴵⁿᵛ)
+        tot_opex = zeros(T.len)
+        for opex_field ∈ get_var(gui, :descriptive_names)[:total][:opex_fields]
+            opex_key = Symbol(opex_field[1])
+            opex_desc = opex_field[2]
+            if haskey(model, opex_key)
+                opex = vec(sum(Array(value.(model[opex_key])), dims=1))
+                if scale_tot_opex
+                    opex ./= sp_dur
+                end
+                tot_opex .+= opex
+
+                # add opex_field to available data
+                container = Dict(
+                    :name => "",
+                    :is_jump_data => false,
+                    :selection => [element],
+                    :field_data => StrategicProfile(opex),
+                    :description => opex_desc,
+                )
+                push!(get_available_data(gui)[element], container)
             end
         end
 
+        # Calculate the total investment cost (CAPEX) for each strategic period
+        tot_capex = zeros(T.len)
+        capex_fields = get_var(gui, :descriptive_names)[:total][:capex_fields]
+        for capex_field ∈ capex_fields
+            capex_key = Symbol(capex_field[1])
+            capex_desc = capex_field[2]
+            if haskey(model, capex_key)
+                capex = vec(sum(Array(value.(model[capex_key])), dims=1))
+                if scale_tot_capex
+                    capex ./= sp_dur
+                end
+
+                tot_capex .+= capex
+
+                # add opex_field to available data
+                container = Dict(
+                    :name => "",
+                    :is_jump_data => false,
+                    :selection => [element],
+                    :field_data => StrategicProfile(capex),
+                    :description => capex_desc,
+                )
+                push!(get_available_data(gui)[element], container)
+            end
+        end
+
+        # add total operational cost to available data
+        container = Dict(
+            :name => "",
+            :is_jump_data => false,
+            :selection => [element],
+            :field_data => StrategicProfile(tot_opex),
+            :description => "Total operational cost",
+        )
+        push!(get_available_data(gui)[element], container)
+
+        # add total investment cost to available data
+        container = Dict(
+            :name => "",
+            :is_jump_data => false,
+            :selection => [element],
+            :field_data => StrategicProfile(tot_capex),
+            :description => "Total investment cost",
+        )
+        push!(get_available_data(gui)[element], container)
+    else
+        @warn "Total quantities were not computed as model does not contain a feasible solution"
+    end
+
+    # Add case input data
+    for element ∈ plotables
         # Add timedependent input data (if available)
         if !isnothing(element)
+            available_data = Vector{Dict}(undef, 0)
             for field_name ∈ fieldnames(typeof(element))
                 field = getfield(element, field_name)
                 structure = String(nameof(typeof(element)))
@@ -233,12 +358,23 @@ function initialize_available_data!(gui)
                 key_str = "structures.$structure.$name"
                 add_description!(field, name, key_str, "", element, available_data, gui)
             end
+            append!(get_available_data(gui)[element], available_data)
         end
-        get_available_data(gui)[element] = Dict(
-            :container => available_data,
-            :container_strings => create_label.(available_data),
-        )
     end
+end
+
+"""
+    get_JuMP_axes(var::JuMP.Containers.DenseAxisArray, i_T::Int)
+
+Get arrays of indices of a model variable `var` not being the time dimension (located at index `i_T`)
+"""
+function get_JuMP_axes(var::JuMP.Containers.DenseAxisArray, i_T::Int)
+    return axes(var)[vcat(1:(i_T - 1), (i_T + 1):end)]
+end
+
+function get_JuMP_axes(var::SparseVars, i_T::Int)
+    indices = hcat([collect(key) for key ∈ keys(var.data)]...)
+    return [unique(indices[i, :]) for i ∈ vcat(1:(i_T - 1), (i_T + 1):size(indices, 1))]
 end
 
 """
@@ -248,8 +384,8 @@ Update the `get_menus(gui)[:available_data]` with the available data of `element
 """
 function update_available_data_menu!(gui::GUI, element::Plotable)
     available_data = get_available_data(gui)
-    container = available_data[element][:container]
-    container_strings = available_data[element][:container_strings]
+    container = available_data[element]
+    container_strings = create_label.(container)
     if !isempty(container) # needed to resolve bug introduced in Makie
         get_menu(gui, :available_data).options = zip(container_strings, container)
     end

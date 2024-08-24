@@ -637,34 +637,59 @@ end
 Add a label to an `EnergySystemDesign` component.
 """
 function draw_label!(gui::GUI, component::EnergySystemDesign)
-    xo = Observable(0.0)
-    yo = Observable(0.0)
-    alignment = Observable((:left, :top))
-
-    scale = 0.7
-
-    on(component.xy; priority=3) do val
-        x = val[1]
-        y = val[2]
-
-        if component.wall[] == :E
-            xo[] = x + get_var(gui, :Δh) * scale
-            yo[] = y
-        elseif component.wall[] == :S
-            xo[] = x
-            yo[] = y - get_var(gui, :Δh) * scale
-        elseif component.wall[] == :W
-            xo[] = x - get_var(gui, :Δh) * scale
-            yo[] = y
-        elseif component.wall[] == :N
-            xo[] = x
-            yo[] = y + get_var(gui, :Δh) * scale
-        end
-        alignment[] = get_text_alignment(component.wall[])
-    end
     if haskey(component.system, :node)
+        xo = Observable(0.0)
+        yo = Observable(0.0)
+        alignment = Observable((:left, :top))
+
+        scale = 0.7
+
+        on(component.xy; priority=3) do val
+            x = val[1]
+            y = val[2]
+
+            if component.wall[] == :E
+                xo[] = x + get_var(gui, :Δh) * scale
+                yo[] = y
+            elseif component.wall[] == :S
+                xo[] = x
+                yo[] = y - get_var(gui, :Δh) * scale
+            elseif component.wall[] == :W
+                xo[] = x - get_var(gui, :Δh) * scale
+                yo[] = y
+            elseif component.wall[] == :N
+                xo[] = x
+                yo[] = y + get_var(gui, :Δh) * scale
+            end
+            alignment[] = get_text_alignment(component.wall[])
+        end
+
         node = component.system[:node]
         label = isa(node.id, Number) ? string(node) : string(node.id)
+
+        # Check if and when there is investment in this node
+        investment_times = []
+        T = gui.design.system[:T]
+        𝒯ᴵⁿᵛ = strategic_periods(T)
+        capex_fields = get_var(gui, :descriptive_names)[:investment_indicators]
+        model = get_model(gui)
+        for t ∈ 𝒯ᴵⁿᵛ, capex_field ∈ capex_fields
+            capex_key = Symbol(capex_field)
+            if haskey(model, capex_key) &&
+                !isempty(model[capex_key]) &&
+                node ∈ axes(model[capex_key])[1]
+                val = value(model[capex_key][node, t])
+                if val > 0
+                    push!(investment_times, t)
+                end
+            end
+        end
+        if isempty(investment_times)
+            font_color = :black
+        else
+            font_color = :red
+            label *= " (" * join(investment_times, ", ") * ")"
+        end
         label_text = text!(
             get_axes(gui)[:topo],
             xo,
@@ -673,6 +698,7 @@ function draw_label!(gui::GUI, component::EnergySystemDesign)
             align=alignment,
             fontsize=get_var(gui, :fontsize),
             inspectable=false,
+            color=font_color,
         )
         Makie.translate!(label_text, 0, 0, get_var(gui, :z_translate_components))
         get_vars(gui)[:z_translate_components] += 1

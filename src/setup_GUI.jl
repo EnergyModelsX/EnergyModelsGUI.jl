@@ -24,13 +24,15 @@ Initialize the EnergyModelsGUI window and visualize the topology of a system `ca
   representative periods.
 - **`scenarios_labels::Vector=[]`** are descriptive labels for scenarios.
 - **`path_to_results::String=""`** is the path to where exported files are stored.
-- **`path_to_descriptive_names::String=""` is the Path to a .yml file where JuMP variables
+- **`path_to_descriptive_names::String=""` is the Path to a .yml file where variables
   are described.
 - **`coarse_coast_lines::Bool=true`** is a toggle for coarse or fine resolution coastlines.
 - **`backgroundcolor=GLMakie.RGBf(0.99, 0.99, 0.99)`** is the background color of the
   main window.
 - **`fontsize::Int64=12`** is the general fontsize.
 - **`plot_widths::Tuple{Int64,Int64}=(1920, 1080)`** is the resolution of the window.
+- **`scale_tot_opex::Bool=false`** multiplies total OPEX quantities with the duration of the strategic period
+- **`scale_tot_capex::Bool=false`** divides total CAPEX quantities with the duration of the strategic period
 """
 function GUI(
     case::Dict;
@@ -51,6 +53,8 @@ function GUI(
     fontsize::Int64=12,
     plot_widths::Tuple{Int64,Int64}=(1920, 1080),
     case_name::String="",
+    scale_tot_opex::Bool=false,
+    scale_tot_capex::Bool=false,
 )
     # Generate the system topology:
     @info raw"Setting up the topology design structure"
@@ -91,11 +95,12 @@ function GUI(
             :results_rp => [],
             :results_op => [],
         ),
-        :available_data => Dict{Any,Any}(),
         :periods_labels => periods_labels,
         :representative_periods_labels => representative_periods_labels,
         :scenarios_labels => scenarios_labels,
         :backgroundcolor => backgroundcolor,
+        :scale_tot_opex => scale_tot_opex,
+        :scale_tot_capex => scale_tot_capex,
     )
 
     # gobal variables for legends
