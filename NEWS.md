@@ -12,6 +12,7 @@
 * The total opex and capex costs may now be plotted over strategic periods where both quantities may be scaled to a year or the whole strategic period using the boolean input arguments `scale_tot_opex` and `scale_tot_capex`. The calculations are based on the variables listed in `src/descriptive_names.yml` under `total.opex_fields` and `total.capex_fields`.
 * Elements with added investments are now indicated by coloring the label red. What constitutes an added investment is positive values of the variables listed in `src/descriptive_names.yml` under `investment_indicators`.
 * Custom labels (if provided) are now used as x-ticks in the plots.
+* Print model results summary in the information box when model contains a feasible solution.
 
 ## Version 0.5.1 (2024-07-24)
 

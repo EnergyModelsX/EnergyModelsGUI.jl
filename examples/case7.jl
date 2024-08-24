@@ -423,4 +423,6 @@ gui = GUI(
     expand_all=true,
     path_to_results=path_to_results,
     case_name=case_name,
+    scale_tot_opex=false,
+    scale_tot_capex=true,
 )

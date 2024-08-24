@@ -23,6 +23,9 @@ using EnergyModelsBase
 # Use Colors to visualize using the colors in the colors.yml file
 using Colors
 
+# To format numbers with @sprintf
+using Printf
+
 # Use GLMakie front end to visualize the GUI figure
 using GLMakie
 

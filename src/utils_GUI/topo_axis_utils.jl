@@ -665,25 +665,11 @@ function draw_label!(gui::GUI, component::EnergySystemDesign)
         end
 
         node = component.system[:node]
-        label = isa(node.id, Number) ? string(node) : string(node.id)
+        label = get_node_label(node)
 
         # Check if and when there is investment in this node
-        investment_times = []
-        T = gui.design.system[:T]
-        𝒯ᴵⁿᵛ = strategic_periods(T)
-        capex_fields = get_var(gui, :descriptive_names)[:investment_indicators]
-        model = get_model(gui)
-        for t ∈ 𝒯ᴵⁿᵛ, capex_field ∈ capex_fields
-            capex_key = Symbol(capex_field)
-            if haskey(model, capex_key) &&
-                !isempty(model[capex_key]) &&
-                node ∈ axes(model[capex_key])[1]
-                val = value(model[capex_key][node, t])
-                if val > 0
-                    push!(investment_times, t)
-                end
-            end
-        end
+        investment_times, _ = get_investment_times(gui, node)
+
         if isempty(investment_times)
             font_color = :black
         else
@@ -705,6 +691,51 @@ function draw_label!(gui::GUI, component::EnergySystemDesign)
         label_text.kw[:EMGUI_obj] = component
         push!(get_plots(component), label_text)
     end
+end
+
+"""
+    get_node_label(node::Plotable)
+
+Get the label of the node based on its `id` field. If the `id` is a number it returns the
+built in Base.display() functionality of node, otherwise, the `id` field is converted to a string.
+"""
+function get_node_label(node::Plotable)
+    return isa(node.id, Number) ? string(node) : string(node.id)
+end
+
+"""
+    get_investment_times(gui::GUI, node::Plotable)
+
+Get a list of times and capex with added investments from `node`.
+"""
+function get_investment_times(gui::GUI, node::Plotable)
+    investment_times::Vector{String} = Vector{String}[]
+    investment_capex::Vector{Float64} = Vector{Float64}[]
+    T = gui.design.system[:T]
+    𝒯ᴵⁿᵛ = strategic_periods(T)
+    investment_indicators = get_var(gui, :descriptive_names)[:investment_indicators]
+    capex_fields = get_var(gui, :descriptive_names)[:total][:capex_fields]
+    period_labels = get_var(gui, :periods_labels)
+    model = get_model(gui)
+    for (i, t) ∈ enumerate(𝒯ᴵⁿᵛ), investment_indicator ∈ investment_indicators
+        sym = Symbol(investment_indicator)
+        if haskey(model, sym) && !isempty(model[sym]) && node ∈ axes(model[sym])[1]
+            val = value(model[sym][node, t])
+            if val > 0
+                capex::Float64 = 0.0
+                for capex_field ∈ capex_fields
+                    capex_key = Symbol(capex_field[1])
+                    if haskey(model, capex_key) && node ∈ axes(model[capex_key])[1]
+                        capex += value(model[capex_key][node, t])
+                    end
+                end
+                t_str = split(period_labels[i], " ")[1]
+                push!(investment_times, t_str)
+                push!(investment_capex, capex)
+            end
+        end
+    end
+    return investment_times, investment_capex
 end
 
 """

@@ -275,11 +275,13 @@ function initialize_available_data!(gui)
         𝒯ᴵⁿᵛ = strategic_periods(T)
         sp_dur = duration_strat.(𝒯ᴵⁿᵛ)
         tot_opex = zeros(T.len)
+        tot_opex_unscaled = zeros(T.len)
         for opex_field ∈ get_var(gui, :descriptive_names)[:total][:opex_fields]
             opex_key = Symbol(opex_field[1])
             opex_desc = opex_field[2]
             if haskey(model, opex_key)
                 opex = vec(sum(Array(value.(model[opex_key])), dims=1))
+                tot_opex_unscaled .+= opex
                 if scale_tot_opex
                     opex ./= sp_dur
                 end
@@ -299,12 +301,14 @@ function initialize_available_data!(gui)
 
         # Calculate the total investment cost (CAPEX) for each strategic period
         tot_capex = zeros(T.len)
+        tot_capex_unscaled = zeros(T.len)
         capex_fields = get_var(gui, :descriptive_names)[:total][:capex_fields]
         for capex_field ∈ capex_fields
             capex_key = Symbol(capex_field[1])
             capex_desc = capex_field[2]
             if haskey(model, capex_key)
                 capex = vec(sum(Array(value.(model[capex_key])), dims=1))
+                tot_capex_unscaled .+= capex
                 if scale_tot_capex
                     capex ./= sp_dur
                 end
@@ -342,6 +346,25 @@ function initialize_available_data!(gui)
             :description => "Total investment cost",
         )
         push!(get_available_data(gui)[element], container)
+
+        # Create investment overview in the information box
+        investment_overview = "Result summary:\n\n"
+        total_opex = sum(tot_opex_unscaled .* sp_dur)
+        total_capex = sum(tot_capex_unscaled)
+        investment_overview *= "Total operational cost: $(format_number(total_opex))\n"
+        investment_overview *= "Total investment cost: $(format_number(total_capex))\n\n"
+        investment_overview *= "Investment overview:\n"
+        for element ∈ plotables
+            investment_times, investment_capex = get_investment_times(gui, element)
+            if !isempty(investment_times)
+                label = get_node_label(element)
+                investment_overview *= "\t$label:\n"
+                for (t, capex) ∈ zip(investment_times, investment_capex)
+                    investment_overview *= "\t\t$t: $(format_number(capex))\n"
+                end
+            end
+        end
+        gui.vars[:investment_overview] = investment_overview
     else
         @warn "Total quantities were not computed as model does not contain a feasible solution"
     end

@@ -101,6 +101,7 @@ function GUI(
         :backgroundcolor => backgroundcolor,
         :scale_tot_opex => scale_tot_opex,
         :scale_tot_capex => scale_tot_capex,
+        :investment_overview => "",
     )
 
     # gobal variables for legends

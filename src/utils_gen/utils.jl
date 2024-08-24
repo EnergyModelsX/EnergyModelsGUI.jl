@@ -164,7 +164,7 @@ end
 """
     get_project_version(project_toml_file::String)
 
-Get the version number from the Project.toml file located at `project_toml_file`
+Get the version number from the Project.toml file located at `project_toml_file`.
 """
 function get_project_version(project_toml_file::String)
     # Read the contents of the Project.toml file
@@ -188,4 +188,17 @@ function nested_eltype(x::TimeProfile)
         y = y.parameters[2]
     end
     return y
+end
+
+"""
+    format_number(x::Number)
+
+Format number `x` to two decimals and add thousands seperators (comma).
+"""
+function format_number(x::Number)
+    # Format the number with two decimal places using @sprintf
+    formatted_number = @sprintf("%.2f", x)
+
+    # Add separator (comma)
+    return replace(formatted_number, r"(?<=\d)(?=(\d{3})+\.)" => ",")
 end
