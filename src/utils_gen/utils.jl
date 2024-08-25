@@ -107,40 +107,6 @@ function get_nth_field(s::String, delimiter::Char, n::Int)
 end
 
 """
-    exists(data::JuMP.Containers.DenseAxisArray, element::Plotable)
-
-Check if `element` exist in the `data` structure.
-"""
-function exists(data::JuMP.Containers.DenseAxisArray, element::Plotable)
-    if isnothing(element)
-        return false
-    end
-    for axis ∈ axes(data), entry ∈ axis
-        if entry == element
-            return true
-        end
-    end
-    return false
-end
-
-"""
-    exists(data::SparseVars, element::Plotable)
-
-Check if `element` exist in the `data` structure.
-"""
-function exists(data::SparseVars, element::Plotable)
-    if isnothing(element)
-        return false
-    end
-    for key ∈ keys(data.data), entry ∈ key
-        if entry == element
-            return true
-        end
-    end
-    return false
-end
-
-"""
     merge_dicts(dict1::Dict, dict2::Dict)
 
 Merge `dict1` and `dict2` (in case of overlap, `dict2` overwrites entries in `dict1`).

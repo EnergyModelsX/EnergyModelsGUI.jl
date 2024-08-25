@@ -55,6 +55,7 @@ function GUI(
     case_name::String="",
     scale_tot_opex::Bool=false,
     scale_tot_capex::Bool=false,
+    colormap::Vector=Makie.wong_colors(),
 )
     # Generate the system topology:
     @info raw"Setting up the topology design structure"
@@ -85,14 +86,16 @@ function GUI(
         :investment_lineStyle => Linestyle([1.0, 1.5, 2.0, 2.5] .* 5), # linestyle for investment connections and box boundaries for nodes
         :path_to_results => path_to_results, # Path to the location where axes[:results] can be exported
         :results_legend => [], # Legend for the results
-        :pinned_data => Dict( # Arrays of pinned plots (stores Dicts with keys :label and :plot)
+        :selected_plots => Dict( # Arrays of selected data
             :results_sp => [],
             :results_rp => [],
+            :results_sc => [],
             :results_op => [],
         ),
-        :visible_data => Dict( # Arrays of pinned plots (stores Dicts with keys :label and :plot)
+        :plotted_data => Dict( # Arrays of plotted data
             :results_sp => [],
             :results_rp => [],
+            :results_sc => [],
             :results_op => [],
         ),
         :periods_labels => periods_labels,
@@ -102,6 +105,7 @@ function GUI(
         :scale_tot_opex => scale_tot_opex,
         :scale_tot_capex => scale_tot_capex,
         :investment_overview => "",
+        :colormap => colormap,
     )
 
     # gobal variables for legends
@@ -132,7 +136,6 @@ function GUI(
     vars[:z_translate_components] = 5000
 
     vars[:selected_systems] = []
-    vars[:selected_plots] = []
 
     # Default text for the text area
     vars[:default_text] = string(
@@ -295,6 +298,13 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
         tellwidth=false,
         backgroundcolor=vars[:backgroundcolor],
     )
+    ax_results_sc::Axis = Axis(
+        gridlayout_results_ax[1, 1];
+        alignmode=Outside(),
+        tellheight=false,
+        tellwidth=false,
+        backgroundcolor=vars[:backgroundcolor],
+    )
     ax_results_op::Axis = Axis(
         gridlayout_results_ax[1, 1];
         alignmode=Outside(),
@@ -303,8 +313,10 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
         backgroundcolor=vars[:backgroundcolor],
     )
     hidedecorations!(ax_results_rp)
+    hidedecorations!(ax_results_sc)
     hidedecorations!(ax_results_op)
     hidespines!(ax_results_rp)
+    hidespines!(ax_results_sc)
     hidespines!(ax_results_op)
 
     # Collect all strategic periods
@@ -468,8 +480,8 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
     time_menu = Makie.Menu(
         gridlayout_results_taskbar[1, 3];
         options=zip(
-            ["Strategic", "Representative", "Operational"],
-            [:results_sp, :results_rp, :results_op],
+            ["Strategic", "Representative", "Scenario", "Operational"],
+            [:results_sp, :results_rp, :results_sc, :results_op],
         ),
         halign=:left,
         width=120 * vars[:fontsize] / 12,
@@ -548,6 +560,7 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
         :topo => ax,
         :results_sp => ax_results_sp,
         :results_rp => ax_results_rp,
+        :results_sc => ax_results_sc,
         :results_op => ax_results_op,
         :info => ax_info,
     )

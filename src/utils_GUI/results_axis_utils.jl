@@ -204,8 +204,14 @@ and the scenario `sc`.
 function get_periods(T::TS.TimeStructure, type::Type, sp::Int64, rp::Int64, sc::Int64)
     if type <: TS.StrategicProfile || type <: FixedProfile || type <: TS.StrategicPeriod
         return [t for t ∈ TS.strat_periods(T)], :results_sp
-    elseif type <: TS.RepresentativeProfile || type <: TS.RepresentativePeriod
+    elseif type <: TS.RepresentativeProfile || type <: TS.AbstractRepresentativePeriod
         return [t for t ∈ TS.repr_periods(T) if t.sp == sp], :results_rp
+    elseif type <: TS.ScenarioProfile || type <: TS.ScenarioPeriod
+        if eltype(T.operational) <: TS.RepresentativePeriods
+            return [t for t ∈ TS.opscenarios(T) if t.sp == sp && t.rp == rp], :results_sc
+        else
+            return [t for t ∈ TS.opscenarios(T) if t.sp == sp], :results_sc
+        end
     else
         if eltype(T.operational) <: TS.RepresentativePeriods
             if eltype(T.operational[sp].rep_periods) <: TS.OperationalScenarios
@@ -229,6 +235,8 @@ function get_periods(T::TS.TimeStructure, type::Type)
         return [t for t ∈ TS.strat_periods(T)]
     elseif type <: TS.RepresentativePeriod
         return [t for t ∈ TS.repr_periods(T)]
+    elseif type <: TS.ScenarioPeriod
+        return [t for t ∈ TS.opscenarios(T)]
     else
         return collect(T)
     end
@@ -353,6 +361,15 @@ function update_plot!(gui::GUI, element::Plotable)
             xlabel *= " (StrategicPeriods)"
         elseif time_axis == :results_rp
             xlabel *= " (RepresentativePeriods)"
+            label *= " for strategic period $sp"
+        elseif time_axis == :results_sc
+            xlabel *= " (Scenarios)"
+
+            if eltype(T.operational) <: TS.RepresentativePeriods
+                label *= " for strategic period $sp and representative period $rp"
+            else
+                label *= " for strategic period $sp"
+            end
         elseif time_axis == :results_op
             xlabel *= " (OperationalPeriods)"
 
@@ -370,15 +387,11 @@ function update_plot!(gui::GUI, element::Plotable)
         end
 
         no_pts = length(periods)
-        # For FixedProfiles, make sure the y_values are extended correspondingly to the x_values
-        if no_pts > length(y_values)
-            y_values = vcat(y_values, fill(y_values[end], no_pts - length(y_values)))
-        end
         if time_axis == :results_op
             x_values = get_op.(periods)
             points = [Point{2,Float64}(x, y) for (x, y) ∈ zip(x_values, y_values)]
             custom_ticks = (1:no_pts, string.(1:no_pts))
-            time_menu.i_selected[] = 3
+            time_menu.i_selected[] = 4
         else
             points = [Point{2,Float64}(x, y) for (x, y) ∈ zip(1:no_pts, y_values)]
             custom_ticks = (1:no_pts, [string(t) for t ∈ periods])
@@ -388,7 +401,7 @@ function update_plot!(gui::GUI, element::Plotable)
                 # Use customized labels for strategic periods if provided
                 periods_labels = get_var(gui, :periods_labels)
                 if !isempty(periods_labels)
-                    custom_ticks = (1:no_pts, periods_labels)
+                    custom_ticks = (1:no_pts, periods_labels[1:no_pts])
                 end
             elseif time_axis == :results_rp
                 time_menu.i_selected[] = 2
@@ -396,73 +409,35 @@ function update_plot!(gui::GUI, element::Plotable)
                 # Use customized labels for representative periods if provided
                 repr_periods_labels = get_var(gui, :representative_periods_labels)
                 if !isempty(repr_periods_labels)
-                    custom_ticks = (1:no_pts, repr_periods_labels)
+                    custom_ticks = (1:no_pts, repr_periods_labels[1:no_pts])
+                end
+            elseif time_axis == :results_sc
+                time_menu.i_selected[] = 3
+
+                # Use customized labels for scenarios if provided
+                scenarios_labels = get_var(gui, :scenarios_labels)
+                if !isempty(scenarios_labels)
+                    custom_ticks = (1:no_pts, scenarios_labels[1:no_pts])
                 end
             end
         end
         notify(time_menu.selection) # In case the new plot is on an other time type
-        pinned_plots = [x[:plot] for x ∈ get_pinned_data(gui, time_axis)]
-        visible_plots = [x[:plot] for x ∈ get_visible_data(gui, time_axis)]
-        plots = filter(
-            x ->
-                (isa(x, Combined) || isa(x, Lines)) &&
-                    !isa(x, Wireframe) &&
-                    !(x ∈ pinned_plots),
-            get_axes(gui)[time_axis].scene.plots,
-        ) # Extract non-pinned plots. Only extract Lines and Combined (bars). Done to avoid Wireframe-objects
+        plotted_data = get_plotted_data(gui, time_axis)
 
-        plot = getfirst(x -> x ∈ visible_plots, plots) # get first non-pinned visible plots
-        if isnothing(plot)
-            @debug "Could not find a visible plot to overwrite, try to find a hidden plot to overwrite"
-            plot = getfirst(
-                x ->
-                    (isa(x, Combined) || isa(x, Lines)) &&
-                        !isa(x, Wireframe) &&
-                        !x.visible[],
-                plots,
-            ) # Extract non-visible plots that can be replaced
-            if !isnothing(plot) # Overwrite a hidden plots
-                @debug "Found a hidden plot to overwrite"
-                push!(
-                    get_visible_data(gui, time_axis),
-                    Dict(
-                        :plot => plot,
-                        :name => selection[:name],
-                        :selection => selection[:selection],
-                        :t => periods,
-                        :y => y_values,
-                        :color => plot.color[],
-                    ),
-                )
-            end
-        else # Overwrite the non-pinned visible plot
-            @debug "Found a visible plot to overwrite"
-            # remove the plot to be overwritten
-            filter!(x -> x[:plot] != plot, get_visible_data(gui, time_axis))
+        overwritable = getfirst(x -> !x[:pinned], plotted_data) # get first non-pinned plot
 
-            push!(
-                get_visible_data(gui, time_axis),
-                Dict(
-                    :plot => plot,
-                    :name => selection[:name],
-                    :selection => selection[:selection],
-                    :t => periods,
-                    :y => y_values,
-                    :color => plot.color[],
-                ),
-            )
-        end
         ax = get_ax(gui, time_axis)
-        if !isnothing(plot)
-            plot[1][] = points
-            plot.visible = true # If it has been hidden after a "Remove Plot" action
-            plot.label = label
-        else
+        if isnothing(overwritable)
             @debug "Could not find anything to overwrite, creating new plot instead"
+            n_visible = length(get_visible_data(gui, time_axis)) + 1
+            colormap = get_var(gui, :colormap)
+            i = (n_visible - 1 % length(colormap)) + 1
+            color = Observable(parse(Colorant, colormap[i]))
             if time_axis == :results_op
-                plot = stairs!(ax, points; step=:pre, label=label)
+                plot = stairs!(ax, points; step=:pre, label=label, color=color)
+                plot.color = color
+                plot.plots[1].color = color
             else
-                n_visible = length(get_visible_data(gui, time_axis)) + 1
                 plot = barplot!(
                     ax,
                     points;
@@ -471,20 +446,32 @@ function update_plot!(gui::GUI, element::Plotable)
                     strokecolor=:black,
                     strokewidth=1,
                     label=label,
+                    color=color,
                 )
             end
-            push!(
-                get_visible_data(gui, time_axis),
-                Dict(
-                    :plot => plot,
-                    :name => selection[:name],
-                    :selection => selection[:selection],
-                    :t => periods,
-                    :y => y_values,
-                    :color => plot.color[],
-                ),
+            new_data = Dict(
+                :plot => plot,
+                :name => selection[:name],
+                :selection => selection[:selection],
+                :t => periods,
+                :y => y_values,
+                :color => color[],
+                :color_obs => color,
+                :pinned => false,
+                :visible => true,
             )
-            plot.kw[:EMGUI_obj] = get_visible_data(gui, time_axis)[end]
+            plot.kw[:EMGUI_obj] = new_data
+            push!(plotted_data, new_data)
+        else
+            plot = overwritable[:plot]
+            plot[1][] = points
+            plot.visible[] = true # If it has been hidden after a "Remove Plot" action
+            plot.label[] = label
+            overwritable[:name] = selection[:name]
+            overwritable[:t] = periods
+            overwritable[:y] = y_values
+            overwritable[:pinned] = false
+            overwritable[:visible] = true
         end
         update_barplot_dodge!(gui)
         if all(y_values .≈ 0)
@@ -557,8 +544,9 @@ function update_legend!(gui::GUI)
         legend_defaults = Makie.block_defaults(
             :Legend, Dict{Symbol,Any}(), get_ax(gui, time_axis).scene
         )
-        labels = [x[:plot].label for x ∈ get_visible_data(gui, time_axis)]
-        contents = [x[:plot] for x ∈ get_visible_data(gui, time_axis)]
+        visible_data = get_visible_data(gui, time_axis)
+        labels = [x[:plot].label[] for x ∈ visible_data]
+        contents = [x[:plot] for x ∈ visible_data]
         title = nothing
         entry_groups = Makie.to_entry_group(
             Attributes(legend_defaults), contents, labels, title

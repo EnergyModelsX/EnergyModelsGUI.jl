@@ -392,37 +392,41 @@ function get_sub_system_data(a_id, products, T)
     return nodes, links
 end
 
-# Get case and model data
-case, model = read_data()
+function run_case()
+    # Get case and model data
+    case, model = read_data()
 
-# Construct JuMP model for optimization
-m = EMG.create_model(case, model)
+    # Construct JuMP model for optimization
+    m = EMG.create_model(case, model)
 
-# Set optimizer for JuMP
-set_optimizer(m, HiGHS.Optimizer)
+    # Set optimizer for JuMP
+    set_optimizer(m, HiGHS.Optimizer)
 
-# Solve the optimization problem
-optimize!(m)
+    # Solve the optimization problem
+    optimize!(m)
 
-# Print solution summary
-solution_summary(m)
+    # Print solution summary
+    solution_summary(m)
 
-## Plot topology and results in GUI
+    ## Plot topology and results in GUI
 
-# Set folder where visualization info is saved and retrieved
-path = joinpath(@__DIR__, "design", case_name) # folder where visualization info is saved and retrieved
-path_to_results = joinpath(@__DIR__, "exported_files", case_name) # folder where visualization info is saved and retrieved
+    # Set folder where visualization info is saved and retrieved
+    path = joinpath(@__DIR__, "design", case_name) # folder where visualization info is saved and retrieved
+    path_to_results = joinpath(@__DIR__, "exported_files", case_name) # folder where visualization info is saved and retrieved
 
-# Run the GUI
-gui = GUI(
-    case;
-    design_path=path,
-    model=m,
-    periods_labels=["2022 - 2030", "2030 - 2040", "2040 - 2050"],
-    representative_periods_labels=["Winter", "Remaining"],
-    expand_all=true,
-    path_to_results=path_to_results,
-    case_name=case_name,
-    scale_tot_opex=false,
-    scale_tot_capex=true,
-)
+    # Run the GUI
+    gui = GUI(
+        case;
+        design_path=path,
+        model=m,
+        periods_labels=["2022 - 2030", "2030 - 2040", "2040 - 2050"],
+        representative_periods_labels=["Winter", "Remaining"],
+        expand_all=true,
+        path_to_results=path_to_results,
+        case_name=case_name,
+        scale_tot_opex=false,
+        scale_tot_capex=true,
+    )
+
+    return case, model, m, gui
+end

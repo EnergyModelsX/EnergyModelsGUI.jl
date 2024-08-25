@@ -694,13 +694,16 @@ function draw_label!(gui::GUI, component::EnergySystemDesign)
 end
 
 """
-    get_node_label(node::Plotable)
+    get_node_label(node::Union{Area, EMB.Node, TransmissionMode, Transmission})
 
 Get the label of the node based on its `id` field. If the `id` is a number it returns the
 built in Base.display() functionality of node, otherwise, the `id` field is converted to a string.
 """
-function get_node_label(node::Plotable)
+function get_node_label(node::Union{Area,EMB.Node,TransmissionMode})
     return isa(node.id, Number) ? string(node) : string(node.id)
+end
+function get_node_label(t::Transmission)
+    return get_node_label(t.from) * "-" * get_node_label(t.to)
 end
 
 """

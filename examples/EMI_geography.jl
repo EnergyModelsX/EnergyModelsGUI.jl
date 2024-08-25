@@ -490,4 +490,11 @@ using EnergyModelsGUI
 design_path = joinpath(@__DIR__, "design", "EMI", "geography")
 
 # Run the GUI
-gui = GUI(case; design_path, model=m, coarse_coast_lines=false)
+gui = GUI(
+    case;
+    design_path,
+    model=m,
+    coarse_coast_lines=false,
+    scale_tot_opex=true,
+    scale_tot_capex=false,
+)

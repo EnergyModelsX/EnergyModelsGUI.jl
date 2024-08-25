@@ -30,11 +30,18 @@ function toggle_selection_color!(gui::GUI, selection::Connection, selected::Bool
     end
 end
 function toggle_selection_color!(gui::GUI, selection::Dict{Symbol,Any}, selected::Bool)
-    if selected
-        selection[:plot].color[] = get_selection_color(gui)
-    else
-        selection[:plot].color[] = selection[:color]
+    color = selected ? parse(Colorant, get_selection_color(gui)) : selection[:color]
+    plot = selection[:plot]
+    plot.color[] = color
+
+    # Implement ugly hack to resolve bug in Makie for barplots due to legend updates
+    while !isempty(plot.plots)
+        plot = plot.plots[1]
+        plot.color[] = color
     end
+
+    # Implement hack to resolve bug in Makie for stairs/lines due to legend updates
+    selection[:color_obs][] = color
 end
 
 """
@@ -105,7 +112,8 @@ function pick_component!(
             gui; clear_topo=pick_topo_component, clear_results=pick_results_component
         )
     else
-        push!(gui.vars[:selected_plots], element)
+        time_axis = get_menu(gui, :time).selection[]
+        push!(get_selected_plots(gui, time_axis), element)
         toggle_selection_color!(gui, element, true)
     end
 end
@@ -133,7 +141,8 @@ function clear_selection(gui::GUI; clear_topo=true, clear_results=true)
         update_available_data_menu!(gui, nothing) # Make sure the menu is updated
     end
     if clear_results
-        selected_plots = get_selected_plots(gui)
+        time_axis = get_menu(gui, :time).selection[]
+        selected_plots = get_selected_plots(gui, time_axis)
         for selection ∈ selected_plots
             toggle_selection_color!(gui, selection, false)
         end
@@ -289,7 +298,7 @@ function initialize_available_data!(gui)
 
                 # add opex_field to available data
                 container = Dict(
-                    :name => "",
+                    :name => "opex_strategic",
                     :is_jump_data => false,
                     :selection => [element],
                     :field_data => StrategicProfile(opex),
@@ -317,7 +326,7 @@ function initialize_available_data!(gui)
 
                 # add opex_field to available data
                 container = Dict(
-                    :name => "",
+                    :name => "capex_strategic",
                     :is_jump_data => false,
                     :selection => [element],
                     :field_data => StrategicProfile(capex),
@@ -329,7 +338,7 @@ function initialize_available_data!(gui)
 
         # add total operational cost to available data
         container = Dict(
-            :name => "",
+            :name => "tot_opex",
             :is_jump_data => false,
             :selection => [element],
             :field_data => StrategicProfile(tot_opex),
@@ -339,7 +348,7 @@ function initialize_available_data!(gui)
 
         # add total investment cost to available data
         container = Dict(
-            :name => "",
+            :name => "tot_capex",
             :is_jump_data => false,
             :selection => [element],
             :field_data => StrategicProfile(tot_capex),
@@ -353,16 +362,20 @@ function initialize_available_data!(gui)
         total_capex = sum(tot_capex_unscaled)
         investment_overview *= "Total operational cost: $(format_number(total_opex))\n"
         investment_overview *= "Total investment cost: $(format_number(total_capex))\n\n"
-        investment_overview *= "Investment overview:\n"
+        investment_overview_components = ""
         for element ∈ plotables
             investment_times, investment_capex = get_investment_times(gui, element)
             if !isempty(investment_times)
                 label = get_node_label(element)
-                investment_overview *= "\t$label:\n"
+                investment_overview_components *= "\t$label:\n"
                 for (t, capex) ∈ zip(investment_times, investment_capex)
-                    investment_overview *= "\t\t$t: $(format_number(capex))\n"
+                    investment_overview_components *= "\t\t$t: $(format_number(capex))\n"
                 end
             end
+        end
+        if !isempty(investment_overview_components)
+            investment_overview *= "Investment overview:\n"
+            investment_overview *= investment_overview_components
         end
         gui.vars[:investment_overview] = investment_overview
     else
