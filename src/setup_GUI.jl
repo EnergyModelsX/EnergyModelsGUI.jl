@@ -188,7 +188,7 @@ function GUI(
 
     # display the figure
     manifest = Pkg.Operations.Context().env.manifest
-    version = manifest[findfirst(v->v.name == "EnergyModelsGUI", manifest)].version
+    version = manifest[findfirst(v -> v.name == "EnergyModelsGUI", manifest)].version
     fig_title = "EnergyModelsGUI v$version"
     if !isempty(case_name)
         fig_title *= ": $case_name"
