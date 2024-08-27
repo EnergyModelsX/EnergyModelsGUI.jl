@@ -187,7 +187,8 @@ function GUI(
     DataInspector(fig; range=10, indicator_linewidth=0)
 
     # display the figure
-    version = get_project_version(joinpath(@__DIR__, "..", "Project.toml"))
+    manifest = Pkg.Operations.Context().env.manifest
+    version = manifest[findfirst(v->v.name == "EnergyModelsGUI", manifest)].version
     fig_title = "EnergyModelsGUI v$version"
     if !isempty(case_name)
         fig_title *= ": $case_name"

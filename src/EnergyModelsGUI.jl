@@ -12,9 +12,6 @@ using Pkg
 # Also used for colors.yml and writing coordinates to file
 using YAML
 
-# TOML is needed to extract the version number from the Project.toml-file
-using TOML
-
 # FileIO is needed for loading images (as icons)
 using FileIO
 using TimeStruct
