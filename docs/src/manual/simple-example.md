@@ -48,7 +48,7 @@ You should then get the following GUI:
     6. Hovering over a component will show its type.
 
 !!! note "Top toolbar"
-    The toolbar on top provides the following functionality:
+    The toolbar on top of the window provides the following functionality:
 
     1. `back`:  If currently in an area (opened by the `open` button, see below), navigate back to the `Top level` . This button has the keyboard shortcut `MouseButton4` (or `Esc`). Note: This functionality only works when using the `EnergyModelsGeography` package, as in this example.
     2. `open`: Open an area by first selecting the area to open and then clicking this button. This button has the keyboard shortcut `space`. Opening an area can also be accomplished by double clicking the area icon. Note: This functionality only works when using the `EnergyModelsGeography` package, as in this example.
