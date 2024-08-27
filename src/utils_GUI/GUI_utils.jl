@@ -219,7 +219,7 @@ function initialize_available_data!(gui)
         append!(plotables, system[:transmission])
         mode_to_transmission = Dict()
         for t ∈ system[:transmission]
-            for m ∈ t.modes
+            for m ∈ modes(t)
                 mode_to_transmission[m] = t
             end
         end
