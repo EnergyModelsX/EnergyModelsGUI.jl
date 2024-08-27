@@ -508,7 +508,7 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
     )
     axes_menu = Makie.Menu(
         gridlayout_results_taskbar[1, 8];
-        options=["All", "Plots"],
+        options=["All", "Plots", "Topo"],
         default="Plots",
         halign=:left,
         width=80 * vars[:fontsize] / 12,

@@ -291,7 +291,10 @@ import EnergyModelsGUI:
             @test isfile(joinpath(path, "All." * file_ending))
         end
         for file_ending ∈ ["bmp", "tif", "tiff", "jpg", "jpeg", "svg", "xlsx", "png"]
-            @test isfile(joinpath(path, "Plots_results_op." * file_ending))
+            @test isfile(joinpath(path, "results_op." * file_ending))
+        end
+        for file_ending ∈ ["svg"]
+            @test isfile(joinpath(path, "topo." * file_ending))
         end
     end
 

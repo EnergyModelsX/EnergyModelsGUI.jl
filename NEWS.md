@@ -6,7 +6,9 @@
 
 * Fixed a work around for a bug related to colors on plots not being updated upon selection (due to bug in Makie).
 * Fixed bug for plotting `ScenarioProfile`s.
-* Fixed bug when selecting periods from the menus for a non-tensorial time structure
+* Fixed bug when selecting periods from the menus for a non-tensorial time structure.
+* Fixed bug related to the type `Combined` not longer being used by Makie.
+* Fixed bug related to exporting raster graphics of Plots (by using GLMakie instead of CairoMakie).
 
 ### Enhancement
 

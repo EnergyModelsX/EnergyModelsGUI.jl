@@ -674,7 +674,6 @@ function draw_label!(gui::GUI, component::EnergySystemDesign)
             font_color = :black
         else
             font_color = :red
-            label *= " (" * join(investment_times, ", ") * ")"
         end
         label_text = text!(
             get_axes(gui)[:topo],
