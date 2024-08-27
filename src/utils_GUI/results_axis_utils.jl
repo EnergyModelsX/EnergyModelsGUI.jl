@@ -421,7 +421,6 @@ function update_plot!(gui::GUI, element::Plotable)
                 end
             end
         end
-        notify(time_menu.selection) # In case the new plot is on an other time type
         plotted_data = get_plotted_data(gui, time_axis)
 
         overwritable = getfirst(x -> !x[:pinned], plotted_data) # get first non-pinned plot
@@ -556,26 +555,35 @@ function update_legend!(gui::GUI)
 end
 
 """
-    update_limits!(gui::GUI)
+    update_limits!(ax::Axis)
 
 Update the limits based on the visible plots of type `time_axis`.
 """
 function update_limits!(ax::Axis)
-    autolimits!(ax)
-    yorigin = ax.finallimits[].origin[2]
-    ywidth = ax.finallimits[].widths[2]
+    # Fetch all y-values in the axis
+    y = vcat(
+        [pt[2] for p ∈ ax.scene.plots if isa(p, Plot) && p.visible[] for pt ∈ p[1][]]...
+    )
+    if isempty(y)
+        return nothing
+    end
+
+    # Calculate the width of distribution of the data in the vertical direction
+    max_y = maximum(y)
+    min_y = minimum(y)
+    ywidth = max_y - min_y
 
     # Do the following for data with machine epsilon precision noice around zero that causes
-    # the warning "Warning: No strict ticks found"
+    # the warning "Warning: No strict ticks found" and the the bug related to issue #4266 in Makie
     if abs(ywidth) < 1e-15
-        yorigin = -1e-12
-    end
-    if abs(ywidth) < 1e-15
-        ywidth = 2e-12
+        ywidth = 2.0
+        yorigin = min_y - 1.0
+    else
+        yorigin = min_y - ywidth * 0.04
     end
 
-    # try to avoid legend box overlapping data
-    ylims!(ax, yorigin, yorigin + ywidth * 1.1)
+    # Try to avoid legend box overlapping data
+    ylims!(ax, yorigin, yorigin + ywidth * 1.2)
 end
 
 """

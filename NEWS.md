@@ -9,6 +9,7 @@
 * Fixed bug when selecting periods from the menus for a non-tensorial time structure.
 * Fixed bug related to the type `Combined` not longer being used by Makie.
 * Fixed bug related to exporting raster graphics of Plots (by using GLMakie instead of CairoMakie).
+* Fixed workaround for a bug related to issue [Issue #4266](https://github.com/MakieOrg/Makie.jl/issues/4266) in Makie.
 
 ### Enhancement
 

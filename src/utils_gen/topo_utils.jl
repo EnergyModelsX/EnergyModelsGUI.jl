@@ -259,6 +259,8 @@ showdecorations!(ax) = begin
     ax.yticklabelsvisible = true
     ax.xticksvisible = true
     ax.yticksvisible = true
+    ax.xgridvisible = true
+    ax.ygridvisible = true
 end
 
 """

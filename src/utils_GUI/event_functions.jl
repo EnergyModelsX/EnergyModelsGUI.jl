@@ -381,14 +381,14 @@ function define_event_functions(gui::GUI)
     end
 
     # Time menu: Handle menu selection (selecting time)
-    on(time_menu.selection; priority=10) do selection
+    on(time_menu.selection; priority=10) do time_axis_selected
         for (_, time_axis) ∈ time_menu.options[]
-            if time_axis == selection
-                showdecorations!(get_ax(gui, time_axis))
-                showspines!(get_ax(gui, time_axis))
+            ax = get_ax(gui, time_axis)
+            if time_axis == time_axis_selected
+                showdecorations!(ax)
+                showspines!(ax)
                 showplots!([x[:plot] for x ∈ get_visible_data(gui, time_axis)])
             else
-                ax = get_ax(gui, time_axis)
                 hidedecorations!(ax)
                 hidespines!(ax)
                 hideplots!(ax.scene.plots)
