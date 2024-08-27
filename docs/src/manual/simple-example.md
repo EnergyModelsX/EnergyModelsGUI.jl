@@ -38,7 +38,7 @@ You should then get the following GUI:
 
 
 !!! note "Left visualization area"
-    To the left is a visualization of the topology. This window provides the following functionality:
+    The left fraction of the window shows a visualization of the topology with the following functionality:
 
     1. You can move a `Node`/`Area` by holding down the left mouse button and dragging to the desired location (at which you then release the left mouse button). The `Links`/`Transmissions` to this `Node`/`Area` will be updated as well.
     2. Selecting a `Node`/`Area`/`Link`/`Transmission` (by left-clicking) will print information about this object in the box on the top right. The selected object will have a green line style.
