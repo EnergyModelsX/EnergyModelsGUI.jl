@@ -112,8 +112,7 @@ function pick_component!(
             gui; clear_topo=pick_topo_component, clear_results=pick_results_component
         )
     else
-        time_axis = get_menu(gui, :time).selection[]
-        push!(get_selected_plots(gui, time_axis), element)
+        element[:selected] = true
         toggle_selection_color!(gui, element, true)
     end
 end
@@ -142,11 +141,10 @@ function clear_selection(gui::GUI; clear_topo=true, clear_results=true)
     end
     if clear_results
         time_axis = get_menu(gui, :time).selection[]
-        selected_plots = get_selected_plots(gui, time_axis)
-        for selection ∈ selected_plots
+        for selection ∈ get_selected_plots(gui, time_axis)
+            selection[:selected] = false
             toggle_selection_color!(gui, selection, false)
         end
-        empty!(selected_plots)
     end
 end
 

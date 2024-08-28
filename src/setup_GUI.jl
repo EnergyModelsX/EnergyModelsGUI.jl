@@ -86,18 +86,7 @@ function GUI(
         :investment_lineStyle => Linestyle([1.0, 1.5, 2.0, 2.5] .* 5), # linestyle for investment connections and box boundaries for nodes
         :path_to_results => path_to_results, # Path to the location where axes[:results] can be exported
         :results_legend => [], # Legend for the results
-        :selected_plots => Dict( # Arrays of selected data
-            :results_sp => [],
-            :results_rp => [],
-            :results_sc => [],
-            :results_op => [],
-        ),
-        :plotted_data => Dict( # Arrays of plotted data
-            :results_sp => [],
-            :results_rp => [],
-            :results_sc => [],
-            :results_op => [],
-        ),
+        :plotted_data => [],
         :periods_labels => periods_labels,
         :representative_periods_labels => representative_periods_labels,
         :scenarios_labels => scenarios_labels,
@@ -285,40 +274,13 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
     end
 
     # Create axis for visualizating results
-    ax_results_sp::Axis = Axis(
+    ax_results::Axis = Axis(
         gridlayout_results_ax[1, 1];
         alignmode=Outside(),
         tellheight=false,
         tellwidth=false,
         backgroundcolor=vars[:backgroundcolor],
     )
-    ax_results_rp::Axis = Axis(
-        gridlayout_results_ax[1, 1];
-        alignmode=Outside(),
-        tellheight=false,
-        tellwidth=false,
-        backgroundcolor=vars[:backgroundcolor],
-    )
-    ax_results_sc::Axis = Axis(
-        gridlayout_results_ax[1, 1];
-        alignmode=Outside(),
-        tellheight=false,
-        tellwidth=false,
-        backgroundcolor=vars[:backgroundcolor],
-    )
-    ax_results_op::Axis = Axis(
-        gridlayout_results_ax[1, 1];
-        alignmode=Outside(),
-        tellheight=false,
-        tellwidth=false,
-        backgroundcolor=vars[:backgroundcolor],
-    )
-    hidedecorations!(ax_results_rp)
-    hidedecorations!(ax_results_sc)
-    hidedecorations!(ax_results_op)
-    hidespines!(ax_results_rp)
-    hidespines!(ax_results_sc)
-    hidespines!(ax_results_op)
 
     # Collect all strategic periods
     T = design.system[:T]
@@ -558,12 +520,7 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
 
     # Collect all axes into a dictionary
     axes::Dict{Symbol,Makie.Block} = Dict(
-        :topo => ax,
-        :results_sp => ax_results_sp,
-        :results_rp => ax_results_rp,
-        :results_sc => ax_results_sc,
-        :results_op => ax_results_op,
-        :info => ax_info,
+        :topo => ax, :results => ax_results, :info => ax_info
     )
 
     # Update the title of the figure

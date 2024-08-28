@@ -392,32 +392,25 @@ get_selected_systems(gui::GUI) = get_var(gui, :selected_systems)
 """
     get_selected_plots(gui::GUI, time_axis::Symbol)
 
-Get the selected plots from the `gui` for the `time_axis`.
+Get the selected plots from the `gui` in the category `time_axis`.
 """
-get_selected_plots(gui::GUI, time_axis::Symbol) = get_var(gui, :selected_plots)[time_axis]
+get_selected_plots(gui::GUI, time_axis::Symbol) =
+    [x for x ∈ get_var(gui, :plotted_data) if x[:selected] && x[:time_axis] == time_axis]
 
 """
-    get_plotted_data(gui::GUI, time_axis::Symbol)
+    get_plotted_data(gui::GUI)
 
-Get the plots from the `gui` for the `time_axis`.
+Get the plots from the `gui`.
 """
-get_plotted_data(gui::GUI, time_axis::Symbol) = get_var(gui, :plotted_data)[time_axis]
+get_plotted_data(gui::GUI) = get_var(gui, :plotted_data)
 
 """
     get_visible_data(gui::GUI, time_axis::Symbol)
 
-Get the visible plots from the `gui` for the `time_axis`.
+Get the visible plots from the `gui` in the category `time_axis`.
 """
 get_visible_data(gui::GUI, time_axis::Symbol) =
-    [x for x ∈ get_var(gui, :plotted_data)[time_axis] if x[:visible]]
-
-"""
-    get_pinned_data(gui::GUI, time_axis::Symbol)
-
-Get the pinned plots from the `gui` for the `time_axis`.
-"""
-get_pinned_data(gui::GUI, time_axis::Symbol) =
-    [x for x ∈ get_var(gui, :plotted_data)[time_axis] if x[:pinned]]
+    [x for x ∈ get_var(gui, :plotted_data) if x[:visible] && x[:time_axis] == time_axis]
 
 """
     get_results_legend(gui::GUI)

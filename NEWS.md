@@ -10,6 +10,7 @@
 * Fixed bug related to the type `Combined` not longer being used by Makie.
 * Fixed bug related to exporting raster graphics of Plots (by using GLMakie instead of CairoMakie).
 * Fixed workaround for a bug related to issue [Issue #4266](https://github.com/MakieOrg/Makie.jl/issues/4266) in Makie.
+* Fixed bug that disabled `DataInspector` for all plots except plots over `StrategicPeriod`s, deactivated grid and deactivated zooming feature. This fix also improved performance as it required restructuring of the code that resulted in many simplification (mainly that only a single axis is needed for all time categories).
 
 ### Enhancement
 

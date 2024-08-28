@@ -20,7 +20,9 @@ import EnergyModelsGUI:
     update_sub_system_locations!,
     pick_component!,
     clear_selection,
-    get_design
+    get_design,
+    get_vis_plots,
+    get_plotted_data
 
 # Test specific GUI functionalities
 @testset "Test interactivity" verbose = true begin
@@ -192,15 +194,15 @@ import EnergyModelsGUI:
         time_axis = time_menu.selection[]
 
         period_menu.i_selected = 1
-        data_point = get_ax(gui, time_axis).scene.plots[1][1][][17][2]
+        data_point = get_ax(gui, :results).scene.plots[1][1][][17][2]
         @test data_point ≈ 2.8f0 atol = 1e-5
 
         period_menu.i_selected = 2
-        data_point = get_ax(gui, time_axis).scene.plots[1][1][][17][2]
+        data_point = get_ax(gui, :results).scene.plots[1][1][][17][2]
         @test data_point ≈ 4.0f0 atol = 1e-5
 
         period_menu.i_selected = 3
-        data_point = get_ax(gui, time_axis).scene.plots[1][1][][17][2]
+        data_point = get_ax(gui, :results).scene.plots[1][1][][17][2]
         @test data_point ≈ 1.2f0 atol = 1e-5
     end
 
@@ -214,12 +216,12 @@ import EnergyModelsGUI:
 
         representative_period_menu.i_selected = 2
         notify(representative_period_menu.selection)
-        data_point = get_ax(gui, time_axis).scene.plots[1][1][][10][2]
+        data_point = get_ax(gui, :results).scene.plots[1][1][][10][2]
         @test data_point ≈ 0.2f0 atol = 1e-5
 
         representative_period_menu.i_selected = 1
         notify(representative_period_menu.selection)
-        data_point = get_ax(gui, time_axis).scene.plots[1][1][][10][2]
+        data_point = get_ax(gui, :results).scene.plots[1][1][][10][2]
         @test data_point ≈ 2.0f0 atol = 1e-5
     end
 
@@ -231,30 +233,39 @@ import EnergyModelsGUI:
         # Show some data over strategic periods periods
         select_data("penalty.deficit", available_data_menu)
 
-        # Test data for representative periods
-        ax_sp = get_ax(gui, :results_sp)
-        ax_rp = get_ax(gui, :results_rp)
-        ax_op = get_ax(gui, :results_op)
-        data_point = ax_rp.scene.plots[1][1][][1][2]
-        @test data_point ≈ 2.0f0 atol = 1e-5
-        data_point = ax_rp.scene.plots[1][1][][2][2]
-        @test data_point ≈ 0.2f0 atol = 1e-5
+        # Show some data over strategic operational periods
+        select_data("flow_in", available_data_menu)
 
-        visible_data_sp = get_visible_data(gui, :results_sp)[1]
-        visible_data_rp = get_visible_data(gui, :results_rp)[1]
-        visible_data_op = get_visible_data(gui, :results_op)[1]
-        time_menu.i_selected[] = 1
-        @test ax_sp.scene.plots[1].visible[] &&
-            !ax_rp.scene.plots[1].visible[] &&
-            !ax_op.scene.plots[1].visible[]
+        # Test data for representative periods
+        ax = get_ax(gui, :results)
         time_menu.i_selected[] = 2
-        @test !ax_sp.scene.plots[1].visible[] &&
-            ax_rp.scene.plots[1].visible[] &&
-            !ax_op.scene.plots[1].visible[]
+        data_points = vcat([p[1][] for p ∈ get_vis_plots(ax)]...)
+        @test data_points[1][2] ≈ 2.0f0 atol = 1e-5
+        @test data_points[2][2] ≈ 0.2f0 atol = 1e-5
+
+        check_visibility(t) =
+            all([x[:plot].visible[] for x ∈ get_plotted_data(gui) if x[:time_axis] == t])
+
+        time_menu.i_selected[] = 1
+        @test check_visibility(:results_sp) &&
+            !check_visibility(:results_rp) &&
+            check_visibility(:results_sc) &&
+            !check_visibility(:results_op)
+        time_menu.i_selected[] = 2
+        @test !check_visibility(:results_sp) &&
+            check_visibility(:results_rp) &&
+            check_visibility(:results_sc) &&
+            !check_visibility(:results_op)
+        time_menu.i_selected[] = 3
+        @test !check_visibility(:results_sp) &&
+            !check_visibility(:results_rp) &&
+            check_visibility(:results_sc) &&
+            !check_visibility(:results_op)
         time_menu.i_selected[] = 4
-        @test !ax_sp.scene.plots[1].visible[] &&
-            !ax_rp.scene.plots[1].visible[] &&
-            ax_op.scene.plots[1].visible[]
+        @test !check_visibility(:results_sp) &&
+            !check_visibility(:results_rp) &&
+            check_visibility(:results_sc) &&
+            check_visibility(:results_op)
     end
 
     @testset "pin_plot_button.clicks" begin
@@ -271,9 +282,9 @@ import EnergyModelsGUI:
         select_data("cap", available_data_menu)
         notify(pin_plot_button.clicks)
         notify(pin_plot_button.clicks) # test redundant clicks
-        data_point = get_ax(gui, time_axis).scene.plots[1][1][][5][2]
+        data_point = get_ax(gui, :results).scene.plots[1][1][][5][2]
         @test data_point ≈ 0.25f0 atol = 1e-5
-        data_point = get_ax(gui, time_axis).scene.plots[2][1][][5][2]
+        data_point = get_ax(gui, :results).scene.plots[4][1][][5][2]
         @test data_point ≈ 0.6f0 atol = 1e-5
     end
 
@@ -300,10 +311,12 @@ import EnergyModelsGUI:
 
     @testset "get_button(gui,:remove_plot).clicks" begin
         time_axis = time_menu.selection[]
-        push!(get_selected_plots(gui, time_axis), get_visible_data(gui, time_axis)[1])
+        element = get_visible_data(gui, time_axis)[1]
+        pick_component!(gui, element; pick_results_component=true)
+
         notify(get_button(gui, :remove_plot).clicks)
         notify(get_button(gui, :remove_plot).clicks) # test redundant clicks
-        @test !get_ax(gui, time_axis).scene.plots[1].visible[]
+        @test !get_ax(gui, :results).scene.plots[1].visible[]
     end
 
     @testset "get_button(gui,:clear_all).clicks" begin
@@ -315,7 +328,7 @@ import EnergyModelsGUI:
         notify(pin_plot_button.clicks)
         notify(get_button(gui, :clear_all).clicks)
         time_axis = time_menu.selection[]
-        @test all([!x.visible[] for x ∈ get_ax(gui, time_axis).scene.plots])
+        @test all([!x.visible[] for x ∈ get_ax(gui, :results).scene.plots])
     end
 
     @testset "Test plotting of representative periods from JuMP" begin
@@ -324,8 +337,8 @@ import EnergyModelsGUI:
         update!(gui)
         get_menu(gui, :period).i_selected = 3
         select_data("stor_level_Δ_rp", available_data_menu)
-        @test get_ax(gui, :results_rp).scene.plots[1][1][][1][2] ≈ -7.2 atol = 1e-5
-        @test get_ax(gui, :results_rp).scene.plots[1][1][][2][2] ≈ 7.2 atol = 1e-5
+        @test get_ax(gui, :results).scene.plots[3][1][][1][2] ≈ -7.2 atol = 1e-5
+        @test get_ax(gui, :results).scene.plots[3][1][][2][2] ≈ 7.2 atol = 1e-5
     end
 
     @testset "Test icon not found" begin
@@ -365,11 +378,11 @@ import EnergyModelsGUI:
 
         # Test plotting over operational periods
         select_data("emissions_total", available_data_menu)
-        @test get_ax(gui, :results_op).scene.plots[1][1][][24][2] ≈ 0.655 atol = 1e-5
+        @test get_ax(gui, :results).scene.plots[1][1][][24][2] ≈ 0.655 atol = 1e-5
 
         # Test plotting over strategic periods
         select_data("emissions_strategic", available_data_menu)
-        @test get_ax(gui, :results_sp).scene.plots[1][1][][3][2] ≈ 20799.525 atol = 1e-5
+        @test get_ax(gui, :results).scene.plots[2][1][][3][2] ≈ 20799.525 atol = 1e-5
     end
 
     ## Run a case with scenarios but no representative periods
@@ -379,18 +392,18 @@ import EnergyModelsGUI:
         # Test plotting over operational periods
         select_data("emissions_total", available_data_menu)
         get_menu(gui, :scenario).i_selected = 4
-        @test get_ax(gui, :results_op).scene.plots[1][1][][24][2] ≈ 0.131 atol = 1e-5
+        @test get_ax(gui, :results).scene.plots[1][1][][24][2] ≈ 0.131 atol = 1e-5
 
         # Test plotting over strategic periods
         select_data("emissions_strategic", available_data_menu)
-        @test get_ax(gui, :results_sp).scene.plots[1][1][][3][2] ≈ 12937.30455 atol = 1e-5
+        @test get_ax(gui, :results).scene.plots[2][1][][3][2] ≈ 12937.30455 atol = 1e-5
 
         # Test plotting over scenarios
         sink = get_components(get_root_design(gui))[2]
         pick_component!(gui, sink; pick_topo_component=true)
         update!(gui)
         select_data("penalty.deficit", available_data_menu)
-        @test get_ax(gui, :results_sc).scene.plots[1][1][][4][2] ≈ 200000 atol = 1e-5
+        @test get_ax(gui, :results).scene.plots[3][1][][4][2] ≈ 200000 atol = 1e-5
     end
 
     ## Run a case with representative periods but no scenarios
@@ -400,11 +413,11 @@ import EnergyModelsGUI:
         # Test plotting over operational periods
         select_data("emissions_total", available_data_menu)
         get_menu(gui, :representative_period).i_selected = 2
-        @test get_ax(gui, :results_op).scene.plots[1][1][][24][2] ≈ 1.048 atol = 1e-5
+        @test get_ax(gui, :results).scene.plots[1][1][][24][2] ≈ 1.048 atol = 1e-5
 
         # Test plotting over strategic periods
         select_data("emissions_strategic", available_data_menu)
-        @test get_ax(gui, :results_sp).scene.plots[1][1][][2][2] ≈ 20601.06 atol = 1e-5
+        @test get_ax(gui, :results).scene.plots[2][1][][2][2] ≈ 20601.06 atol = 1e-5
 
         # Test plotting over representative periods
         get_menu(gui, :period).i_selected = 3
@@ -412,7 +425,7 @@ import EnergyModelsGUI:
         pick_component!(gui, sink; pick_topo_component=true)
         update!(gui)
         select_data("penalty.deficit", available_data_menu)
-        @test get_ax(gui, :results_rp).scene.plots[1][1][][2][2] ≈ 2.0e6 atol = 1e-5
+        @test get_ax(gui, :results).scene.plots[3][1][][2][2] ≈ 2.0e6 atol = 1e-5
     end
 
     ## Run a case with representative periods and scenarios
@@ -425,36 +438,36 @@ import EnergyModelsGUI:
 
         # Test updating menu with non-tensorial timestructure
         get_menu(gui, :period).i_selected = 3
-        @test get_ax(gui, :results_op).scene.plots[1][1][][24][2] ≈ 1.965 atol = 1e-5
+        @test get_ax(gui, :results).scene.plots[1][1][][24][2] ≈ 1.965 atol = 1e-5
         get_menu(gui, :representative_period).i_selected = 2
-        @test get_ax(gui, :results_op).scene.plots[1][1][][24][2] ≈ 1.2576 atol = 1e-5
+        @test get_ax(gui, :results).scene.plots[1][1][][24][2] ≈ 1.2576 atol = 1e-5
         get_menu(gui, :representative_period).i_selected = 1
-        @test get_ax(gui, :results_op).scene.plots[1][1][][24][2] ≈ 1.965 atol = 1e-5
+        @test get_ax(gui, :results).scene.plots[1][1][][24][2] ≈ 1.965 atol = 1e-5
         get_menu(gui, :scenario).i_selected = 4
-        @test get_ax(gui, :results_op).scene.plots[1][1][][24][2] ≈ 0.393 atol = 1e-5
+        @test get_ax(gui, :results).scene.plots[1][1][][24][2] ≈ 0.393 atol = 1e-5
         get_menu(gui, :period).i_selected = 2
-        @test get_ax(gui, :results_op).scene.plots[1][1][][24][2] ≈ 0.262 atol = 1e-5
+        @test get_ax(gui, :results).scene.plots[1][1][][24][2] ≈ 0.262 atol = 1e-5
         get_menu(gui, :representative_period).i_selected = 2
-        @test get_ax(gui, :results_op).scene.plots[1][1][][24][2] ≈ 1.048 atol = 1e-5
+        @test get_ax(gui, :results).scene.plots[1][1][][24][2] ≈ 1.048 atol = 1e-5
         get_menu(gui, :scenario).i_selected = 3
-        @test get_ax(gui, :results_op).scene.plots[1][1][][24][2] ≈ 0.4192 atol = 1e-5
+        @test get_ax(gui, :results).scene.plots[1][1][][24][2] ≈ 0.4192 atol = 1e-5
         get_menu(gui, :period).i_selected = 1
-        @test get_ax(gui, :results_op).scene.plots[1][1][][24][2] ≈ 0.1965 atol = 1e-5
+        @test get_ax(gui, :results).scene.plots[1][1][][24][2] ≈ 0.1965 atol = 1e-5
 
         get_menu(gui, :period).i_selected = 3
-        @test get_ax(gui, :results_op).scene.plots[1][1][][24][2] ≈ 0.9825 atol = 1e-5
+        @test get_ax(gui, :results).scene.plots[1][1][][24][2] ≈ 0.9825 atol = 1e-5
         get_menu(gui, :representative_period).i_selected = 2
-        @test get_ax(gui, :results_op).scene.plots[1][1][][24][2] ≈ 3.7728 atol = 1e-5
+        @test get_ax(gui, :results).scene.plots[1][1][][24][2] ≈ 3.7728 atol = 1e-5
 
         # Test plotting over strategic periods
         select_data("emissions_strategic", available_data_menu)
-        @test get_ax(gui, :results_sp).scene.plots[1][1][][2][2] ≈ 7648.6446 atol = 1e-5
+        @test get_ax(gui, :results).scene.plots[2][1][][2][2] ≈ 7648.6446 atol = 1e-5
 
         # Test plotting over scenarios
         sink = get_components(get_root_design(gui))[2]
         pick_component!(gui, sink; pick_topo_component=true)
         update!(gui)
         select_data("penalty.deficit", available_data_menu)
-        @test get_ax(gui, :results_sc).scene.plots[1][1][][2][2] ≈ 4.0e6 atol = 1e-5
+        @test get_ax(gui, :results).scene.plots[3][1][][2][2] ≈ 4.0e6 atol = 1e-5
     end
 end

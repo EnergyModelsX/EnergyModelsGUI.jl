@@ -141,8 +141,8 @@ function define_event_functions(gui::GUI)
                     return Consume(true)
                 else
                     time_axis = get_menu(gui, :time).selection[]
-                    origin = pixelarea(get_ax(gui, time_axis).scene)[].origin
-                    widths = pixelarea(get_ax(gui, time_axis).scene)[].widths
+                    origin = pixelarea(get_ax(gui, :results).scene)[].origin
+                    widths = pixelarea(get_ax(gui, :results).scene)[].widths
                     mouse_pos_loc = mouse_pos .- origin
 
                     if all(mouse_pos_loc .> 0.0) && all(mouse_pos_loc .- widths .< 0.0)
@@ -280,17 +280,16 @@ function define_event_functions(gui::GUI)
         if isempty(get_selected_plots(gui, time_axis))
             return Consume(false)
         end
-        for data_selected ∈ get_selected_plots(gui, time_axis)
-            data_selected[:plot].visible = false
-            data_selected[:visible] = false
-            data_selected[:pinned] = false
-            toggle_selection_color!(gui, data_selected, false)
-            @info "Removing plot with label: $(data_selected[:plot].label[])"
+        for selection ∈ get_selected_plots(gui, time_axis)
+            selection[:plot].visible = false
+            selection[:visible] = false
+            selection[:pinned] = false
+            toggle_selection_color!(gui, selection, false)
+            @info "Removing plot with label: $(selection[:plot].label[])"
         end
         update_legend!(gui)
         update_barplot_dodge!(gui)
-        update_limits!(get_ax(gui, time_axis))
-        empty!(get_selected_plots(gui, time_axis))
+        update_limits!(get_ax(gui, :results))
         return Consume(false)
     end
 
@@ -298,10 +297,10 @@ function define_event_functions(gui::GUI)
     on(get_button(gui, :clear_all).clicks; priority=10) do _
         @info "Clearing plots"
         time_axis = time_menu.selection[]
-        for data_selected ∈ get_visible_data(gui, time_axis)
-            data_selected[:plot].visible = false
-            data_selected[:visible] = false
-            data_selected[:pinned] = false
+        for selection ∈ get_visible_data(gui, time_axis)
+            selection[:plot].visible = false
+            selection[:visible] = false
+            selection[:pinned] = false
         end
         clear_selection(gui; clear_results=true)
         update_legend!(gui)
@@ -381,20 +380,17 @@ function define_event_functions(gui::GUI)
     end
 
     # Time menu: Handle menu selection (selecting time)
-    on(time_menu.selection; priority=10) do time_axis_selected
-        for (_, time_axis) ∈ time_menu.options[]
-            ax = get_ax(gui, time_axis)
-            if time_axis == time_axis_selected
-                showdecorations!(ax)
-                showspines!(ax)
-                showplots!([x[:plot] for x ∈ get_visible_data(gui, time_axis)])
+    on(time_menu.selection; priority=10) do time_axis
+        for x ∈ get_plotted_data(gui)
+            if x[:time_axis] == time_axis && x[:visible]
+                x[:plot].visible[] = true
             else
-                hidedecorations!(ax)
-                hidespines!(ax)
-                hideplots!(ax.scene.plots)
+                x[:plot].visible[] = false
             end
         end
         update_legend!(gui)
+        update_limits!(get_ax(gui, :results))
+        update_axis!(gui, time_axis)
         return Consume(false)
     end
 

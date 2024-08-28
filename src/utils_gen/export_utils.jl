@@ -159,7 +159,7 @@ function export_to_file(gui::GUI)
         end
     else
         if axes_str == "Plots"
-            ax_sym = get_menu(gui, :time).selection[]
+            ax_sym = :results
         elseif axes_str == "Topo"
             ax_sym = :topo
         end
@@ -171,7 +171,8 @@ function export_to_file(gui::GUI)
                 @warn "Exporting the topology to an xlsx file is not implemented"
                 flag = 1
             else
-                plots = get_visible_data(gui, ax_sym)
+                time_axis = get_menu(gui, :time).selection[]
+                plots = get_visible_data(gui, time_axis)
                 flag = export_xlsx(plots, filename, ax_sym)
             end
         elseif file_ending == "lp" || file_ending == "mps"

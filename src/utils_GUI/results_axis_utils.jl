@@ -421,11 +421,18 @@ function update_plot!(gui::GUI, element::Plotable)
                 end
             end
         end
-        plotted_data = get_plotted_data(gui, time_axis)
+        if time_axis == :results_op
+            xticks = Makie.automatic
+        else
+            xticks = custom_ticks
+        end
+        plotted_data = get_plotted_data(gui)
 
-        overwritable = getfirst(x -> !x[:pinned], plotted_data) # get first non-pinned plot
+        overwritable = getfirst(
+            x -> !x[:pinned] && x[:time_axis] == time_axis, plotted_data
+        ) # get first non-pinned plot
 
-        ax = get_ax(gui, time_axis)
+        ax = get_ax(gui, :results)
         if isnothing(overwritable)
             @debug "Could not find anything to overwrite, creating new plot instead"
             n_visible = length(get_visible_data(gui, time_axis)) + 1
@@ -458,6 +465,11 @@ function update_plot!(gui::GUI, element::Plotable)
                 :color_obs => color,
                 :pinned => false,
                 :visible => true,
+                :selected => false,
+                :time_axis => time_axis,
+                :xlabel => xlabel,
+                :ylabel => ylabel,
+                :xticks => xticks,
             )
             plot.kw[:EMGUI_obj] = new_data
             push!(plotted_data, new_data)
@@ -467,16 +479,24 @@ function update_plot!(gui::GUI, element::Plotable)
             plot.visible[] = true # If it has been hidden after a "Remove Plot" action
             plot.label[] = label
             overwritable[:name] = selection[:name]
+            overwritable[:selection] = selection[:selection]
             overwritable[:t] = periods
             overwritable[:y] = y_values
             overwritable[:pinned] = false
             overwritable[:visible] = true
+            overwritable[:selected] = false
+            overwritable[:time_axis] = time_axis
+            overwritable[:xlabel] = xlabel
+            overwritable[:ylabel] = ylabel
+            overwritable[:xticks] = xticks
         end
         update_barplot_dodge!(gui)
-        if all(y_values .≈ 0)
+        if all(y_values .≈ 0) && !(time_axis == :results_op)
             # Deactivate inspector for bars to avoid issue with wireframe when selecting
             # a bar with values being zero
             toggle_inspector!(plot, false)
+        else
+            toggle_inspector!(plot, true)
         end
 
         legend = get_results_legend(gui)
@@ -488,14 +508,25 @@ function update_plot!(gui::GUI, element::Plotable)
             update_legend!(gui)
         end
 
-        if time_axis == :results_op
-            ax.xticks = Makie.automatic
-        else
-            ax.xticks = custom_ticks
-        end
-        ax.xlabel = xlabel
-        ax.ylabel = ylabel
+        update_axis!(gui, time_axis)
         update_limits!(ax)
+    end
+end
+
+"""
+    update_axislabels!(gui::GUI, time_axis::Symbol)
+
+Update the xlabel, ylabel and ticks of the :results axis
+"""
+function update_axis!(gui::GUI, time_axis::Symbol)
+    selection = get_visible_data(gui, time_axis)
+    if !isempty(selection)
+        ax = get_ax(gui, :results)
+
+        # Use data from last available visible data for time_axis
+        ax.xlabel = selection[end][:xlabel]
+        ax.ylabel = selection[end][:ylabel]
+        ax.xticks = selection[end][:xticks]
     end
 end
 
@@ -541,7 +572,7 @@ function update_legend!(gui::GUI)
     legend = get_results_legend(gui)
     if !isempty(legend)
         legend_defaults = Makie.block_defaults(
-            :Legend, Dict{Symbol,Any}(), get_ax(gui, time_axis).scene
+            :Legend, Dict{Symbol,Any}(), get_ax(gui, :results).scene
         )
         visible_data = get_visible_data(gui, time_axis)
         labels = [x[:plot].label[] for x ∈ visible_data]
@@ -555,35 +586,56 @@ function update_legend!(gui::GUI)
 end
 
 """
+    get_vis_plots(ax::Axis)
+
+Get visible BarPlots and Stairs plots.
+"""
+function get_vis_plots(ax::Axis)
+    return [p for p ∈ ax.scene.plots if (isa(p, Stairs) || isa(p, BarPlot)) && p.visible[]]
+end
+
+"""
     update_limits!(ax::Axis)
 
 Update the limits based on the visible plots of type `time_axis`.
 """
 function update_limits!(ax::Axis)
     # Fetch all y-values in the axis
-    y = vcat(
-        [pt[2] for p ∈ ax.scene.plots if isa(p, Plot) && p.visible[] for pt ∈ p[1][]]...
-    )
-    if isempty(y)
-        return nothing
-    end
+    barplots = getfirst(x -> isa(x, Makie.BarPlot) && x.visible[], ax.scene.plots)
+    if isnothing(barplots)
+        xy = vcat([p[1][] for p ∈ get_vis_plots(ax)]...)
+        y = [pt[2] for pt ∈ xy]
+        if isempty(y)
+            return nothing
+        end
+        x = [pt[1] for pt ∈ xy]
 
-    # Calculate the width of distribution of the data in the vertical direction
-    max_y = maximum(y)
-    min_y = minimum(y)
-    ywidth = max_y - min_y
+        # Calculate the width of distribution of the data in the vertical direction
+        max_x = maximum(x)
+        min_x = minimum(x)
+        max_y = maximum(y)
+        min_y = minimum(y)
+        ywidth = max_y - min_y
+        xwidth = max_x - min_x
 
-    # Do the following for data with machine epsilon precision noice around zero that causes
-    # the warning "Warning: No strict ticks found" and the the bug related to issue #4266 in Makie
-    if abs(ywidth) < 1e-15
-        ywidth = 2.0
-        yorigin = min_y - 1.0
+        # Do the following for data with machine epsilon precision noice around zero that causes
+        # the warning "Warning: No strict ticks found" and the the bug related to issue #4266 in Makie
+        if abs(ywidth) < 1e-13
+            ywidth = 2.0
+            yorigin = min_y - 1.0
+        else
+            yorigin = min_y - ywidth * 0.04
+            ywidth += 2 * ywidth * 0.04
+        end
+
+        xlims!(ax, min_x - xwidth * 0.04, max_x + xwidth * 0.04)
     else
-        yorigin = min_y - ywidth * 0.04
+        autolimits!(ax)
+        yorigin = ax.finallimits[].origin[2]
+        ywidth = ax.finallimits[].widths[2]
     end
-
-    # Try to avoid legend box overlapping data
-    ylims!(ax, yorigin, yorigin + ywidth * 1.2)
+    # try to avoid legend box overlapping data
+    ylims!(ax, yorigin, yorigin + ywidth * 1.1)
 end
 
 """
