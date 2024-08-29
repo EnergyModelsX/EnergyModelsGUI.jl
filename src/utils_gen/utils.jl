@@ -29,7 +29,7 @@ function get_scenario_indices(T::TS.TimeStructure, sp::Int64, rp::Int64)
         if eltype(T.operational[sp].rep_periods) <: TS.OperationalScenarios
             return (1:(T.operational[sp].rep_periods[rp].len))
         else
-            return (1:(T.operational[sp].len))
+            return [1]
         end
     elseif eltype(T.operational) <: TS.OperationalScenarios
         return (1:(T.operational[sp].len))
@@ -48,25 +48,6 @@ function get_op(tp::TS.TimePeriod)
         return get_op(tp.period)
     else
         return tp.op
-    end
-end
-
-"""
-    stepify(x::Vector{S},
-        y::Vector{T};
-        start_at_zero::Bool = true
-    ) where {S <: Number, T <: Number}
-
-For a data set (`x`,`y`) add intermediate points to obtain a stepwise function and add a
-point at zero if `start_at_zero = true`.
-"""
-function stepify(
-    x::Vector{S}, y::Vector{T}; start_at_zero::Bool=true
-) where {S<:Number,T<:Number}
-    return if start_at_zero
-        (vcat(0, repeat(x[1:(end - 1)]; inner=2), x[end]), repeat(y; inner=2))
-    else
-        (vcat(repeat(x; inner=2), x[end]), vcat(y[1], repeat(y[2:end]; inner=2)))
     end
 end
 
@@ -126,40 +107,6 @@ function get_nth_field(s::String, delimiter::Char, n::Int)
 end
 
 """
-    exists(data::JuMP.Containers.DenseAxisArray, element::Plotable)
-
-Check if `element` exist in the `data` structure.
-"""
-function exists(data::JuMP.Containers.DenseAxisArray, element::Plotable)
-    if isnothing(element)
-        return false
-    end
-    for axis ∈ axes(data), entry ∈ axis
-        if entry == element
-            return true
-        end
-    end
-    return false
-end
-
-"""
-    exists(data::SparseVars, element::Plotable)
-
-Check if `element` exist in the `data` structure.
-"""
-function exists(data::SparseVars, element::Plotable)
-    if isnothing(element)
-        return false
-    end
-    for key ∈ keys(data.data), entry ∈ key
-        if entry == element
-            return true
-        end
-    end
-    return false
-end
-
-"""
     merge_dicts(dict1::Dict, dict2::Dict)
 
 Merge `dict1` and `dict2` (in case of overlap, `dict2` overwrites entries in `dict1`).
@@ -178,4 +125,30 @@ function merge_dicts(dict1::Dict, dict2::Dict)
         end
     end
     return merged
+end
+
+"""
+    nested_eltype(x::TimeProfile)
+
+Return the type of the lowest TimeProfile, of a nested TimeProfile `x`, not being a FixedProfile.
+"""
+function nested_eltype(x::TimeProfile)
+    y = typeof(x)
+    while y <: TimeProfile && length(y.parameters) > 1 && !(y.parameters[2] <: FixedProfile)
+        y = y.parameters[2]
+    end
+    return y
+end
+
+"""
+    format_number(x::Number)
+
+Format number `x` to two decimals and add thousands seperators (comma).
+"""
+function format_number(x::Number)
+    # Format the number with two decimal places using @sprintf
+    formatted_number = @sprintf("%.2f", x)
+
+    # Add separator (comma)
+    return replace(formatted_number, r"(?<=\d)(?=(\d{3})+\.)" => ",")
 end

@@ -1,5 +1,30 @@
 # Release notes
 
+## Version 0.5.2 (2024-08-26)
+
+### Bugfix
+
+* Fixed a work around for a bug related to colors on plots not being updated upon selection (due to bug in Makie).
+* Fixed bug for plotting `ScenarioProfile`s.
+* Fixed bug when selecting periods from the menus for a non-tensorial time structure.
+* Fixed bug related to the type `Combined` not longer being used by Makie.
+* Fixed bug related to exporting raster graphics of Plots (by using GLMakie instead of CairoMakie).
+* Fixed workaround for a bug related to issue [Issue #4266](https://github.com/MakieOrg/Makie.jl/issues/4266) in Makie.
+* Fixed bug that disabled `DataInspector` for all plots except plots over `StrategicPeriod`s, deactivated grid and deactivated zooming feature. This fix also improved performance as it required restructuring of the code that resulted in many simplification (mainly that only a single axis is needed for all time categories).
+
+### Enhancement
+
+* The extraction of JuMP data is done during initialization of the GUI to improve performance during use.
+* Tests have been improved.
+
+### Feature
+
+* The total opex and capex costs may now be plotted over strategic periods where both quantities may be scaled to a year or the whole strategic period using the boolean input arguments `scale_tot_opex` and `scale_tot_capex`. The calculations are based on the variables listed in `src/descriptive_names.yml` under `total.opex_fields` and `total.capex_fields`. Partly solves [Issue #6](https://github.com/EnergyModelsX/EnergyModelsGUI.jl/issues/6).
+* Elements with added investments are now indicated by coloring the label red. What constitutes an added investment is positive values of the variables listed in `src/descriptive_names.yml` under `investment_indicators`. Partly solves [Issue #6](https://github.com/EnergyModelsX/EnergyModelsGUI.jl/issues/6).
+* Custom labels (if provided) are now used as x-ticks in the plots.
+* Print model results summary in the information box when model contains a feasible solution. Partly solves [Issue #6](https://github.com/EnergyModelsX/EnergyModelsGUI.jl/issues/6).
+* A `colormap` may now be provided as input argument to `GUI` for plotting of results.
+
 ## Version 0.5.1 (2024-07-24)
 
 ### Bugfix

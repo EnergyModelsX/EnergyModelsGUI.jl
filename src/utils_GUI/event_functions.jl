@@ -141,12 +141,12 @@ function define_event_functions(gui::GUI)
                     return Consume(true)
                 else
                     time_axis = get_menu(gui, :time).selection[]
-                    origin = pixelarea(get_ax(gui, time_axis).scene)[].origin
-                    widths = pixelarea(get_ax(gui, time_axis).scene)[].widths
+                    origin = pixelarea(get_ax(gui, :results).scene)[].origin
+                    widths = pixelarea(get_ax(gui, :results).scene)[].widths
                     mouse_pos_loc = mouse_pos .- origin
 
                     if all(mouse_pos_loc .> 0.0) && all(mouse_pos_loc .- widths .< 0.0)
-                        if !ctrl_is_pressed && !isempty(get_selected_plots(gui))
+                        if !ctrl_is_pressed && !isempty(get_selected_plots(gui, time_axis))
                             clear_selection(gui; clear_topo=false)
                         end
                         pick_component!(gui; pick_results_component=true)
@@ -262,56 +262,47 @@ function define_event_functions(gui::GUI)
     # Pin current plot (the last plot added)
     time_menu = get_menu(gui, :time)
     on(get_button(gui, :pin_plot).clicks; priority=10) do _
-        @info "Current plot pinned"
         time_axis = time_menu.selection[]
-        plots = get_ax(gui, time_axis).scene.plots
-        if !isempty(plots) # Check if any plots exist
-            pinned_data = get_pinned_data(gui, time_axis)
-            pinned_plots = [x[:plot] for x ∈ pinned_data]
-            plot = getfirst(
-                x ->
-                    !(x[:plot] ∈ pinned_plots) &&
-                        (isa(x[:plot], Lines) || isa(x[:plot], Combined)),
-                get_visible_data(gui, time_axis),
-            )
-            if !isnothing(plot)
-                push!(pinned_data, plot)
+        for plot_obj ∈ get_visible_data(gui, time_axis)
+            if !plot_obj[:pinned]
+                plot_obj[:pinned] = true
+                @info "Current plot pinned"
+                return Consume(true)
             end
         end
+        @info "Plots already pinned"
         return Consume(false)
     end
 
     # Remove selected plot
     on(get_button(gui, :remove_plot).clicks; priority=10) do _
-        if isempty(get_selected_plots(gui))
+        time_axis = time_menu.selection[]
+        if isempty(get_selected_plots(gui, time_axis))
             return Consume(false)
         end
-        time_axis = time_menu.selection[]
-        for plot_selected ∈ get_selected_plots(gui)
-            plot_selected[:plot].visible = false
-            toggle_selection_color!(gui, plot_selected, false)
-            filter!(x -> x[:plot] != plot_selected[:plot], get_visible_data(gui, time_axis))
-            filter!(x -> x[:plot] != plot_selected[:plot], get_visible_data(gui, time_axis))
-            @info "Removing plot with label: $(plot_selected[:plot].label[])"
+        for selection ∈ get_selected_plots(gui, time_axis)
+            selection[:plot].visible = false
+            selection[:visible] = false
+            selection[:pinned] = false
+            toggle_selection_color!(gui, selection, false)
+            @info "Removing plot with label: $(selection[:plot].label[])"
         end
         update_legend!(gui)
         update_barplot_dodge!(gui)
-        update_limits!(get_ax(gui, time_axis))
-        empty!(get_selected_plots(gui))
+        update_limits!(get_ax(gui, :results))
         return Consume(false)
     end
 
     # Clear all plots
     on(get_button(gui, :clear_all).clicks; priority=10) do _
-        time_axis = time_menu.selection[]
-        for data_selected ∈ get_visible_data(gui, time_axis)
-            data_selected[:plot].visible = false
-            toggle_selection_color!(gui, data_selected, false)
-        end
         @info "Clearing plots"
-        empty!(get_selected_plots(gui))
-        empty!(get_visible_data(gui, time_axis))
-        empty!(get_pinned_data(gui, time_axis))
+        time_axis = time_menu.selection[]
+        for selection ∈ get_visible_data(gui, time_axis)
+            selection[:plot].visible = false
+            selection[:visible] = false
+            selection[:pinned] = false
+        end
+        clear_selection(gui; clear_results=true)
         update_legend!(gui)
         return Consume(false)
     end
@@ -389,20 +380,17 @@ function define_event_functions(gui::GUI)
     end
 
     # Time menu: Handle menu selection (selecting time)
-    on(time_menu.selection; priority=10) do selection
-        for (_, time_axis) ∈ time_menu.options[]
-            if time_axis == selection
-                showdecorations!(get_ax(gui, time_axis))
-                showspines!(get_ax(gui, time_axis))
-                showplots!([x[:plot] for x ∈ get_visible_data(gui, time_axis)])
+    on(time_menu.selection; priority=10) do time_axis
+        for x ∈ get_plotted_data(gui)
+            if x[:time_axis] == time_axis && x[:visible]
+                x[:plot].visible[] = true
             else
-                ax = get_ax(gui, time_axis)
-                hidedecorations!(ax)
-                hidespines!(ax)
-                hideplots!(ax.scene.plots)
+                x[:plot].visible[] = false
             end
         end
         update_legend!(gui)
+        update_limits!(get_ax(gui, :results))
+        update_axis!(gui, time_axis)
         return Consume(false)
     end
 
@@ -425,16 +413,9 @@ function define_event_functions(gui::GUI)
 
         # If previously chosen representative_period is out of range, update it to be the largest number available
         if length(representative_periods_in_sp) < current_representative_period
-            representative_period_menu.i_selection = length(representative_periods_in_sp)
+            representative_period_menu.i_selected = length(representative_periods_in_sp)
         end
-        update_plot!(gui)
-        return Consume(false)
-    end
 
-    # Representative period menu: Handle menu selection
-    on(representative_period_menu.selection; priority=10) do _
-        # Initialize representative_periods to be the representative_periods of the first operational period
-        representative_period_menu = get_menu(gui, :period)
         current_scenario = scenario_menu.selection[]
         scenarios_in_rp = get_scenario_indices(
             T, period_menu.selection[], representative_period_menu.selection[]
@@ -445,7 +426,30 @@ function define_event_functions(gui::GUI)
 
         # If previously chosen scenario is out of range, update it to be the largest number available
         if length(scenarios_in_rp) < current_scenario
-            scenario_menu.i_selection = length(scenarios_in_rp)
+            scenario_menu.i_selected = length(scenarios_in_rp)
+        end
+        update_plot!(gui)
+        return Consume(false)
+    end
+
+    # Representative period menu: Handle menu selection
+    on(representative_period_menu.selection; priority=10) do _
+        # Initialize representative_periods to be the representative_periods of the first operational period
+        current_representative_period = representative_period_menu.selection[]
+        if isnothing(current_representative_period)
+            return Consume(false)
+        end
+        current_scenario = scenario_menu.selection[]
+        scenarios_in_rp = get_scenario_indices(
+            T, period_menu.selection[], current_representative_period
+        )
+        scenario_menu.options = zip(
+            get_var(gui, :scenarios_labels)[scenarios_in_rp], scenarios_in_rp
+        )
+
+        # If previously chosen scenario is out of range, update it to be the largest number available
+        if length(scenarios_in_rp) < current_scenario
+            scenario_menu.i_selected = length(scenarios_in_rp)
         end
         update_plot!(gui)
         return Consume(false)
@@ -453,7 +457,10 @@ function define_event_functions(gui::GUI)
 
     # Scenario menu: Handle menu selection
     on(scenario_menu.selection; priority=10) do _
-        selected_systems = get_selected_systems(gui)
+        current_scenario = scenario_menu.selection[]
+        if isnothing(current_scenario)
+            return Consume(false)
+        end
         update_plot!(gui)
         return Consume(false)
     end

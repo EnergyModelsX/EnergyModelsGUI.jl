@@ -128,11 +128,8 @@ function export_to_file(gui::GUI)
         mkpath(path)
     end
     axes_str::String = get_menu(gui, :axes).selection[]
-    time_axis = get_menu(gui, :time).selection[]
-    time_axis_str = string(time_axis)
     file_ending = get_menu(gui, :export_type).selection[]
-    filename::String = joinpath(path, axes_str * "_" * time_axis_str * "." * file_ending)
-    if file_ending ∈ ["bmp", "tiff", "tif", "jpg", "jpeg", "svg", "png"]
+    if file_ending ∈ ["svg"]
         CairoMakie.activate!() # Set CairoMakie as backend for proper export quality
         cairo_makie_activated = true
     else
@@ -161,15 +158,22 @@ function export_to_file(gui::GUI)
             end
         end
     else
+        if axes_str == "Plots"
+            ax_sym = :results
+        elseif axes_str == "Topo"
+            ax_sym = :topo
+        end
+        filename = joinpath(path, "$ax_sym.$file_ending")
         if file_ending == "svg"
-            flag = export_svg(get_ax(gui, time_axis), filename)
+            flag = export_svg(get_ax(gui, ax_sym), filename)
         elseif file_ending == "xlsx"
-            if time_axis == :topo
+            if ax_sym == :topo
                 @warn "Exporting the topology to an xlsx file is not implemented"
                 flag = 1
             else
+                time_axis = get_menu(gui, :time).selection[]
                 plots = get_visible_data(gui, time_axis)
-                flag = export_xlsx(plots, filename, time_axis)
+                flag = export_xlsx(plots, filename, ax_sym)
             end
         elseif file_ending == "lp" || file_ending == "mps"
             try
@@ -180,7 +184,7 @@ function export_to_file(gui::GUI)
             end
         else
             try
-                save(filename, colorbuffer(get_ax(gui, time_axis)))
+                save(filename, colorbuffer(get_ax(gui, ax_sym)))
                 flag = 0
             catch
                 flag = 2

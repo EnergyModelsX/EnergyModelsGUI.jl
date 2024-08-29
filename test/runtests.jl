@@ -22,10 +22,10 @@ include("../examples/utils.jl")
         # The following tests simply checks if the main examples can be run without errors
         include("test_examples.jl")
 
-        # Test specific GUI functionalities related to interactivity
-        include("test_interactivity.jl")
-
         # Test miscellaneous functionalities
         include("test_functionality.jl")
+
+        # Test specific GUI functionalities related to interactivity
+        include("test_interactivity.jl")
     end
 end

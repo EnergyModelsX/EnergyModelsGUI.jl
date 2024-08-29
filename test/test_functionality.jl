@@ -38,7 +38,7 @@
             path_to_descriptive_names=path_to_descriptive_names,
             descriptive_names_dict=descriptive_names_dict,
         )
-        descriptive_names = get_var(gui, :descriptive_names)
+        descriptive_names = EMGUI.get_var(gui, :descriptive_names)
         @test descriptive_names[:structures][:RefStatic][:trans_cap] == str1
         @test descriptive_names[:structures][:RefStatic][:opex_fixed] == str2
         @test descriptive_names[:structures][:RefDynamic][:opex_var] == str3

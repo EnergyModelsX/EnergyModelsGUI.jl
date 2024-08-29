@@ -258,3 +258,23 @@ variables:
   ## EnergyModelsRenewableProducers
   curtailment:                    "Curtailment of a non-dispatchable energy source"
   hydro_spill:                    "Spilled water (not producing energy)"
+
+total:
+  opex_fields:
+    opex_var:             "Total absolute variable OPEX"
+    opex_fixed:           "Total absolute fixed OPEX"
+    trans_opex_var:       "Total absolute variable transmission OPEX"
+    trans_opex_fixed:     "Total absolute fixed transmission OPEX"
+  capex_fields:
+    cap_capex:            "Total absolute CAPEX for investments in the capacity of technologies"
+    stor_level_capex:     "Total absolute CAPEX for investments in the capacity of storages"
+    stor_charge_capex:    "Total absolute CAPEX for investments in the charging rate of storages"
+    stor_discharge_capex: "Total absolute CAPEX for investments in the discharging rate of storages"
+    trans_cap_capex:      "Total absolute CAPEX for investments in the capacity of transmission modes"
+
+investment_indicators:
+  - cap_add
+  - trans_cap_add
+  - stor_level_add
+  - stor_charge_add
+  - stor_discharge_add

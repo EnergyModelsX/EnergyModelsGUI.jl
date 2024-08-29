@@ -637,34 +637,44 @@ end
 Add a label to an `EnergySystemDesign` component.
 """
 function draw_label!(gui::GUI, component::EnergySystemDesign)
-    xo = Observable(0.0)
-    yo = Observable(0.0)
-    alignment = Observable((:left, :top))
-
-    scale = 0.7
-
-    on(component.xy; priority=3) do val
-        x = val[1]
-        y = val[2]
-
-        if component.wall[] == :E
-            xo[] = x + get_var(gui, :Δh) * scale
-            yo[] = y
-        elseif component.wall[] == :S
-            xo[] = x
-            yo[] = y - get_var(gui, :Δh) * scale
-        elseif component.wall[] == :W
-            xo[] = x - get_var(gui, :Δh) * scale
-            yo[] = y
-        elseif component.wall[] == :N
-            xo[] = x
-            yo[] = y + get_var(gui, :Δh) * scale
-        end
-        alignment[] = get_text_alignment(component.wall[])
-    end
     if haskey(component.system, :node)
+        xo = Observable(0.0)
+        yo = Observable(0.0)
+        alignment = Observable((:left, :top))
+
+        scale = 0.7
+
+        on(component.xy; priority=3) do val
+            x = val[1]
+            y = val[2]
+
+            if component.wall[] == :E
+                xo[] = x + get_var(gui, :Δh) * scale
+                yo[] = y
+            elseif component.wall[] == :S
+                xo[] = x
+                yo[] = y - get_var(gui, :Δh) * scale
+            elseif component.wall[] == :W
+                xo[] = x - get_var(gui, :Δh) * scale
+                yo[] = y
+            elseif component.wall[] == :N
+                xo[] = x
+                yo[] = y + get_var(gui, :Δh) * scale
+            end
+            alignment[] = get_text_alignment(component.wall[])
+        end
+
         node = component.system[:node]
-        label = isa(node.id, Number) ? string(node) : string(node.id)
+        label = get_node_label(node)
+
+        # Check if and when there is investment in this node
+        investment_times, _ = get_investment_times(gui, node)
+
+        if isempty(investment_times)
+            font_color = :black
+        else
+            font_color = :red
+        end
         label_text = text!(
             get_axes(gui)[:topo],
             xo,
@@ -673,12 +683,61 @@ function draw_label!(gui::GUI, component::EnergySystemDesign)
             align=alignment,
             fontsize=get_var(gui, :fontsize),
             inspectable=false,
+            color=font_color,
         )
         Makie.translate!(label_text, 0, 0, get_var(gui, :z_translate_components))
         get_vars(gui)[:z_translate_components] += 1
         label_text.kw[:EMGUI_obj] = component
         push!(get_plots(component), label_text)
     end
+end
+
+"""
+    get_node_label(node::Union{Area, EMB.Node, TransmissionMode, Transmission})
+
+Get the label of the node based on its `id` field. If the `id` is a number it returns the
+built in Base.display() functionality of node, otherwise, the `id` field is converted to a string.
+"""
+function get_node_label(node::Union{Area,EMB.Node,TransmissionMode})
+    return isa(node.id, Number) ? string(node) : string(node.id)
+end
+function get_node_label(t::Transmission)
+    return get_node_label(t.from) * "-" * get_node_label(t.to)
+end
+
+"""
+    get_investment_times(gui::GUI, node::Plotable)
+
+Get a list of times and capex with added investments from `node`.
+"""
+function get_investment_times(gui::GUI, node::Plotable)
+    investment_times::Vector{String} = Vector{String}[]
+    investment_capex::Vector{Float64} = Vector{Float64}[]
+    T = gui.design.system[:T]
+    𝒯ᴵⁿᵛ = strategic_periods(T)
+    investment_indicators = get_var(gui, :descriptive_names)[:investment_indicators]
+    capex_fields = get_var(gui, :descriptive_names)[:total][:capex_fields]
+    period_labels = get_var(gui, :periods_labels)
+    model = get_model(gui)
+    for (i, t) ∈ enumerate(𝒯ᴵⁿᵛ), investment_indicator ∈ investment_indicators
+        sym = Symbol(investment_indicator)
+        if haskey(model, sym) && !isempty(model[sym]) && node ∈ axes(model[sym])[1]
+            val = value(model[sym][node, t])
+            if val > 0
+                capex::Float64 = 0.0
+                for capex_field ∈ capex_fields
+                    capex_key = Symbol(capex_field[1])
+                    if haskey(model, capex_key) && node ∈ axes(model[capex_key])[1]
+                        capex += value(model[capex_key][node, t])
+                    end
+                end
+                t_str = split(period_labels[i], " ")[1]
+                push!(investment_times, t_str)
+                push!(investment_capex, capex)
+            end
+        end
+    end
+    return investment_times, investment_capex
 end
 
 """
@@ -744,109 +803,6 @@ function update_title!(gui::GUI)
     end
 end
 
-"""
-    toggle_selection_color!(gui::GUI, selection, selected::Bool)
-
-Set the color of selection to `get_selection_color(gui)` if selected, and its original
-color otherwise using the argument `selected`.
-"""
-function toggle_selection_color!(gui::GUI, selection::EnergySystemDesign, selected::Bool)
-    if selected
-        selection.color[] = get_selection_color(gui)
-    else
-        selection.color[] = :black
-    end
-end
-function toggle_selection_color!(gui::GUI, selection::Connection, selected::Bool)
-    plots = selection.plots
-    if selected
-        for plot ∈ plots
-            for plot_sub ∈ plot[]
-                plot_sub.color = get_selection_color(gui)
-            end
-        end
-    else
-        colors::Vector{RGB} = selection.colors
-        no_colors::Int64 = length(colors)
-        for plot ∈ plots
-            for (i, plot_sub) ∈ enumerate(plot[])
-                plot_sub.color = colors[((i - 1) % no_colors) + 1]
-            end
-        end
-    end
-end
-function toggle_selection_color!(gui::GUI, selection::Dict{Symbol,Any}, selected::Bool)
-    if selected
-        selection[:plot].color[] = get_selection_color(gui)
-    else
-        selection[:plot].color[] = selection[:color]
-    end
-    return update_legend!(gui)
-end
-
-"""
-    get_EMGUI_obj(plt)
-
-Get the `EnergySystemDesign`/`Connection` assosiated with `plt`. Note that due to the nested
-structure of Makie, we must iteratively look through up to three nested layers to find where
-this object is stored.
-"""
-function get_EMGUI_obj(plt)
-    if isa(plt, AbstractPlot)
-        if haskey(plt.kw, :EMGUI_obj)
-            return plt.kw[:EMGUI_obj]
-        elseif isa(plt.parent, AbstractPlot)
-            if haskey(plt.parent.kw, :EMGUI_obj)
-                return plt.parent.kw[:EMGUI_obj]
-            elseif isa(plt.parent.parent, AbstractPlot) &&
-                haskey(plt.parent.parent.kw, :EMGUI_obj)
-                return plt.parent.parent.kw[:EMGUI_obj]
-            end
-        end
-    end
-end
-
-"""
-    pick_component!(gui::GUI)
-
-Check if a system is found under the mouse pointer and if it is an `EnergySystemDesign`
-or a `Connection` and update state variables.
-"""
-function pick_component!(gui::GUI; pick_topo_component=false, pick_results_component=false)
-    plt, _ = pick(get_fig(gui))
-
-    pick_component!(gui, plt; pick_topo_component, pick_results_component)
-end
-function pick_component!(
-    gui::GUI, plt::AbstractPlot; pick_topo_component=false, pick_results_component=false
-)
-    if pick_topo_component || pick_results_component
-        element = get_EMGUI_obj(plt)
-        pick_component!(gui, element; pick_topo_component, pick_results_component)
-    end
-end
-function pick_component!(
-    gui::GUI,
-    element::Union{EnergySystemDesign,Connection};
-    pick_topo_component=false,
-    pick_results_component=false,
-)
-    if isnothing(element)
-        clear_selection(
-            gui; clear_topo=pick_topo_component, clear_results=pick_results_component
-        )
-    else
-        push!(gui.vars[:selected_systems], element)
-        toggle_selection_color!(gui, element, true)
-    end
-end
-function pick_component!(
-    gui::GUI, ::Nothing; pick_topo_component=false, pick_results_component=false
-)
-    clear_selection(
-        gui; clear_topo=pick_topo_component, clear_results=pick_results_component
-    )
-end
 """
     get_hover_string(element::Plotable)
 
