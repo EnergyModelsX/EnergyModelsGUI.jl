@@ -6,7 +6,7 @@ Initialize the EnergyModelsGUI window and visualize the topology of a system `ca
 
 # Arguments:
 
-- **`system::case`** is a dictionary containing system-related data stored as key-value pairs.
+- **`case::Dict`** is a dictionary containing system-related data stored as key-value pairs.
   This dictionary is corresponding to the the EnergyModelsX `case` dictionary.
 
 # Keyword arguments:
@@ -24,15 +24,17 @@ Initialize the EnergyModelsGUI window and visualize the topology of a system `ca
   representative periods.
 - **`scenarios_labels::Vector=[]`** are descriptive labels for scenarios.
 - **`path_to_results::String=""`** is the path to where exported files are stored.
-- **`path_to_descriptive_names::String=""` is the Path to a .yml file where variables
+- **`path_to_descriptive_names::String=""` is the Path to a .yml file where variables.
   are described.
 - **`coarse_coast_lines::Bool=true`** is a toggle for coarse or fine resolution coastlines.
 - **`backgroundcolor=GLMakie.RGBf(0.99, 0.99, 0.99)`** is the background color of the
   main window.
 - **`fontsize::Int64=12`** is the general fontsize.
 - **`plot_widths::Tuple{Int64,Int64}=(1920, 1080)`** is the resolution of the window.
-- **`scale_tot_opex::Bool=false`** multiplies total OPEX quantities with the duration of the strategic period
-- **`scale_tot_capex::Bool=false`** divides total CAPEX quantities with the duration of the strategic period
+- **`scale_tot_opex::Bool=false`** multiplies total OPEX quantities with the duration of the strategic period.
+- **`scale_tot_capex::Bool=false`** divides total CAPEX quantities with the duration of the strategic period.
+- **`colormap::Vector=Makie.wong_colors()`** is the colormap used for plotting results.
+- **`tol::Float64=1e-12`** the tolerance for numbers close to machine epsilon precision.
 """
 function GUI(
     case::Dict;
@@ -56,6 +58,7 @@ function GUI(
     scale_tot_opex::Bool=false,
     scale_tot_capex::Bool=false,
     colormap::Vector=Makie.wong_colors(),
+    tol::Float64=1e-8,
 )
     # Generate the system topology:
     @info raw"Setting up the topology design structure"
@@ -95,6 +98,7 @@ function GUI(
         :scale_tot_capex => scale_tot_capex,
         :investment_overview => "",
         :colormap => colormap,
+        :tol => tol,
     )
 
     # gobal variables for legends
@@ -138,6 +142,8 @@ function GUI(
         "\tctrl+r: Reset view\n",
         "\tctrl+w: Close window\n",
         "\tEsc (or MouseButton4): Exit the current system and into the parent system\n\n",
+        "\tholding x while scrolling over plots will zoom in/out in the x-direction\n",
+        "\tholding y while scrolling over plots will zoom in/out in the y-direction\n\n",
         "Left-clicking a component will put information about this component here\n\n",
         "Clicking a plot below enables you to pin this plot (hitting the `pin current plot` button) \
             for comparison with other plots. Use the `Delete` button to unpin a selected plot",
@@ -154,11 +160,11 @@ function GUI(
     # Create complete Dict of descriptive names
     update_descriptive_names!(gui)
 
-    # Plot the topology
-    initialize_plot!(gui, root_design)
-
     # Pre calculate the available fields for each node
     initialize_available_data!(gui)
+
+    # Plot the topology
+    initialize_plot!(gui, root_design)
 
     # Update limits based on the location of the nodes
     adjust_limits!(gui)
@@ -173,7 +179,7 @@ function GUI(
 
     # Enable inspector (such that hovering objects shows information)
     # Linewidth set to zero as this boundary is slightly laggy on movement
-    DataInspector(fig; range=10, indicator_linewidth=0)
+    DataInspector(fig; range=3, indicator_linewidth=0)
 
     # display the figure
     manifest = Pkg.Operations.Context().env.manifest
@@ -266,6 +272,11 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
             strokewidth=0.5,
             inspectable=false,
         )
+        ocean_coords = [(180, -90), (-180, -90), (-180, 90), (180, 90)]
+        ocean = poly!(
+            ax, ocean_coords, color=:lightblue1, strokewidth=0.5, strokecolor=:gray50
+        )
+        Makie.translate!(ocean, 0, 0, -1)
     else # The design does not use the EnergyModelsGeography package: Create a simple Makie axis
         ax = Axis(gridlayout_topology_ax[1, 1]; aspect=DataAspect(), alignmode=Outside())
     end

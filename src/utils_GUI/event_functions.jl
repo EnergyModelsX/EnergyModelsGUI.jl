@@ -150,7 +150,6 @@ function define_event_functions(gui::GUI)
                             clear_selection(gui; clear_topo=false)
                         end
                         pick_component!(gui; pick_results_component=true)
-                        return Consume(true)
                     end
                     return Consume(false)
                 end
@@ -302,7 +301,7 @@ function define_event_functions(gui::GUI)
             selection[:visible] = false
             selection[:pinned] = false
         end
-        clear_selection(gui; clear_results=true)
+        clear_selection(gui; clear_topo=false)
         update_legend!(gui)
         return Consume(false)
     end

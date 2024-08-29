@@ -62,6 +62,13 @@ You should then get the following GUI:
     10. `Scenario`: Menu for choosing a `Scenario` for a case. 
     11. `Data`: Select the available data to be visualized in the plot area to the bottom right (if a component is selected, the menu will update to contain the available data for this component).
 
+!!! note "Bottom right visualization area"
+    The bottom right fraction of the window shows a visualization of the results assosiated with the selected available data. It will automatically adjust when altering the different periods/scenarios.
+
+    1. You can zoom into the plots by scrolling with the mouse wheel.
+    2. Scrolling with the mouse wheel while holding in the x key will zoom in the x-direction and scrolling while holding the y key will zoom in the y-direction.
+    3. Hovering plots shows the nearest data coordinate.
+
 !!! note "Bottom right toolbar" 
     An additional toolbar on the bottom right is related to the plot area above and has the following functionality:
     

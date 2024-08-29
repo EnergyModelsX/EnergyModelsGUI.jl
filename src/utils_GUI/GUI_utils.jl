@@ -181,21 +181,21 @@ end
 """
     update!(gui::GUI, connection::Connection; updateplot::Bool=true)
 
-Based on `connection.connection`, update the text in `get_axes(gui)[:info]`
+Based on `Connection`, update the text in `get_axes(gui)[:info]`
 and update plot in `get_axes(gui)[:results]` if `updateplot = true`.
 """
 function update!(gui::GUI, connection::Connection; updateplot::Bool=true)
-    return update!(gui, get_connection(connection); updateplot)
+    return update!(gui, get_element(connection); updateplot)
 end
 
 """
     update!(gui::GUI, design::EnergySystemDesign; updateplot::Bool=true)
 
-Based on `get_system_node(design)`, update the text in `get_axes(gui)[:info]`
+Based on `design`, update the text in `get_axes(gui)[:info]`
 and update plot in `get_axes(gui)[:results]` if `updateplot = true`.
 """
 function update!(gui::GUI, design::EnergySystemDesign; updateplot::Bool=true)
-    return update!(gui, get_system_node(design); updateplot)
+    return update!(gui, get_element(design); updateplot)
 end
 
 """
@@ -204,7 +204,8 @@ end
 For all plotable objects, initialize the available data menu with items.
 """
 function initialize_available_data!(gui)
-    system = get_root_design(gui).system
+    design = get_root_design(gui)
+    system = get_system(design)
     model = get_model(gui)
     plotables = []
     append!(plotables, [nothing]) # nothing here represents no selection
@@ -354,26 +355,40 @@ function initialize_available_data!(gui)
         )
         push!(get_available_data(gui)[element], container)
 
+        # Find a reference value to be used for considering the magnitude of an investment
+        max_installed_arr = []
+        for element ∈ plotables
+            push!(max_installed_arr, get_max_installed(element, [t for t ∈ 𝒯ᴵⁿᵛ]))
+        end
+        max_inst::Float64 = maximum(max_installed_arr)
+        if max_inst == 0
+            max_inst = 1.0 # In case of all values set to zero
+        end
+
+        # Calculate when investments has taken place and store the information
+        get_investment_times(gui, max_inst)
+
         # Create investment overview in the information box
         investment_overview = "Result summary:\n\n"
         total_opex = sum(tot_opex_unscaled .* sp_dur)
         total_capex = sum(tot_capex_unscaled)
         investment_overview *= "Total operational cost: $(format_number(total_opex))\n"
         investment_overview *= "Total investment cost: $(format_number(total_capex))\n\n"
-        investment_overview_components = ""
-        for element ∈ plotables
-            investment_times, investment_capex = get_investment_times(gui, element)
-            if !isempty(investment_times)
-                label = get_node_label(element)
-                investment_overview_components *= "\t$label:\n"
-                for (t, capex) ∈ zip(investment_times, investment_capex)
-                    investment_overview_components *= "\t\t$t: $(format_number(capex))\n"
+        inv_overview_components = ""
+        for obj ∈ design
+            inv_times = get_inv_times(obj)
+            if !isempty(inv_times)
+                capex = get_capex(obj)
+                label = get_element_label(obj)
+                inv_overview_components *= "\t$label:\n"
+                for (t, capex) ∈ zip(inv_times, capex)
+                    inv_overview_components *= "\t\t$t: $(format_number(capex))\n"
                 end
             end
         end
-        if !isempty(investment_overview_components)
+        if !isempty(inv_overview_components)
             investment_overview *= "Investment overview:\n"
-            investment_overview *= investment_overview_components
+            investment_overview *= inv_overview_components
         end
         gui.vars[:investment_overview] = investment_overview
     else
@@ -393,6 +408,48 @@ function initialize_available_data!(gui)
                 add_description!(field, name, key_str, "", element, available_data, gui)
             end
             append!(get_available_data(gui)[element], available_data)
+        end
+    end
+end
+
+"""
+    get_investment_times(gui::GUI, max_inst::Float64)
+
+Calculate when investments has taken place and store the information. An investement is
+assumed to have taken place if any `investment_indicators` are larger than get_var(gui,:tol)
+relative to `max_inst`.
+"""
+function get_investment_times(gui::GUI, max_inst::Float64)
+    T = gui.design.system[:T]
+    𝒯ᴵⁿᵛ = strategic_periods(T)
+    investment_indicators = get_var(gui, :descriptive_names)[:investment_indicators]
+    capex_fields = get_var(gui, :descriptive_names)[:total][:capex_fields]
+    period_labels = get_var(gui, :periods_labels)
+    model = get_model(gui)
+    for component ∈ get_root_design(gui)
+        element = get_element(component)
+        investment_times::Vector{String} = Vector{String}[]
+        investment_capex::Vector{Float64} = Vector{Float64}[]
+        for (i, t) ∈ enumerate(𝒯ᴵⁿᵛ), investment_indicator ∈ investment_indicators
+            sym = Symbol(investment_indicator)
+            if haskey(model, sym) && !isempty(model[sym]) && element ∈ axes(model[sym])[1]
+                val = value(model[sym][element, t])
+                if val > get_var(gui, :tol) * max_inst
+                    capex::Float64 = 0.0
+                    for capex_field ∈ capex_fields
+                        capex_key = Symbol(capex_field[1])
+                        if haskey(model, capex_key) && element ∈ axes(model[capex_key])[1]
+                            capex += value(model[capex_key][element, t])
+                        end
+                    end
+                    t_str = split(period_labels[i], " ")[1]
+                    push!(investment_times, t_str)
+                    push!(investment_capex, capex)
+                end
+            end
+        end
+        if !isempty(investment_times)
+            component.inv_data = ProcInvData(investment_times, investment_capex, true)
         end
     end
 end
