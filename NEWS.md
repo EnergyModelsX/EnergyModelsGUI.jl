@@ -6,6 +6,8 @@
 
 * Fixed bug that showed investment due to machine precision noise by enabeling the user to control the relative threshold for what is considered investment (the `tol` option in the `GUI` function).
 * Fixed bug that made it hard to select `EnergySystemDesign` objects in the GUI assosiated with `NetworkNode`s.
+* Fixed bug that scaled opex with division instead of multiplication.
+* Fixed bug that duplicated nodes having investment in more than one of `level`, `charge` and `discharge` fields.
 
 ### Enhancement
 

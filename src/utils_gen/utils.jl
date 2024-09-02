@@ -154,24 +154,20 @@ function format_number(x::Number)
 end
 
 """
-    get_max_installed(n::EMB.Node, t::Vector{S})
+    get_max_installed(n, t::Vector{S})
 
 Get the maximum capacity installable by an investemnt.
 """
 function get_max_installed(n::EMB.Node, t::Vector{S}) where {S<:TS.TimeStructure}
-    data = getfirst(data -> typeof(data) <: InvestmentData, node_data(n))
-    if isnothing(data)
-        return get_max_installed(nothing, t)
+    if EMI.has_investment(n)
+        time_profile = EMI.max_installed(EMI.investment_data(n, :cap))
+        return maximum(time_profile[t])
     else
-        time_profiles = EMI.max_installed(EMI.investment_data(n, :cap))
-        return maximum(time_profiles[t])
+        return 0.0
     end
 end
 function get_max_installed(n::Storage, t::Vector{S}) where {S<:TS.TimeStructure}
-    data = getfirst(data -> typeof(data) <: InvestmentData, node_data(n))
-    if isnothing(data)
-        return get_max_installed(nothing, t)
-    else
+    if EMI.has_investment(n)
         storage_data = [
             EMI.investment_data(n, :charge),
             EMI.investment_data(n, :level),
@@ -180,32 +176,25 @@ function get_max_installed(n::Storage, t::Vector{S}) where {S<:TS.TimeStructure}
 
         time_profiles = [EMI.max_installed(d) for d ∈ storage_data if !isnothing(d)]
         return maximum([maximum(x[t]) for x ∈ time_profiles])
+    else
+        return 0.0
     end
-end
-function get_max_installed(::EMB.Availability, t::Vector{S}) where {S<:TS.TimeStructure}
-    return get_max_installed(nothing, t::Vector{S})
-end
-function get_max_installed(::EMB.Direct, t::Vector{S}) where {S<:TS.TimeStructure}
-    return get_max_installed(nothing, t::Vector{S})
-end
-function get_max_installed(::EMG.Area, t::Vector{S}) where {S<:TS.TimeStructure}
-    return get_max_installed(nothing, t::Vector{S})
 end
 function get_max_installed(
     n::EMG.TransmissionMode, t::Vector{S}
 ) where {S<:TS.TimeStructure}
-    if isempty(n.data)
-        return get_max_installed(nothing, t)
+    if EMI.has_investment(n)
+        time_profile = EMI.max_installed(EMI.investment_data(n, :cap))
+        return maximum(time_profile[t])
     else
-        time_profiles = EMI.max_installed(EMI.investment_data(n, :cap))
-        return maximum(time_profiles[t])
+        return 0.0
     end
 end
 function get_max_installed(
     trans::EMG.Transmission, t::Vector{S}
 ) where {S<:TS.TimeStructure}
-    return maximum([get_max_installed(m, t::Vector{S}) for m ∈ modes(trans)])
+    return maximum([get_max_installed(m, t) for m ∈ modes(trans)])
 end
-function get_max_installed(::Nothing, ::Vector{S}) where {S<:TS.TimeStructure}
+function get_max_installed(::Any, ::Vector{S}) where {S<:TS.TimeStructure}
     return 0.0
 end
