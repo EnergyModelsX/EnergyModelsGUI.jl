@@ -11,7 +11,7 @@
 
 ### Enhancement
 
-* Introduced the abstract type `AbstractGUIobj` as a supertype for `EnergySystemDesign` and `Connection` which enabled simple iteration through all of these objects by using multiple dispatch of `Base.iterator`.
+* Introduced the abstract type `AbstractGUIobj` as a supertype for `EnergySystemDesign` and `Connection`. This approach enables simple iteration through all of these objects by using multiple dispatch of `Base.iterator`.
 * The type `ProcInvData` was introduced for objects of type `AbstractGUIobj` to enable simple storage of what elements are considered to contain investments.
 * Enabled box zoom for the results visualization area.
 
@@ -19,8 +19,8 @@
 
 * The functions `get_system_node` and `get_connection` are now combined to the functions `get_element` using multiple dispatch.
 * Recover blue ocean when using `EnergyModelsGeography`.
-* When hovering `AbstractGUIobj` objects the `DataInspector` now shows investment data if investments has occured.
-* Drop printing large vectors to the info box for performance reasons.
+* The `DataInspector` now shows investment data if investments has occurred when hovering `AbstractGUIobj` objects.
+* Dropped printing large vectors to the info box for performance reasons.
 * Dropped clearing node selection when clearing all plots in the results visualization area.
 
 ## Version 0.5.2 (2024-08-26)

@@ -12,7 +12,7 @@ Type for storing processed investment data.
 
 # Fields
 
-- **`inv_times::Vector{String}`** a vector of formatted strings for added investments.
+- **`inv_times::Vector{String}`** is a vector of formatted strings for added investments.
 - **`capex::Vector{Number}`** contains the capex of all times with added investments.
 - **`invested::Bool`** indicates if the element has been invested in.
 """
@@ -415,6 +415,7 @@ get_plots(conn::Connection) = conn.plots
 
 """
     get_inv_times(data)
+    get_inv_times(design::AbstractGUIobj) 
 
 Returns the `inv_times` field of a `ProcInvData`/`AbstractGUIobj` object `data`.
 """
