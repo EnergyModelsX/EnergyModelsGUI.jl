@@ -339,7 +339,7 @@ optimize!(m)
 
 solution_summary(m)
 
-## Code above identical to the example EnergyModelsBase.jl/examples/network.jl
+## Code above identical to the example EnergyModelsGeography.jl/examples/network.jl
 ############################################################################################
 ## Code below for displaying the GUI
 

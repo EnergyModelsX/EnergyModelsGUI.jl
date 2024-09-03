@@ -1,9 +1,9 @@
 """
-    AbstractGUIobj
+    AbstractGUIObj
 
 Supertype for EnergyModelsGUI objects representing `Node`s/`Link`s/`Area`s/`Transmission`s.
 """
-abstract type AbstractGUIobj end
+abstract type AbstractGUIObj end
 
 """
     ProcInvData
@@ -16,17 +16,17 @@ Type for storing processed investment data.
 - **`capex::Vector{Number}`** contains the capex of all times with added investments.
 - **`invested::Bool`** indicates if the element has been invested in.
 """
-struct ProcInvData
+struct ProcInvData{T<:Number}
     inv_times::Vector{String}
-    capex::Vector{Number}
+    capex::Vector{T}
     invested::Bool
 end
 function ProcInvData()
-    return ProcInvData(String[], Number[], false)
+    return ProcInvData(String[], Vector{Number}(), false)
 end
 
 """
-    EnergySystemDesign <: AbstractGUIobj
+    EnergySystemDesign <: AbstractGUIObj
 
 Mutable type for providing a flexible data structure for modeling and working with complex
 energy system designs in Julia.
@@ -53,7 +53,7 @@ energy system designs in Julia.
   The value does not have to be provided.
 - **`invest_data::ProcInvData`** stores processed investment data.
 """
-mutable struct EnergySystemDesign <: AbstractGUIobj
+mutable struct EnergySystemDesign <: AbstractGUIObj
     parent::Union{Symbol,Nothing}
     system::Dict
     id_to_color_map::Dict
@@ -99,7 +99,7 @@ function EnergySystemDesign(
 end
 
 """
-    Connection <: AbstractGUIobj
+    Connection <: AbstractGUIObj
 
 Mutable type for providing a flexible data structure for connections between
 `EnergySystemDesign`s.
@@ -115,7 +115,7 @@ Mutable type for providing a flexible data structure for connections between
 - **`plots::Vector{Any}`** is a vector with all Makie object associated with this object.
 - **`invest_data::ProcInvData`** stores processed investment data.
 """
-mutable struct Connection <: AbstractGUIobj
+mutable struct Connection <: AbstractGUIObj
     from::EnergySystemDesign
     to::EnergySystemDesign
     connection::Union{Link,Transmission}
@@ -137,17 +137,17 @@ end
     EnergySystemIterator
 
 Type for iterating over nested `EnergySystemDesign` structures, enabling
-recursion through `AbstractGUIobj`s.
+recursion through `AbstractGUIObj`s.
 
 # Fields
 
-- **`stack::Vector{<:AbstractGUIobj}`** is the stack used to manage the iteration
+- **`stack::Vector{<:AbstractGUIObj}`** is the stack used to manage the iteration
   through the nested `EnergySystemDesign` components (and its connections).
   It starts with the initial `EnergySystemDesign` object and progressively includes its
   subcomponents as the iteration proceeds.
 """
 struct EnergySystemIterator
-    stack::Vector{AbstractGUIobj}
+    stack::Vector{AbstractGUIObj}
 end
 
 """
@@ -414,29 +414,31 @@ Returns the `plots` field of a `Connection` `conn`.
 get_plots(conn::Connection) = conn.plots
 
 """
-    get_inv_times(data)
-    get_inv_times(design::AbstractGUIobj) 
+    get_inv_times(data::ProcInvData)
+    get_inv_times(design::AbstractGUIObj)
 
-Returns the `inv_times` field of a `ProcInvData`/`AbstractGUIobj` object `data`.
+Returns the `inv_times` field of a `ProcInvData`/`AbstractGUIObj` object `data`.
 """
 get_inv_times(data::ProcInvData) = data.inv_times
-get_inv_times(design::AbstractGUIobj) = get_inv_times(get_inv_data(design))
+get_inv_times(design::AbstractGUIObj) = get_inv_times(get_inv_data(design))
 
 """
-    get_capex(data)
+    get_capex(data::ProcInvData)
+    get_capex(design::AbstractGUIObj)
 
-Returns the `capex` of the investments of a `ProcInvData`/`AbstractGUIobj` object `data`.
+Returns the `capex` of the investments of a `ProcInvData`/`AbstractGUIObj` object `data`.
 """
 get_capex(data::ProcInvData) = data.capex
-get_capex(design::AbstractGUIobj) = get_capex(get_inv_data(design))
+get_capex(design::AbstractGUIObj) = get_capex(get_inv_data(design))
 
 """
-    has_invested(data)
+    has_invested(data::ProcInvData)
+    has_invested(data::AbstractGUIObj)
 
 Returns a boolean indicator if investment has occured.
 """
 has_invested(data::ProcInvData) = data.invested
-has_invested(design::AbstractGUIobj) = has_invested(get_inv_data(design))
+has_invested(design::AbstractGUIObj) = has_invested(get_inv_data(design))
 
 """
     get_fig(gui::GUI)

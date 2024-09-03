@@ -123,7 +123,7 @@ pretty_table(
 # Uncomment to show some of the results.
 # inspect_results()
 
-## Code above identical to the example EnergyModelsBase.jl/examples/network.jl
+## Code above identical to the example EnergyModelsRenewableProducers.jl/examples/simple_hydro_power.jl
 ############################################################################################
 ## Code below for displaying the GUI
 

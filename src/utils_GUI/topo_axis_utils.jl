@@ -381,7 +381,8 @@ Get the line style for an EnergySystemDesign `design` based on its properties.
 get_linestyle(gui::GUI, design::EnergySystemDesign) = get_linestyle(gui, design.system)
 function get_linestyle(gui::GUI, system::Dict)
     if haskey(system, :node)
-        if EMI.has_investment(system[:node])
+        node = system[:node]
+        if !isa(node, Area) && EMI.has_investment(node)
             return get_var(gui, :investment_lineStyle)
         end
     end
@@ -689,7 +690,7 @@ end
 Get the label of the element based on its `id` field. If the `id` is a number it returns the
 built in Base.display() functionality of node, otherwise, the `id` field is converted to a string.
 """
-function get_element_label(element::AbstractGUIobj)
+function get_element_label(element::AbstractGUIObj)
     return get_element_label(get_element(element))
 end
 function get_element_label(element::Union{Area,EMB.Node,TransmissionMode})
@@ -763,11 +764,11 @@ function update_title!(gui::GUI)
 end
 
 """
-    get_hover_string(obj::AbstractGUIobj)
+    get_hover_string(obj::AbstractGUIObj)
 
 Return the string for a EMB.Node/Area/Link/Transmission to be shown on hovering.
 """
-function get_hover_string(obj::AbstractGUIobj)
+function get_hover_string(obj::AbstractGUIObj)
     element = get_element(obj)
     label = get_element_label(element)
     inv_times = get_inv_times(obj)
