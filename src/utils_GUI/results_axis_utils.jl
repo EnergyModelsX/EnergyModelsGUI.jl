@@ -550,7 +550,7 @@ end
 Based on `connection` update plots.
 """
 function update_plot!(gui::GUI, connection::Connection)
-    return update_plot!(gui, get_connection(connection))
+    return update_plot!(gui, get_element(connection))
 end
 
 """
@@ -559,7 +559,7 @@ end
 Based on `design` update plots.
 """
 function update_plot!(gui::GUI, design::EnergySystemDesign)
-    return update_plot!(gui, get_system_node(design))
+    return update_plot!(gui, get_element(design))
 end
 
 """

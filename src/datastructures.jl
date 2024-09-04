@@ -1,4 +1,33 @@
 """
+    AbstractGUIObj
+
+Supertype for EnergyModelsGUI objects representing `Node`s/`Link`s/`Area`s/`Transmission`s.
+"""
+abstract type AbstractGUIObj end
+
+"""
+    ProcInvData
+
+Type for storing processed investment data.
+
+# Fields
+
+- **`inv_times::Vector{String}`** is a vector of formatted strings for added investments.
+- **`capex::Vector{Number}`** contains the capex of all times with added investments.
+- **`invested::Bool`** indicates if the element has been invested in.
+"""
+struct ProcInvData{T<:Number}
+    inv_times::Vector{String}
+    capex::Vector{T}
+    invested::Bool
+end
+function ProcInvData()
+    return ProcInvData(String[], Vector{Number}(), false)
+end
+
+"""
+    EnergySystemDesign <: AbstractGUIObj
+
 Mutable type for providing a flexible data structure for modeling and working with complex
 energy system designs in Julia.
 
@@ -22,8 +51,9 @@ energy system designs in Julia.
 - **`file::String`** is the filename or path associated with the `EnergySystemDesign`.
 - **`plots::Vector{Any}`** is a vector with all Makie object associated with this object.
   The value does not have to be provided.
+- **`invest_data::ProcInvData`** stores processed investment data.
 """
-mutable struct EnergySystemDesign
+mutable struct EnergySystemDesign <: AbstractGUIObj
     parent::Union{Symbol,Nothing}
     system::Dict
     id_to_color_map::Dict
@@ -35,6 +65,7 @@ mutable struct EnergySystemDesign
     color::Observable{Symbol}
     wall::Observable{Symbol}
     file::String
+    inv_data::ProcInvData
     plots::Vector{Any}
 end
 function EnergySystemDesign(
@@ -62,11 +93,14 @@ function EnergySystemDesign(
         color,
         wall,
         file,
+        ProcInvData(),
         Any[],
     )
 end
 
 """
+    Connection <: AbstractGUIObj
+
 Mutable type for providing a flexible data structure for connections between
 `EnergySystemDesign`s.
 
@@ -79,12 +113,14 @@ Mutable type for providing a flexible data structure for connections between
 - **`connection::Union{Link,Transmission}`** is the EMX connection structure.
 - **`colors::Vector{RGB}`** is the associated colors of the connection.
 - **`plots::Vector{Any}`** is a vector with all Makie object associated with this object.
+- **`invest_data::ProcInvData`** stores processed investment data.
 """
-mutable struct Connection
+mutable struct Connection <: AbstractGUIObj
     from::EnergySystemDesign
     to::EnergySystemDesign
     connection::Union{Link,Transmission}
     colors::Vector{RGB}
+    inv_data::ProcInvData
     plots::Vector{Any}
 end
 function Connection(
@@ -94,10 +130,29 @@ function Connection(
     id_to_color_map::Dict{Any,Any},
 )
     colors::Vector{RGB} = get_resource_colors(connection, id_to_color_map)
-    return Connection(from, to, connection, colors, Any[])
+    return Connection(from, to, connection, colors, ProcInvData(), Any[])
 end
 
 """
+    EnergySystemIterator
+
+Type for iterating over nested `EnergySystemDesign` structures, enabling
+recursion through `AbstractGUIObj`s.
+
+# Fields
+
+- **`stack::Vector{<:AbstractGUIObj}`** is the stack used to manage the iteration
+  through the nested `EnergySystemDesign` components (and its connections).
+  It starts with the initial `EnergySystemDesign` object and progressively includes its
+  subcomponents as the iteration proceeds.
+"""
+struct EnergySystemIterator
+    stack::Vector{AbstractGUIObj}
+end
+
+"""
+    GUI
+
 The main type for the realization of the GUI.
 
 # Fields
@@ -129,61 +184,54 @@ mutable struct GUI
     vars::Dict{Symbol,Any}
 end
 
-"""
-    show(io::IO, obj::EnergySystemDesign)
-
-Print a simplified overview of the fields of an EnergySystemDesign `obj`.
-"""
-function Base.show(io::IO, obj::EnergySystemDesign)
-    indent_str::String = "  "
-    println(io, "EnergySystemDesign with fields:")
-    println(io, "  parent (Union{Symbol,Nothing}): ", obj.parent)
-    println(io, "  system (Dict): ")
-    for (key, value) ∈ obj.system
-        println(io, indent_str, "  ", key, ": ", value)
-    end
-    println(io, "  id_to_color_map (Dict{Any,Any}): ", obj.id_to_color_map)
-    println(io, "  id_to_icon_map (Dict{Any,Any}): ", obj.id_to_icon_map)
-    println(io, "  components (Vector{EnergySystemDesign}): ")
-    for (index, comp) ∈ enumerate(obj.components)
-        if haskey(comp.system, :node)
-            println(io, "    [", index, "] ", comp.system[:node])
-        end
-    end
-    println(
-        io, "  connections (Vector{Tuple{EnergySystemDesign, EnergySystemDesign, Dict}}): "
-    )
-    for (index, conn) ∈ enumerate(obj.connections)
-        println(
-            io, "    [", index, "] ", conn.from.system[:node], " - ", conn.to.system[:node]
-        )
-    end
-
-    println(io, "  xy (Observable{Tuple{Real,Real}}): ", obj.xy)
-    println(io, "  icon (Union{String,Nothing}): ", obj.icon)
-    println(io, "  color (Observable{Symbol}): ", obj.color)
-    println(io, "  wall (Observable{Symbol}): ", obj.wall)
-
-    println(io, "  file (String): ", obj.file)
-    return println(io, "  plots (Vector{Any}): ", obj.plots)
+function Base.show(io::IO, obj::AbstractGUIObj)
+    return dump(io, obj; maxdepth=1)
 end
 
-"""
-    show(io::IO, con::Connection)
-
-Print a simplified overview of the fields of a Connection `obj`.
-"""
-function Base.show(io::IO, con::Connection)
-    return dump(io, con; maxdepth=2)
+function Base.show(io::IO, obj::ProcInvData)
+    return dump(io, obj; maxdepth=1)
 end
 
-"""
-    show(io::IO, obj::GUI)
-
-Print a simplified overview of the fields of a GUI `gui`.
-"""
 function Base.show(io::IO, gui::GUI)
     return dump(io, gui; maxdepth=1)
+end
+
+function EnergySystemIterator(design::EnergySystemDesign)
+    vector = AbstractGUIObj[]
+    push!(vector, design.components...)  # Add the components to the stack
+    push!(vector, design.connections...)  # Add the connections to the stack
+    for des ∈ design.components
+        _get_components(des, vector)
+    end
+    return EnergySystemIterator(vector)
+end
+
+function _get_components(design::EnergySystemDesign, vector)
+    push!(vector, design.components...)  # Add the components to the stack
+    push!(vector, design.connections...)  # Add the connections to the stack
+    for des ∈ design.components
+        _get_components(des, vector)
+    end
+end
+
+"""
+    iterate(itr::EnergySystemIterator)
+
+Initialize the iteration over an `EnergySystemIterator`, returning the first `EnergySystemDesign` object
+in the stack and the iterator itself. If the stack is empty, return `nothing`.
+"""
+function Base.iterate(itr::EnergySystemIterator, state=nothing)
+    idx = isnothing(state) ? 1 : state + 1
+    idx === length(itr) + 1 && return nothing
+    return itr.stack[idx], idx
+end
+Base.length(itr::EnergySystemIterator) = length(itr.stack)
+
+function Base.iterate(design::EnergySystemDesign, state=(nothing, nothing))
+    itr = isnothing(state[2]) ? EnergySystemIterator(design) : state[2]
+    state[1] === length(itr) && return nothing
+    next = isnothing(state[1]) ? iterate(itr) : iterate(itr, state[1])
+    return next[1], (next[2], itr)
 end
 
 """
@@ -201,11 +249,15 @@ Returns the `system` field of a `EnergySystemDesign` `design`.
 get_system(design::EnergySystemDesign) = design.system
 
 """
-    get_system_node(design::EnergySystemDesign)
+    get_element(design::EnergySystemDesign)
 
 Returns the system node (i.e. availability node for areas) of a `EnergySystemDesign` `design`.
 """
-get_system_node(design::EnergySystemDesign) = design.system[:node]
+function get_element(design::EnergySystemDesign)
+    if !isnothing(design.parent)
+        return design.system[:node]
+    end
+end
 
 """
     get_components(design::EnergySystemDesign)
@@ -257,6 +309,13 @@ Returns the `file` field of a `EnergySystemDesign` `design`.
 get_file(design::EnergySystemDesign) = design.file
 
 """
+    get_inv_data(design::EnergySystemDesign)
+
+Returns the `inv_data` field of a `EnergySystemDesign` `design`.
+"""
+get_inv_data(design::EnergySystemDesign) = design.inv_data
+
+"""
     get_plots(design::EnergySystemDesign)
 
 Returns the `plots` field of a `EnergySystemDesign` `design`.
@@ -278,11 +337,11 @@ Returns the `to` field of a `Connection` `conn`.
 get_to(conn::Connection) = conn.to
 
 """
-    get_connection(conn::Connection)
+    get_element(conn::Connection)
 
-Returns the `connection` field of a `Connection` `conn`.
+Returns the assosiated `Transmission`/`Link` of conn
 """
-get_connection(conn::Connection) = conn.connection
+get_element(conn::Connection) = conn.connection
 
 """
     get_colors(conn::Connection)
@@ -292,11 +351,45 @@ Returns the `colors` field of a `Connection` `conn`.
 get_colors(conn::Connection) = conn.colors
 
 """
+    get_inv_data(design::Connection)
+
+Returns the `inv_data` field of a `Connection` `design`.
+"""
+get_inv_data(design::Connection) = design.inv_data
+
+"""
     get_plots(conn::Connection)
 
 Returns the `plots` field of a `Connection` `conn`.
 """
 get_plots(conn::Connection) = conn.plots
+
+"""
+    get_inv_times(data::ProcInvData)
+    get_inv_times(design::AbstractGUIObj)
+
+Returns the `inv_times` field of a `ProcInvData`/`AbstractGUIObj` object `data`.
+"""
+get_inv_times(data::ProcInvData) = data.inv_times
+get_inv_times(design::AbstractGUIObj) = get_inv_times(get_inv_data(design))
+
+"""
+    get_capex(data::ProcInvData)
+    get_capex(design::AbstractGUIObj)
+
+Returns the `capex` of the investments of a `ProcInvData`/`AbstractGUIObj` object `data`.
+"""
+get_capex(data::ProcInvData) = data.capex
+get_capex(design::AbstractGUIObj) = get_capex(get_inv_data(design))
+
+"""
+    has_invested(data::ProcInvData)
+    has_invested(data::AbstractGUIObj)
+
+Returns a boolean indicator if investment has occured.
+"""
+has_invested(data::ProcInvData) = data.invested
+has_invested(design::AbstractGUIObj) = has_invested(get_inv_data(design))
 
 """
     get_fig(gui::GUI)

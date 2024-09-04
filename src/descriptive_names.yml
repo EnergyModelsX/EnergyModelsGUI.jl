@@ -259,6 +259,7 @@ variables:
   curtailment:                    "Curtailment of a non-dispatchable energy source"
   hydro_spill:                    "Spilled water (not producing energy)"
 
+# Overview of total quantities and their components
 total:
   opex_fields:
     opex_var:             "Total absolute variable OPEX"
@@ -272,9 +273,14 @@ total:
     stor_discharge_capex: "Total absolute CAPEX for investments in the discharging rate of storages"
     trans_cap_capex:      "Total absolute CAPEX for investments in the capacity of transmission modes"
 
+# Names in the JuMP model that indicates if an investment has occured
 investment_indicators:
   - cap_add
   - trans_cap_add
   - stor_level_add
   - stor_charge_add
   - stor_discharge_add
+
+# Names in the JuMP model to be ignored
+ignore:
+  - con_em_tot

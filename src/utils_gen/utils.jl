@@ -152,3 +152,49 @@ function format_number(x::Number)
     # Add separator (comma)
     return replace(formatted_number, r"(?<=\d)(?=(\d{3})+\.)" => ",")
 end
+
+"""
+    get_max_installed(n, t::Vector{S})
+
+Get the maximum capacity installable by an investemnt.
+"""
+function get_max_installed(n::EMB.Node, t::Vector{S}) where {S<:TS.TimeStructure}
+    if EMI.has_investment(n)
+        time_profile = EMI.max_installed(EMI.investment_data(n, :cap))
+        return maximum(time_profile[t])
+    else
+        return 0.0
+    end
+end
+function get_max_installed(n::Storage, t::Vector{S}) where {S<:TS.TimeStructure}
+    if EMI.has_investment(n)
+        storage_data = [
+            EMI.investment_data(n, :charge),
+            EMI.investment_data(n, :level),
+            EMI.investment_data(n, :discharge),
+        ]
+
+        time_profiles = [EMI.max_installed(d) for d ∈ storage_data if !isnothing(d)]
+        return maximum([maximum(x[t]) for x ∈ time_profiles])
+    else
+        return 0.0
+    end
+end
+function get_max_installed(
+    n::EMG.TransmissionMode, t::Vector{S}
+) where {S<:TS.TimeStructure}
+    if EMI.has_investment(n)
+        time_profile = EMI.max_installed(EMI.investment_data(n, :cap))
+        return maximum(time_profile[t])
+    else
+        return 0.0
+    end
+end
+function get_max_installed(
+    trans::EMG.Transmission, t::Vector{S}
+) where {S<:TS.TimeStructure}
+    return maximum([get_max_installed(m, t) for m ∈ modes(trans)])
+end
+function get_max_installed(::Any, ::Vector{S}) where {S<:TS.TimeStructure}
+    return 0.0
+end

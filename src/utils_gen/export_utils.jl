@@ -64,11 +64,12 @@ function export_xlsx(plots::Vector, filename::String, xlabel::Symbol)
 end
 
 """
-    export_xlsx(plots::Makie.AbstractPlot, filename::String)
+    export_xlsx(gui::GUI, filename::String)
 
-Export the plot `plots` to an xlsx file with path given by `filename`.
+Export the JuMP fields to an xlsx file with path given by `filename`.
 """
-function export_xlsx(model::JuMP.Model, filename::String)
+function export_xlsx(gui::GUI, filename::String)
+    model = get_model(gui)
     if isempty(model)
         @warn "No data to be exported"
         return 1
@@ -76,7 +77,7 @@ function export_xlsx(model::JuMP.Model, filename::String)
     # Create a new Excel file and write data
     XLSX.openxlsx(filename; mode="w") do xf
         first_sheet::Bool = true
-        for (i, dict) ∈ enumerate(collect(keys(object_dictionary(model))))
+        for (i, dict) ∈ enumerate(get_JuMP_names(gui))
             container = model[dict]
             if isempty(container)
                 continue
@@ -141,7 +142,7 @@ function export_to_file(gui::GUI)
             @warn "Exporting the entire figure to an $file_ending file is not implemented"
             flag = 1
         elseif file_ending == "xlsx"
-            flag = export_xlsx(get_model(gui), filename)
+            flag = export_xlsx(gui, filename)
         elseif file_ending == "lp" || file_ending == "mps"
             try
                 write_to_file(get_model(gui), filename)

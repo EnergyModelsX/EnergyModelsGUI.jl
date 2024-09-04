@@ -1,5 +1,28 @@
 # Release notes
 
+## Version 0.5.3 (2024-09-02)
+
+### Bugfix
+
+* Fixed bug that showed investment due to machine precision noise by enabeling the user to control the relative threshold for what is considered investment (the `tol` option in the `GUI` function).
+* Fixed bug that made it hard to select `EnergySystemDesign` objects in the GUI assosiated with `NetworkNode`s.
+* Fixed bug that scaled opex with division instead of multiplication.
+* Fixed bug that duplicated nodes having investment in more than one of `level`, `charge` and `discharge` fields.
+
+### Enhancement
+
+* Introduced the abstract type `AbstractGUIObj` as a supertype for `EnergySystemDesign` and `Connection`. This approach enables simple iteration through all of these objects by using multiple dispatch of `Base.iterator`.
+* The type `ProcInvData` was introduced for objects of type `AbstractGUIObj` to enable simple storage of what elements are considered to contain investments.
+* Enabled box zoom for the results visualization area.
+
+### Adjustment
+
+* The functions `get_system_node` and `get_connection` are now combined to the functions `get_element` using multiple dispatch.
+* Recover blue ocean when using `EnergyModelsGeography`.
+* The `DataInspector` now shows investment data if investments has occurred when hovering `AbstractGUIObj` objects.
+* Dropped printing large vectors to the info box for performance reasons.
+* Dropped clearing node selection when clearing all plots in the results visualization area.
+
 ## Version 0.5.2 (2024-08-26)
 
 ### Bugfix

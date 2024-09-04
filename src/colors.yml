@@ -2,6 +2,7 @@
 # The values have to be provided as hex triplet https://en.wikipedia.org/wiki/Web_colors#Hex_triplets 
 Power:           "#045993" # blue
 Hydrogen:        "#009DAD" # cyan
+H2:              "#009DAD" # cyan
 Cooling:         "#00DBDB" # aqua
 Resource:        "#C059A1" # pink
 Waste:           "#DB6000" # orange

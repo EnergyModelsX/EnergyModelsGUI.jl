@@ -181,21 +181,21 @@ end
 """
     update!(gui::GUI, connection::Connection; updateplot::Bool=true)
 
-Based on `connection.connection`, update the text in `get_axes(gui)[:info]`
+Based on `Connection`, update the text in `get_axes(gui)[:info]`
 and update plot in `get_axes(gui)[:results]` if `updateplot = true`.
 """
 function update!(gui::GUI, connection::Connection; updateplot::Bool=true)
-    return update!(gui, get_connection(connection); updateplot)
+    return update!(gui, get_element(connection); updateplot)
 end
 
 """
     update!(gui::GUI, design::EnergySystemDesign; updateplot::Bool=true)
 
-Based on `get_system_node(design)`, update the text in `get_axes(gui)[:info]`
+Based on `design`, update the text in `get_axes(gui)[:info]`
 and update plot in `get_axes(gui)[:results]` if `updateplot = true`.
 """
 function update!(gui::GUI, design::EnergySystemDesign; updateplot::Bool=true)
-    return update!(gui, get_system_node(design); updateplot)
+    return update!(gui, get_element(design); updateplot)
 end
 
 """
@@ -204,7 +204,8 @@ end
 For all plotable objects, initialize the available data menu with items.
 """
 function initialize_available_data!(gui)
-    system = get_root_design(gui).system
+    design = get_root_design(gui)
+    system = get_system(design)
     model = get_model(gui)
     plotables = []
     append!(plotables, [nothing]) # nothing here represents no selection
@@ -228,18 +229,18 @@ function initialize_available_data!(gui)
 
     # Find appearances of node/area/link/transmission in the model
     if termination_status(model) == MOI.OPTIMAL # Plot results if available
-        for sym ∈ collect(keys(object_dictionary(model)))
+        T = gui.design.system[:T]
+        for sym ∈ get_JuMP_names(gui)
             var = model[sym]
             if isempty(var)
                 continue
             end
             i_T, type = get_time_axis(model[sym])
+            periods = get_periods(T, type)
 
-            for combination ∈ Iterators.product(get_JuMP_axes(var, i_T)...)
+            for combination ∈ get_combinations(var, i_T)
                 selection = collect(combination)
                 if isa(var, SparseVariables.IndexedVarArray)
-                    T = get_design(gui).system[:T]
-                    periods = get_periods(T, type)
                     field_data = JuMP.Containers.SparseAxisArray(
                         Dict(
                             (t,) =>
@@ -278,19 +279,19 @@ function initialize_available_data!(gui)
         # Calculate total OPEX for each strategic period
         scale_tot_opex = get_var(gui, :scale_tot_opex)
         scale_tot_capex = get_var(gui, :scale_tot_capex)
-        T = gui.design.system[:T]
         𝒯ᴵⁿᵛ = strategic_periods(T)
         sp_dur = duration_strat.(𝒯ᴵⁿᵛ)
         tot_opex = zeros(T.len)
         tot_opex_unscaled = zeros(T.len)
         for opex_field ∈ get_var(gui, :descriptive_names)[:total][:opex_fields]
             opex_key = Symbol(opex_field[1])
-            opex_desc = opex_field[2]
+            description = opex_field[2]
             if haskey(model, opex_key)
                 opex = vec(sum(Array(value.(model[opex_key])), dims=1))
                 tot_opex_unscaled .+= opex
                 if scale_tot_opex
-                    opex ./= sp_dur
+                    opex .*= sp_dur
+                    description *= " (scaled to strategic period)"
                 end
                 tot_opex .+= opex
 
@@ -300,7 +301,7 @@ function initialize_available_data!(gui)
                     :is_jump_data => false,
                     :selection => [element],
                     :field_data => StrategicProfile(opex),
-                    :description => opex_desc,
+                    :description => description,
                 )
                 push!(get_available_data(gui)[element], container)
             end
@@ -312,12 +313,13 @@ function initialize_available_data!(gui)
         capex_fields = get_var(gui, :descriptive_names)[:total][:capex_fields]
         for capex_field ∈ capex_fields
             capex_key = Symbol(capex_field[1])
-            capex_desc = capex_field[2]
+            description = capex_field[2]
             if haskey(model, capex_key)
                 capex = vec(sum(Array(value.(model[capex_key])), dims=1))
                 tot_capex_unscaled .+= capex
                 if scale_tot_capex
                     capex ./= sp_dur
+                    description *= " (scaled to year)"
                 end
 
                 tot_capex .+= capex
@@ -328,31 +330,52 @@ function initialize_available_data!(gui)
                     :is_jump_data => false,
                     :selection => [element],
                     :field_data => StrategicProfile(capex),
-                    :description => capex_desc,
+                    :description => description,
                 )
                 push!(get_available_data(gui)[element], container)
             end
         end
 
         # add total operational cost to available data
+        description = "Total operational cost"
+        if scale_tot_capex
+            description *= " (scaled to year)"
+        end
         container = Dict(
             :name => "tot_opex",
             :is_jump_data => false,
             :selection => [element],
             :field_data => StrategicProfile(tot_opex),
-            :description => "Total operational cost",
+            :description => description,
         )
         push!(get_available_data(gui)[element], container)
 
         # add total investment cost to available data
+        description = "Total investment cost"
+        if scale_tot_capex
+            description *= " (scaled to year)"
+        end
         container = Dict(
             :name => "tot_capex",
             :is_jump_data => false,
             :selection => [element],
             :field_data => StrategicProfile(tot_capex),
-            :description => "Total investment cost",
+            :description => description,
         )
         push!(get_available_data(gui)[element], container)
+
+        # Find a reference value to be used for considering the magnitude of an investment
+        max_installed_arr = []
+        for element ∈ plotables
+            push!(max_installed_arr, get_max_installed(element, [t for t ∈ 𝒯ᴵⁿᵛ]))
+        end
+        max_inst::Float64 = maximum(max_installed_arr)
+        if max_inst == 0
+            max_inst = 1.0 # In case of all values set to zero
+        end
+
+        # Calculate when investments has taken place and store the information
+        get_investment_times(gui, max_inst)
 
         # Create investment overview in the information box
         investment_overview = "Result summary:\n\n"
@@ -360,20 +383,21 @@ function initialize_available_data!(gui)
         total_capex = sum(tot_capex_unscaled)
         investment_overview *= "Total operational cost: $(format_number(total_opex))\n"
         investment_overview *= "Total investment cost: $(format_number(total_capex))\n\n"
-        investment_overview_components = ""
-        for element ∈ plotables
-            investment_times, investment_capex = get_investment_times(gui, element)
-            if !isempty(investment_times)
-                label = get_node_label(element)
-                investment_overview_components *= "\t$label:\n"
-                for (t, capex) ∈ zip(investment_times, investment_capex)
-                    investment_overview_components *= "\t\t$t: $(format_number(capex))\n"
+        inv_overview_components = ""
+        for obj ∈ design
+            inv_times = get_inv_times(obj)
+            if !isempty(inv_times)
+                capex = get_capex(obj)
+                label = get_element_label(obj)
+                inv_overview_components *= "\t$label:\n"
+                for (t, capex) ∈ zip(inv_times, capex)
+                    inv_overview_components *= "\t\t$t: $(format_number(capex))\n"
                 end
             end
         end
-        if !isempty(investment_overview_components)
+        if !isempty(inv_overview_components)
             investment_overview *= "Investment overview:\n"
-            investment_overview *= investment_overview_components
+            investment_overview *= inv_overview_components
         end
         gui.vars[:investment_overview] = investment_overview
     else
@@ -396,19 +420,76 @@ function initialize_available_data!(gui)
         end
     end
 end
-
 """
-    get_JuMP_axes(var::JuMP.Containers.DenseAxisArray, i_T::Int)
+    get_JuMP_names(gui::GUI)
 
-Get arrays of indices of a model variable `var` not being the time dimension (located at index `i_T`)
+Get all names registered in the model as a vector except the names to be ignored.
 """
-function get_JuMP_axes(var::JuMP.Containers.DenseAxisArray, i_T::Int)
-    return axes(var)[vcat(1:(i_T - 1), (i_T + 1):end)]
+function get_JuMP_names(gui::GUI)
+    model = get_model(gui)
+    ignore_names = Symbol.(get_var(gui, :descriptive_names)[:ignore])
+    names = collect(keys(object_dictionary(model)))
+    return [name for name ∈ names if !(name ∈ ignore_names)]
 end
 
-function get_JuMP_axes(var::SparseVars, i_T::Int)
-    indices = hcat([collect(key) for key ∈ keys(var.data)]...)
-    return [unique(indices[i, :]) for i ∈ vcat(1:(i_T - 1), (i_T + 1):size(indices, 1))]
+"""
+    get_investment_times(gui::GUI, max_inst::Float64)
+
+Calculate when investments has taken place and store the information. An investement is
+assumed to have taken place if any `investment_indicators` are larger than get_var(gui,:tol)
+relative to `max_inst`.
+"""
+function get_investment_times(gui::GUI, max_inst::Float64)
+    T = gui.design.system[:T]
+    𝒯ᴵⁿᵛ = strategic_periods(T)
+    investment_indicators = get_var(gui, :descriptive_names)[:investment_indicators]
+    capex_fields = get_var(gui, :descriptive_names)[:total][:capex_fields]
+    period_labels = get_var(gui, :periods_labels)
+    model = get_model(gui)
+    for component ∈ get_root_design(gui)
+        element = get_element(component)
+        investment_times::Vector{String} = Vector{String}[]
+        investment_capex::Vector{Float64} = Vector{Float64}[]
+        for (i, t) ∈ enumerate(𝒯ᴵⁿᵛ)
+            for investment_indicator ∈ investment_indicators # important not to use shorthand loop syntax here due to the break command (exiting both loops in that case)
+                sym = Symbol(investment_indicator)
+                if haskey(model, sym) &&
+                    !isempty(model[sym]) &&
+                    element ∈ axes(model[sym])[1]
+                    val = value(model[sym][element, t])
+                    if val > get_var(gui, :tol) * max_inst
+                        capex::Float64 = 0.0
+                        for capex_field ∈ capex_fields
+                            capex_key = Symbol(capex_field[1])
+                            if haskey(model, capex_key) &&
+                                element ∈ axes(model[capex_key])[1]
+                                capex += value(model[capex_key][element, t])
+                            end
+                        end
+                        t_str = split(period_labels[i], " ")[1]
+                        push!(investment_times, t_str)
+                        push!(investment_capex, capex)
+                        break # Do not add the capex again for other elements in investment_indicators
+                    end
+                end
+            end
+        end
+        if !isempty(investment_times)
+            component.inv_data = ProcInvData(investment_times, investment_capex, true)
+        end
+    end
+end
+
+"""
+    get_combinations(var, i_T::Int)
+
+Get an iterator of combinations of unique indices excluding the time index located at index `i_T`.
+"""
+function get_combinations(var::SparseVars, i_T::Int)
+    return unique([(key[1:(i_T - 1)]..., key[(i_T + 1):end]...) for key ∈ keys(var.data)])
+end
+function get_combinations(var::JuMP.Containers.DenseAxisArray, i_T::Int)
+    return Iterators.product(axes(var)[vcat(1:(i_T - 1), (i_T + 1):end)]...)
 end
 
 """

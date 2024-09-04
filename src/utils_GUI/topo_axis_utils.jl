@@ -169,10 +169,10 @@ function connect!(gui::GUI, design::EnergySystemDesign)
     components = get_components(design)
     for component ∈ components
         linked_to_component::Vector{Connection} = filter(
-            x -> component.system[:node].id == get_connection(x).to.id, connections
+            x -> component.system[:node].id == get_element(x).to.id, connections
         )
         linked_from_component::Vector{Connection} = filter(
-            x -> component.system[:node].id == get_connection(x).from.id, connections
+            x -> component.system[:node].id == get_element(x).from.id, connections
         )
         on(component.xy; priority=4) do _
             angles::Vector{Float64} = vcat(
@@ -202,10 +202,10 @@ function connect!(gui::GUI, design::EnergySystemDesign)
 
     for conn ∈ connections
         # Check if link between two elements goes in both directions (two_way)
-        link = get_connection(conn)
+        link = get_element(conn)
         two_way::Bool = false
         for conn2 ∈ connections
-            link2 = get_connection(conn2)
+            link2 = get_element(conn2)
             if link2.to.id == link.from.id && link2.from.id == link.to.id
                 two_way = true
             end
@@ -222,7 +222,7 @@ end
 When a boolean argument `two_way` is specified, draw the lines in both directions.
 """
 function connect!(gui::GUI, connection::Connection, two_way::Bool)
-    colors::Vector{RGB} = connection.colors
+    colors::Vector{RGB} = get_colors(connection)
     no_colors::Int64 = length(colors)
 
     # Create an arrow to highlight the direction of the energy flow
@@ -327,9 +327,8 @@ function connect!(gui::GUI, connection::Connection, two_way::Bool)
                         ys;
                         color=colors[j],
                         linewidth=get_var(gui, :connection_linewidth),
-                        linestyle=linestyle,
-                        inspector_label=(self, i, p) ->
-                            get_hover_string(connection.connection),
+                        linestyle=linestyle[j],
+                        inspector_label=(self, i, p) -> get_hover_string(connection),
                         inspectable=true,
                     )
                     Makie.translate!(sctr, 0, 0, get_var(gui, :z_translate_lines))
@@ -382,7 +381,8 @@ Get the line style for an EnergySystemDesign `design` based on its properties.
 get_linestyle(gui::GUI, design::EnergySystemDesign) = get_linestyle(gui, design.system)
 function get_linestyle(gui::GUI, system::Dict)
     if haskey(system, :node)
-        if EMI.has_investment(system[:node])
+        node = system[:node]
+        if !isa(node, Area) && EMI.has_investment(node)
             return get_var(gui, :investment_lineStyle)
         end
     end
@@ -396,25 +396,25 @@ Get the line style for an Connection `connection` based on its properties.
 """
 function get_linestyle(gui::GUI, connection::Connection)
     # Check of connection is a transmission
-    t = connection.connection
+    t = get_element(connection)
     if isa(t, Transmission)
-        if EMI.has_investment(t)
-            return get_var(gui, :investment_lineStyle)
-        else
-            return :solid
-        end
+        return [
+            EMI.has_investment(m) ? get_var(gui, :investment_lineStyle) : :solid for
+            m ∈ modes(t)
+        ]
     end
 
     # For Links, simply use dashed style if from or to node has investments
+    no_lines = length(get_colors(connection))
     linestyle::Union{Symbol,Makie.Linestyle} = get_linestyle(gui, connection.from)
     if linestyle == get_var(gui, :investment_lineStyle)
-        return linestyle
+        return fill(linestyle, no_lines)
     end
     linestyle = get_linestyle(gui, connection.to)
     if linestyle == get_var(gui, :investment_lineStyle)
-        return linestyle
+        return fill(linestyle, no_lines)
     end
-    return :solid
+    return fill(:solid, no_lines)
 end
 
 """
@@ -436,9 +436,6 @@ function draw_box!(gui::GUI, design::EnergySystemDesign)
         white_rect2 = poly!(
             get_axes(gui)[:topo], vertices2; color=:white, strokewidth=0, inspectable=false
         ) # Create a white background rectangle to hide lines from connections
-        add_inspector_to_poly!(
-            white_rect2, (self, i, p) -> get_hover_string(get_system_node(design))
-        )
         Makie.translate!(white_rect2, 0, 0, get_var(gui, :z_translate_components))
         get_vars(gui)[:z_translate_components] += 1
         push!(design.plots, white_rect2)
@@ -478,9 +475,7 @@ function draw_box!(gui::GUI, design::EnergySystemDesign)
     white_rect = poly!(
         get_axes(gui)[:topo], vertices; color=:white, strokewidth=0, inspectable=false
     ) # Create a white background rectangle to hide lines from connections
-    add_inspector_to_poly!(
-        white_rect, (self, i, p) -> get_hover_string(get_system_node(design))
-    )
+    add_inspector_to_poly!(white_rect, (self, i, p) -> get_hover_string(design))
     Makie.translate!(white_rect, 0, 0, get_var(gui, :z_translate_components))
     get_vars(gui)[:z_translate_components] += 1
 
@@ -538,10 +533,10 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
     end
 
     if isempty(design.icon) # No path to an icon has been found
-        node::EMB.Node = if typeof(get_system_node(design)) <: EMB.Node
-            get_system_node(design)
+        node::EMB.Node = if typeof(get_element(design)) <: EMB.Node
+            get_element(design)
         else
-            get_system_node(design).node
+            get_element(design).node
         end
 
         colors_input::Vector{RGB} = get_resource_colors(
@@ -577,9 +572,11 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
                 network_poly = poly!(
                     get_axes(gui)[:topo], sector; color=color, inspectable=false
                 )
-                add_inspector_to_poly!(
-                    network_poly, (self, i, p) -> get_hover_string(get_system_node(design))
-                )
+                if isa(node, Sink) || isa(node, Source)
+                    add_inspector_to_poly!(
+                        network_poly, (self, i, p) -> get_hover_string(design)
+                    )
+                end
                 Makie.translate!(network_poly, 0, 0, get_var(gui, :z_translate_components))
                 get_vars(gui)[:z_translate_components] += 1
                 network_poly.kw[:EMGUI_obj] = design
@@ -600,8 +597,7 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
                 zeros(4);
                 color=:black,
                 linewidth=get_var(gui, :linewidth),
-                inspector_label=(self, i, p) -> get_hover_string(get_system_node(design)),
-                inspectable=true,
+                inspectable=false,
             )
             Makie.translate!(center_box, 0, 0, get_var(gui, :z_translate_components))
             get_vars(gui)[:z_translate_components] += 1
@@ -664,22 +660,18 @@ function draw_label!(gui::GUI, component::EnergySystemDesign)
             alignment[] = get_text_alignment(component.wall[])
         end
 
-        node = component.system[:node]
-        label = get_node_label(node)
+        node = get_element(component)
 
-        # Check if and when there is investment in this node
-        investment_times, _ = get_investment_times(gui, node)
-
-        if isempty(investment_times)
-            font_color = :black
-        else
+        if has_invested(component)
             font_color = :red
+        else
+            font_color = :black
         end
         label_text = text!(
             get_axes(gui)[:topo],
             xo,
             yo;
-            text=label,
+            text=get_element_label(node),
             align=alignment,
             fontsize=get_var(gui, :fontsize),
             inspectable=false,
@@ -693,51 +685,19 @@ function draw_label!(gui::GUI, component::EnergySystemDesign)
 end
 
 """
-    get_node_label(node::Union{Area, EMB.Node, TransmissionMode, Transmission})
+    get_element_label(element)
 
-Get the label of the node based on its `id` field. If the `id` is a number it returns the
+Get the label of the element based on its `id` field. If the `id` is a number it returns the
 built in Base.display() functionality of node, otherwise, the `id` field is converted to a string.
 """
-function get_node_label(node::Union{Area,EMB.Node,TransmissionMode})
-    return isa(node.id, Number) ? string(node) : string(node.id)
+function get_element_label(element::AbstractGUIObj)
+    return get_element_label(get_element(element))
 end
-function get_node_label(t::Transmission)
-    return get_node_label(t.from) * "-" * get_node_label(t.to)
+function get_element_label(element::Union{Area,EMB.Node,TransmissionMode})
+    return isa(element.id, Number) ? string(element) : string(element.id)
 end
-
-"""
-    get_investment_times(gui::GUI, node::Plotable)
-
-Get a list of times and capex with added investments from `node`.
-"""
-function get_investment_times(gui::GUI, node::Plotable)
-    investment_times::Vector{String} = Vector{String}[]
-    investment_capex::Vector{Float64} = Vector{Float64}[]
-    T = gui.design.system[:T]
-    𝒯ᴵⁿᵛ = strategic_periods(T)
-    investment_indicators = get_var(gui, :descriptive_names)[:investment_indicators]
-    capex_fields = get_var(gui, :descriptive_names)[:total][:capex_fields]
-    period_labels = get_var(gui, :periods_labels)
-    model = get_model(gui)
-    for (i, t) ∈ enumerate(𝒯ᴵⁿᵛ), investment_indicator ∈ investment_indicators
-        sym = Symbol(investment_indicator)
-        if haskey(model, sym) && !isempty(model[sym]) && node ∈ axes(model[sym])[1]
-            val = value(model[sym][node, t])
-            if val > 0
-                capex::Float64 = 0.0
-                for capex_field ∈ capex_fields
-                    capex_key = Symbol(capex_field[1])
-                    if haskey(model, capex_key) && node ∈ axes(model[capex_key])[1]
-                        capex += value(model[capex_key][node, t])
-                    end
-                end
-                t_str = split(period_labels[i], " ")[1]
-                push!(investment_times, t_str)
-                push!(investment_capex, capex)
-            end
-        end
-    end
-    return investment_times, investment_capex
+function get_element_label(element::Union{Transmission,Direct})
+    return get_element_label(element.from) * "-" * get_element_label(element.to)
 end
 
 """
@@ -804,10 +764,21 @@ function update_title!(gui::GUI)
 end
 
 """
-    get_hover_string(element::Plotable)
+    get_hover_string(obj::AbstractGUIObj)
 
 Return the string for a EMB.Node/Area/Link/Transmission to be shown on hovering.
 """
-function get_hover_string(element::Plotable)
-    return string(nameof(typeof(element)))
+function get_hover_string(obj::AbstractGUIObj)
+    element = get_element(obj)
+    label = get_element_label(element)
+    inv_times = get_inv_times(obj)
+    inv_str = "$label ($(nameof(typeof(element))))"
+    if !isempty(inv_times)
+        capex = get_capex(obj)
+        label = get_element_label(obj)
+        for (t, capex) ∈ zip(inv_times, capex)
+            inv_str *= "\n\t$t: $(format_number(capex))"
+        end
+    end
+    return inv_str
 end
