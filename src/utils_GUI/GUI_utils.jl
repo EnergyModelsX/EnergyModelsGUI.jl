@@ -230,7 +230,7 @@ function initialize_available_data!(gui)
     # Find appearances of node/area/link/transmission in the model
     if termination_status(model) == MOI.OPTIMAL # Plot results if available
         T = gui.design.system[:T]
-        for sym ∈ collect(keys(object_dictionary(model)))
+        for sym ∈ get_JuMP_names(gui)
             var = model[sym]
             if isempty(var)
                 continue
@@ -419,6 +419,17 @@ function initialize_available_data!(gui)
             append!(get_available_data(gui)[element], available_data)
         end
     end
+end
+"""
+    get_JuMP_names(gui::GUI)
+
+Get all names registered in the model as a vector except the names to be ignored.
+"""
+function get_JuMP_names(gui::GUI)
+    model = get_model(gui)
+    ignore_names = Symbol.(get_var(gui, :descriptive_names)[:ignore])
+    names = collect(keys(object_dictionary(model)))
+    return [name for name ∈ names if !(name ∈ ignore_names)]
 end
 
 """

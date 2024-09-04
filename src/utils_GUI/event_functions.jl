@@ -358,13 +358,13 @@ function define_event_functions(gui::GUI)
                 end
             elseif axes_str == "All"
                 model = get_model(gui)
-                for dict ∈ collect(keys(object_dictionary(model)))
-                    container = model[dict]
+                for sym ∈ get_JuMP_names(gui)
+                    container = model[sym]
                     if isempty(container)
                         continue
                     end
                     if typeof(container) <: JuMP.Containers.DenseAxisArray
-                        axis_types = nameof.([eltype(a) for a ∈ JuMP.axes(model[dict])])
+                        axis_types = nameof.([eltype(a) for a ∈ JuMP.axes(model[sym])])
                     elseif typeof(container) <: SparseVars
                         axis_types = collect(nameof.(typeof.(first(keys(container.data)))))
                     end

@@ -129,7 +129,17 @@ function generate_example_data()
         2,
         [inv_data_34],
     )
-    LNG_Ship_100MW = RefDynamic(
+    LNG_Ship_100MW_23 = RefDynamic(
+        "LNG_100",
+        NG,
+        FixedProfile(100.0),
+        FixedProfile(0.05),
+        FixedProfile(0),
+        FixedProfile(0),
+        2,
+        [],
+    )
+    LNG_Ship_100MW_42 = RefDynamic(
         "LNG_100",
         NG,
         FixedProfile(100.0),
@@ -143,9 +153,9 @@ function generate_example_data()
     transmission = [
         Transmission(areas[1], areas[2], [OverheadLine_50MW_12]),
         Transmission(areas[1], areas[3], [OverheadLine_50MW_13]),
-        Transmission(areas[2], areas[3], [OverheadLine_50MW_23]),
+        Transmission(areas[2], areas[3], [OverheadLine_50MW_23, LNG_Ship_100MW_23]),
         Transmission(areas[3], areas[4], [OverheadLine_50MW_34]),
-        Transmission(areas[4], areas[2], [LNG_Ship_100MW]),
+        Transmission(areas[4], areas[2], [LNG_Ship_100MW_42]),
     ]
 
     # Creation of the time structure and global data
@@ -480,7 +490,6 @@ solution_summary(m)
 
 solution_summary(m)
 
-## Code above identical to the example EnergyModelsInvestments.jl/examples/geography.jl
 ############################################################################################
 ## Code below for displaying the GUI
 

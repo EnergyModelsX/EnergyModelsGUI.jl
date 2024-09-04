@@ -184,104 +184,55 @@ mutable struct GUI
     vars::Dict{Symbol,Any}
 end
 
-"""
-    show(io::IO, obj::EnergySystemDesign)
-
-Print a simplified overview of the fields of an EnergySystemDesign `obj`.
-"""
-function Base.show(io::IO, obj::EnergySystemDesign)
-    indent_str::String = "  "
-    println(io, "EnergySystemDesign with fields:")
-    println(io, "  parent (Union{Symbol,Nothing}): ", obj.parent)
-    println(io, "  system (Dict): ")
-    for (key, value) ∈ obj.system
-        println(io, indent_str, "  ", key, ": ", value)
-    end
-    println(io, "  id_to_color_map (Dict{Any,Any}): ", obj.id_to_color_map)
-    println(io, "  id_to_icon_map (Dict{Any,Any}): ", obj.id_to_icon_map)
-    println(io, "  components (Vector{EnergySystemDesign}): ")
-    for (index, comp) ∈ enumerate(obj.components)
-        if haskey(comp.system, :node)
-            println(io, "    [", index, "] ", comp.system[:node])
-        end
-    end
-    println(
-        io, "  connections (Vector{Tuple{EnergySystemDesign, EnergySystemDesign, Dict}}): "
-    )
-    for (index, conn) ∈ enumerate(obj.connections)
-        println(
-            io, "    [", index, "] ", conn.from.system[:node], " - ", conn.to.system[:node]
-        )
-    end
-
-    println(io, "  xy (Observable{Tuple{Real,Real}}): ", obj.xy)
-    println(io, "  icon (Union{String,Nothing}): ", obj.icon)
-    println(io, "  color (Observable{Symbol}): ", obj.color)
-    println(io, "  wall (Observable{Symbol}): ", obj.wall)
-
-    println(io, "  file (String): ", obj.file)
-    println(io, "  inv_data (ProcInvData): ", obj.inv_data)
-    println(io, "  plots (Vector{Any}): ", obj.plots)
+function Base.show(io::IO, obj::AbstractGUIObj)
+    return dump(io, obj; maxdepth=1)
 end
 
-"""
-    show(io::IO, obj::Connection)
-
-Print a simplified overview of the fields of a Connection `obj`.
-"""
-function Base.show(io::IO, obj::Connection)
-    return dump(io, obj; maxdepth=2)
-end
-
-"""
-    show(io::IO, obj::ProcInvData)
-
-Print a simplified overview of the fields of a ProcInvData `obj`.
-"""
 function Base.show(io::IO, obj::ProcInvData)
-    return dump(io, obj)
+    return dump(io, obj; maxdepth=1)
 end
 
-"""
-    show(io::IO, obj::GUI)
-
-Print a simplified overview of the fields of a GUI `gui`.
-"""
 function Base.show(io::IO, gui::GUI)
     return dump(io, gui; maxdepth=1)
 end
 
+function EnergySystemIterator(design::EnergySystemDesign)
+    vector = AbstractGUIObj[]
+    push!(vector, design.components...)  # Add the components to the stack
+    push!(vector, design.connections...)  # Add the connections to the stack
+    for des ∈ design.components
+        _get_components(des, vector)
+    end
+    return EnergySystemIterator(vector)
+end
+
+function _get_components(design::EnergySystemDesign, vector)
+    push!(vector, design.components...)  # Add the components to the stack
+    push!(vector, design.connections...)  # Add the connections to the stack
+    for des ∈ design.components
+        _get_components(des, vector)
+    end
+end
+
 """
-    iterate(iter::EnergySystemIterator)
+    iterate(itr::EnergySystemIterator)
 
 Initialize the iteration over an `EnergySystemIterator`, returning the first `EnergySystemDesign` object
 in the stack and the iterator itself. If the stack is empty, return `nothing`.
 """
-function Base.iterate(iter::EnergySystemIterator)
-    isempty(iter.stack) && return nothing
-    current = pop!(iter.stack)
-    if isa(current, EnergySystemDesign)
-        push!(iter.stack, current.components...)  # Add the components to the stack
-        push!(iter.stack, current.connections...)  # Add the connections to the stack
-    end
-    return current, iter
+function Base.iterate(itr::EnergySystemIterator, state=nothing)
+    idx = isnothing(state) ? 1 : state + 1
+    idx === length(itr) + 1 && return nothing
+    return itr.stack[idx], idx
 end
+Base.length(itr::EnergySystemIterator) = length(itr.stack)
 
-"""
-    iterate(design::EnergySystemDesign)
-
-Initialize the iteration over an `EnergySystemDesign`, returning the first `EnergySystemDesign` object
-and the iterator itself. The iteration traverses through all nested components and connections.
-"""
-Base.iterate(design::EnergySystemDesign) = iterate(EnergySystemIterator([design]))
-
-"""
-    iterate(design::EnergySystemDesign, state)
-
-Initialize the iteration over an `EnergySystemDesign`, returning the first `EnergySystemDesign` object
-and the iterator itself. The iteration traverses through all nested components and connections.
-"""
-Base.iterate(::EnergySystemDesign, state) = iterate(state)
+function Base.iterate(design::EnergySystemDesign, state=(nothing, nothing))
+    itr = isnothing(state[2]) ? EnergySystemIterator(design) : state[2]
+    state[1] === length(itr) && return nothing
+    next = isnothing(state[1]) ? iterate(itr) : iterate(itr, state[1])
+    return next[1], (next[2], itr)
+end
 
 """
     get_parent(design::EnergySystemDesign)

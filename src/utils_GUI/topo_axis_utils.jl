@@ -222,7 +222,7 @@ end
 When a boolean argument `two_way` is specified, draw the lines in both directions.
 """
 function connect!(gui::GUI, connection::Connection, two_way::Bool)
-    colors::Vector{RGB} = connection.colors
+    colors::Vector{RGB} = get_colors(connection)
     no_colors::Int64 = length(colors)
 
     # Create an arrow to highlight the direction of the energy flow
@@ -327,7 +327,7 @@ function connect!(gui::GUI, connection::Connection, two_way::Bool)
                         ys;
                         color=colors[j],
                         linewidth=get_var(gui, :connection_linewidth),
-                        linestyle=linestyle,
+                        linestyle=linestyle[j],
                         inspector_label=(self, i, p) -> get_hover_string(connection),
                         inspectable=true,
                     )
@@ -396,25 +396,25 @@ Get the line style for an Connection `connection` based on its properties.
 """
 function get_linestyle(gui::GUI, connection::Connection)
     # Check of connection is a transmission
-    t = connection.connection
+    t = get_element(connection)
     if isa(t, Transmission)
-        if EMI.has_investment(t)
-            return get_var(gui, :investment_lineStyle)
-        else
-            return :solid
-        end
+        return [
+            EMI.has_investment(m) ? get_var(gui, :investment_lineStyle) : :solid for
+            m ∈ modes(t)
+        ]
     end
 
     # For Links, simply use dashed style if from or to node has investments
+    no_lines = length(get_colors(connection))
     linestyle::Union{Symbol,Makie.Linestyle} = get_linestyle(gui, connection.from)
     if linestyle == get_var(gui, :investment_lineStyle)
-        return linestyle
+        return fill(linestyle, no_lines)
     end
     linestyle = get_linestyle(gui, connection.to)
     if linestyle == get_var(gui, :investment_lineStyle)
-        return linestyle
+        return fill(linestyle, no_lines)
     end
-    return :solid
+    return fill(:solid, no_lines)
 end
 
 """
