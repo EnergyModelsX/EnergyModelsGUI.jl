@@ -240,19 +240,16 @@ function initialize_available_data!(gui)
 
             for combination ∈ get_combinations(var, i_T)
                 selection = collect(combination)
-                if isa(var, SparseVariables.IndexedVarArray)
-                    field_data = JuMP.Containers.SparseAxisArray(
-                        Dict(
-                            (t,) =>
-                                var[vcat(selection[1:(i_T - 1)], t, selection[i_T:end])...]
-                            for t ∈ periods
-                        ),
+                if isa(var, SparseVars) # Slicing for SparseVars performs worse than the following
+                    field_data = JuMP.Containers.DenseAxisArray(
+                        [
+                            var[vcat(selection[1:(i_T - 1)], t, selection[i_T:end])...] for
+                            t ∈ periods
+                        ],
+                        periods,
                     )
-                else
+                else # For DenseAxisArrays, slicing performs best
                     field_data = var[vcat(selection[1:(i_T - 1)], :, selection[i_T:end])...]
-                end
-                if isempty(field_data)
-                    continue
                 end
                 element::Plotable = getfirst(
                     x -> isa(x, Union{EMB.Node,Link,Area,TransmissionMode}), selection
@@ -338,8 +335,8 @@ function initialize_available_data!(gui)
 
         # add total operational cost to available data
         description = "Total operational cost"
-        if scale_tot_capex
-            description *= " (scaled to year)"
+        if scale_tot_opex
+            description *= " (scaled to strategic period)"
         end
         container = Dict(
             :name => "tot_opex",
@@ -486,7 +483,7 @@ end
 Get an iterator of combinations of unique indices excluding the time index located at index `i_T`.
 """
 function get_combinations(var::SparseVars, i_T::Int)
-    return unique([(key[1:(i_T - 1)]..., key[(i_T + 1):end]...) for key ∈ keys(var.data)])
+    return unique((key[1:(i_T - 1)]..., key[(i_T + 1):end]...) for key ∈ keys(var.data))
 end
 function get_combinations(var::JuMP.Containers.DenseAxisArray, i_T::Int)
     return Iterators.product(axes(var)[vcat(1:(i_T - 1), (i_T + 1):end)]...)

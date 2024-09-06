@@ -226,6 +226,7 @@ function Base.iterate(itr::EnergySystemIterator, state=nothing)
     return itr.stack[idx], idx
 end
 Base.length(itr::EnergySystemIterator) = length(itr.stack)
+Base.length(design::EnergySystemDesign) = length(EnergySystemIterator(design))
 
 function Base.iterate(design::EnergySystemDesign, state=(nothing, nothing))
     itr = isnothing(state[2]) ? EnergySystemIterator(design) : state[2]
