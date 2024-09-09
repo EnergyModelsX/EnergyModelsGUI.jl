@@ -1,5 +1,16 @@
 # Release notes
 
+## Version 0.5.4 (2024-09-09)
+
+### Bugfix
+
+* Fix incorrect ylabel when using scale_tot_opex=true.
+
+### Enhancement
+
+* Improve performance with a workaround for slicing a JuMP.Containers.SparseAxisArray.
+* Enable collect for ::EnergySystemDesign by providing the function length(::EnergySystemDesign).
+
 ## Version 0.5.3 (2024-09-02)
 
 ### Bugfix
