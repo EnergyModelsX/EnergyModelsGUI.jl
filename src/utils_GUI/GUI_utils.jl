@@ -240,17 +240,7 @@ function initialize_available_data!(gui)
 
             for combination ∈ get_combinations(var, i_T)
                 selection = collect(combination)
-                if isa(var, SparseVars) # Slicing for SparseVars performs worse than the following
-                    field_data = JuMP.Containers.DenseAxisArray(
-                        [
-                            var[vcat(selection[1:(i_T - 1)], t, selection[i_T:end])...] for
-                            t ∈ periods
-                        ],
-                        periods,
-                    )
-                else # For DenseAxisArrays, slicing performs best
-                    field_data = var[vcat(selection[1:(i_T - 1)], :, selection[i_T:end])...]
-                end
+                field_data = extract_data_selection(var, selection, i_T, periods)
                 element::Plotable = getfirst(
                     x -> isa(x, Union{EMB.Node,Link,Area,TransmissionMode}), selection
                 )
@@ -268,10 +258,8 @@ function initialize_available_data!(gui)
                 push!(get_available_data(gui)[element], container)
             end
         end
-    end
 
-    # Add total quantities
-    if termination_status(model) == MOI.OPTIMAL
+        # Add total quantities
         element = nothing
         # Calculate total OPEX for each strategic period
         scale_tot_opex = get_var(gui, :scale_tot_opex)
@@ -375,7 +363,7 @@ function initialize_available_data!(gui)
         get_investment_times(gui, max_inst)
 
         # Create investment overview in the information box
-        investment_overview = "Result summary:\n\n"
+        investment_overview = "Result summary (no values discounted):\n\n"
         total_opex = sum(tot_opex_unscaled .* sp_dur)
         total_capex = sum(tot_capex_unscaled)
         investment_overview *= "Total operational cost: $(format_number(total_opex))\n"
@@ -396,7 +384,7 @@ function initialize_available_data!(gui)
             investment_overview *= "Investment overview:\n"
             investment_overview *= inv_overview_components
         end
-        gui.vars[:investment_overview] = investment_overview
+        get_ax(gui, :summary).scene.plots[1][1][] = investment_overview
     else
         @warn "Total quantities were not computed as model does not contain a feasible solution"
     end
@@ -417,6 +405,26 @@ function initialize_available_data!(gui)
         end
     end
 end
+
+"""
+    extract_data_selection(var::SparseVars, selection::Vector, i_T::Int64, periods::Vector)
+
+Extract data from `var` having its time dimension at index `i_T` for all time periods in `periods`.
+"""
+function extract_data_selection(
+    var::SparseVars, selection::Vector, i_T::Int64, periods::Vector
+)
+    return JuMP.Containers.DenseAxisArray(
+        [var[vcat(selection[1:(i_T - 1)], t, selection[i_T:end])...] for t ∈ periods],
+        periods,
+    )
+end
+function extract_data_selection(
+    var::JuMP.Containers.DenseAxisArray, selection::Vector, i_T::Int64, ::Vector
+)
+    return var[vcat(selection[1:(i_T - 1)], :, selection[i_T:end])...]
+end
+
 """
     get_JuMP_names(gui::GUI)
 

@@ -28,7 +28,7 @@ function place_nodes_in_circle(n::Int, i::Int, r::Real, xₒ::Real, yₒ::Real)
 end
 
 """
-    set_colors(id_to_color_map::Dict{Any,Any}, products::Vector{S}, products_colors::Vector{T})
+    set_colors(products::Vector{<:Resource}, id_to_color_map::Dict)
 
 Returns a dictionary that completes the dictionary `id_to_color_map` with default color values
 for standard names (like Power, NG, Coal, CO2) collected from `src/colors.yml`.
@@ -36,7 +36,7 @@ for standard names (like Power, NG, Coal, CO2) collected from `src/colors.yml`.
 Color can be represented as a hex (_i.e._, #a4220b2) or a symbol (_i.e_. :green), but also a
 string of the identifier for default colors in the `src/colors.yml` file.
 """
-function set_colors(products::Vector{S}, id_to_color_map::Dict) where {S<:Resource}
+function set_colors(products::Vector{<:Resource}, id_to_color_map::Dict)
     complete_id_to_color_map::Dict = Dict()
     default_colors::Dict = get_default_colors()
     for product ∈ products
@@ -262,9 +262,7 @@ end
 
 Get the colors linked the the resources in `resources` based on the mapping `id_to_color_map`.
 """
-function get_resource_colors(
-    resources::Vector{T}, id_to_color_map::Dict{Any,Any}
-) where {T<:Resource}
+function get_resource_colors(resources::Vector{<:Resource}, id_to_color_map::Dict{Any,Any})
     hexColors::Vector{Any} = [id_to_color_map[resource.id] for resource ∈ resources]
     return [parse(Colorant, hex_color) for hex_color ∈ hexColors]
 end

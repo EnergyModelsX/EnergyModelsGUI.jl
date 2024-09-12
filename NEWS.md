@@ -1,5 +1,11 @@
 # Release notes
 
+## Version 0.5.5 (2024-09-13)
+
+### Bugfix
+
+* Reorder buttons and menus to enable GUI on low resolution (i.e. [1280, 729]). Divided the text area into two areas (the new one for permanently showing result summary).
+
 ## Version 0.5.4 (2024-09-09)
 
 ### Bugfix
