@@ -21,26 +21,26 @@ end
 
 """
     add_description!(
-        field::T,
+        field::TS.TimeProfile,
         name::String,
         key_str::String,
         pre_desc::String,
         element::Plotable,
         available_data::Vector{Dict},
         gui::GUI,
-    ) where {T<:TS.TimeProfile}
+    )
 
 Create a container with a description, and add `container` to `available_data`.
 """
 function add_description!(
-    field::T,
+    field::TS.TimeProfile,
     name::String,
     key_str::String,
     pre_desc::String,
     element::Plotable,
     available_data::Vector{Dict},
     gui::GUI,
-) where {T<:TS.TimeProfile}
+)
     container = Dict(
         :name => name,
         :is_jump_data => false,

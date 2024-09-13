@@ -96,7 +96,6 @@ function GUI(
         :backgroundcolor => backgroundcolor,
         :scale_tot_opex => scale_tot_opex,
         :scale_tot_capex => scale_tot_capex,
-        :investment_overview => "",
         :colormap => colormap,
         :tol => tol,
     )
@@ -134,19 +133,20 @@ function GUI(
     vars[:default_text] = string(
         "Tips:\n",
         "Keyboard shortcuts:\n",
-        "\tctrl+left-click: Select multiple nodes (use arrows to move all selected nodes simultaneously).\n",
+        "\tctrl+left-click: Select multiple nodes.\n",
         "\tright-click and drag: to pan\n",
         "\tscroll wheel: zoom in or out\n",
         "\tspace: Enter the selected system\n",
         "\tctrl+s: Save\n",
         "\tctrl+r: Reset view\n",
         "\tctrl+w: Close window\n",
-        "\tEsc (or MouseButton4): Exit the current system and into the parent system\n\n",
-        "\tholding x while scrolling over plots will zoom in/out in the x-direction\n",
-        "\tholding y while scrolling over plots will zoom in/out in the y-direction\n\n",
-        "Left-clicking a component will put information about this component here\n\n",
-        "Clicking a plot below enables you to pin this plot (hitting the `pin current plot` button) \
-            for comparison with other plots. Use the `Delete` button to unpin a selected plot",
+        "\tEsc (or MouseButton4): Exit the current system and into the parent system\n",
+        "\tholding x while scrolling over plots will zoom in/out in the x-direction.\n",
+        "\tholding y while scrolling over plots will zoom in/out in the y-direction.\n\n",
+        "Left-clicking a component will put information about this component here.\n\n",
+        "Clicking a plot below enables you to pin this plot (hitting the `pin\n\
+        current plot` button) for comparison with other plots.\n",
+        "Use the `Delete` button to unpin a selected plot.",
     )
     vars[:dragging] = Ref(false)
     vars[:ctrl_is_pressed] = Ref(false)
@@ -209,20 +209,26 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
     fig::Figure = Figure(; size=vars[:plot_widths], backgroundcolor=vars[:backgroundcolor])
 
     # Create grid layout structure of the window
-    gridlayout_taskbar::GridLayout = fig[1, 1:2] = GridLayout()
-    gridlayout_topology_ax::GridLayout = fig[2:4, 1] = GridLayout(; valign=:top)
-    gridlayout_info::GridLayout = fig[2, 2] = GridLayout()
-    gridlayout_results_ax::GridLayout = fig[3, 2] = GridLayout()
-    gridlayout_results_taskbar::GridLayout = fig[4, 2] = GridLayout()
+    gridlayout_taskbar::GridLayout = fig[1, 1] = GridLayout()
+    gridlayout_topology_ax::GridLayout = fig[2:6, 1] = GridLayout()
+    gridlayout_info::GridLayout = fig[1:2, 2] = GridLayout()
+    gridlayout_summary::GridLayout = fig[1:2, 3] = GridLayout()
+    gridlayout_results_taskbar1::GridLayout = fig[3, 2:3] = GridLayout()
+    gridlayout_results_taskbar2::GridLayout = fig[4, 2:3] = GridLayout()
+    gridlayout_results_ax::GridLayout = fig[5, 2:3] = GridLayout()
+    gridlayout_results_taskbar3::GridLayout = fig[6, 2:3] = GridLayout()
 
     # Set row sizes of the layout
-    # Control the relative height of the gridlayout_results_ax (ax for plotting results)
+    # Control the relative height of the gridlayout_results_ax row heights
     rowsize!(fig.layout, 1, Fixed(vars[:taskbar_height]))
-    # Control the relative height of the gridlayout_results_ax (ax for plotting results)
-    rowsize!(fig.layout, 3, Relative(0.55))
+    rowsize!(fig.layout, 3, Fixed(vars[:taskbar_height]))
+    rowsize!(fig.layout, 4, Fixed(vars[:taskbar_height]))
+    rowsize!(fig.layout, 5, Relative(0.6))
+    rowsize!(fig.layout, 6, Fixed(vars[:taskbar_height]))
 
     # Get the current limits of the axis
-    colsize!(fig.layout, 2, Auto(1))
+    colsize!(fig.layout, 1, Relative(0.45))
+    colsize!(fig.layout, 2, Relative(0.35))
     vars[:ax_aspect_ratio] =
         vars[:plot_widths][1] / (vars[:plot_widths][2] - vars[:taskbar_height]) / 2
 
@@ -234,11 +240,7 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
         dest::String = "+proj=merc +lon_0=0 +x_0=0 +y_0=0 +a=6378137 +b=6378137 +units=m +no_defs"
         # Construct the axis from the GeoMakie package
         ax = GeoMakie.GeoAxis(
-            gridlayout_topology_ax[1, 1];
-            source=source,
-            dest=dest,
-            aspect=DataAspect(),
-            alignmode=Outside(),
+            gridlayout_topology_ax[1, 1]; source=source, dest=dest, alignmode=Outside()
         )
 
         if vars[:coarse_coast_lines] # Use low resolution coast lines
@@ -278,7 +280,13 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
         )
         Makie.translate!(ocean, 0, 0, -1)
     else # The design does not use the EnergyModelsGeography package: Create a simple Makie axis
-        ax = Axis(gridlayout_topology_ax[1, 1]; aspect=DataAspect(), alignmode=Outside())
+        ax = Axis(
+            gridlayout_topology_ax[1, 1];
+            autolimitaspect=true,
+            alignmode=Outside(),
+            tellheight=true,
+            tellwidth=true,
+        )
     end
     if vars[:hide_topo_ax_decorations]
         hidedecorations!(ax)
@@ -355,6 +363,24 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
     # Remove ticks and labels
     hidedecorations!(ax_info)
 
+    # Initiate an axis for displaying summary of the model results
+    ax_summary::Makie.Axis = Axis(
+        gridlayout_summary[1, 1]; backgroundcolor=vars[:backgroundcolor]
+    )
+
+    # Add text at the top left of the axis domain (to print information of the selected/hovered node/connection)
+    text!(
+        ax_summary,
+        "No model results";
+        position=(0.01, 0.99),
+        align=(:left, :top),
+        fontsize=vars[:fontsize],
+    )
+    limits!(ax_summary, [0, 1], [0, 1])
+
+    # Remove ticks and labels
+    hidedecorations!(ax_summary)
+
     # Add buttons related to the ax object (where the topology is visualized)
     up_button = Makie.Button(
         gridlayout_taskbar[1, 1]; label="back", fontsize=vars[:fontsize]
@@ -383,104 +409,107 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
     )
     expand_all_toggle = Makie.Toggle(gridlayout_taskbar[1, 8]; active=vars[:expand_all])
 
+    # Add the following to add flexibility
+    Makie.Label(gridlayout_taskbar[1, 9], ""; tellwidth=false)
+
     # Add buttons related to the ax_results object (where the optimization results are plotted)
     Makie.Label(
-        gridlayout_taskbar[1, 9],
-        "Period:";
-        halign=:right,
-        fontsize=vars[:fontsize],
-        justification=:right,
-    )
-    period_menu = Makie.Menu(
-        gridlayout_taskbar[1, 10];
-        options=zip(vars[:periods_labels], periods),
-        default=vars[:periods_labels][1],
-        halign=:left,
-        width=100 * vars[:fontsize] / 12,
-        fontsize=vars[:fontsize],
-    )
-    Makie.Label(
-        gridlayout_taskbar[1, 11],
-        "Representative period:";
-        halign=:right,
-        fontsize=vars[:fontsize],
-        justification=:right,
-    )
-    representative_period_menu = Makie.Menu(
-        gridlayout_taskbar[1, 12];
-        options=zip(vars[:representative_periods_labels], representative_periods),
-        default=vars[:representative_periods_labels][1],
-        halign=:left,
-        width=100 * vars[:fontsize] / 12,
-        fontsize=vars[:fontsize],
-    )
-    Makie.Label(
-        gridlayout_taskbar[1, 13],
-        "Scenario:";
-        halign=:left,
-        fontsize=vars[:fontsize],
-        justification=:left,
-    )
-    scenario_menu = Makie.Menu(
-        gridlayout_taskbar[1, 14];
-        options=zip(vars[:scenarios_labels], scenarios),
-        default=vars[:scenarios_labels][1],
-        halign=:left,
-        width=100 * vars[:fontsize] / 12,
-        fontsize=vars[:fontsize],
-    )
-    Makie.Label(
-        gridlayout_taskbar[1, 15],
-        "Data:";
-        halign=:right,
-        fontsize=vars[:fontsize],
-        justification=:right,
-    )
-    available_data_menu = Makie.Menu(
-        gridlayout_taskbar[1, 16]; halign=:left, fontsize=vars[:fontsize], tellwidth=true
-    )
-
-    # Add the following to add flexibility
-    Makie.Label(gridlayout_results_taskbar[1, 1], ""; tellwidth=false)
-
-    # Add task bar over axes[:results]
-    Makie.Label(
-        gridlayout_results_taskbar[1, 2],
+        gridlayout_results_taskbar1[1, 1],
         "Plot:";
         halign=:right,
         fontsize=vars[:fontsize],
         justification=:right,
     )
     time_menu = Makie.Menu(
-        gridlayout_results_taskbar[1, 3];
+        gridlayout_results_taskbar1[1, 2];
         options=zip(
             ["Strategic", "Representative", "Scenario", "Operational"],
             [:results_sp, :results_rp, :results_sc, :results_op],
         ),
         halign=:left,
-        width=120 * vars[:fontsize] / 12,
+        width=110 * vars[:fontsize] / 12,
         fontsize=vars[:fontsize],
     )
+    Makie.Label(
+        gridlayout_results_taskbar1[1, 3],
+        "Period:";
+        halign=:right,
+        fontsize=vars[:fontsize],
+        justification=:right,
+    )
+    period_menu = Makie.Menu(
+        gridlayout_results_taskbar1[1, 4];
+        options=zip(vars[:periods_labels], periods),
+        default=vars[:periods_labels][1],
+        halign=:left,
+        tellwidth=true,
+        width=nothing,
+        fontsize=vars[:fontsize],
+    )
+    Makie.Label(
+        gridlayout_results_taskbar1[1, 5],
+        "Repr. period:";
+        halign=:right,
+        fontsize=vars[:fontsize],
+        justification=:right,
+    )
+    representative_period_menu = Makie.Menu(
+        gridlayout_results_taskbar1[1, 6];
+        options=zip(vars[:representative_periods_labels], representative_periods),
+        default=vars[:representative_periods_labels][1],
+        halign=:left,
+        fontsize=vars[:fontsize],
+    )
+    Makie.Label(
+        gridlayout_results_taskbar1[1, 7],
+        "Scenario:";
+        halign=:left,
+        fontsize=vars[:fontsize],
+        justification=:left,
+    )
+    scenario_menu = Makie.Menu(
+        gridlayout_results_taskbar1[1, 8];
+        options=zip(vars[:scenarios_labels], scenarios),
+        default=vars[:scenarios_labels][1],
+        halign=:left,
+        fontsize=vars[:fontsize],
+    )
+    Makie.Label(
+        gridlayout_results_taskbar2[1, 1],
+        "Data:";
+        halign=:right,
+        fontsize=vars[:fontsize],
+        justification=:right,
+    )
+    available_data_menu = Makie.Menu(
+        gridlayout_results_taskbar2[1, 2]; halign=:left, fontsize=vars[:fontsize]
+    )
+
+    # Add the following to add flexibility
+    Makie.Label(gridlayout_results_taskbar3[1, 1], ""; tellwidth=false)
+
     pin_plot_button = Makie.Button(
-        gridlayout_results_taskbar[1, 4]; label="pin current data", fontsize=vars[:fontsize]
+        gridlayout_results_taskbar3[1, 2];
+        label="pin current data",
+        fontsize=vars[:fontsize],
     )
     remove_plot_button = Makie.Button(
-        gridlayout_results_taskbar[1, 5];
+        gridlayout_results_taskbar3[1, 3];
         label="remove selected data",
         fontsize=vars[:fontsize],
     )
     clear_all_button = Makie.Button(
-        gridlayout_results_taskbar[1, 6]; label="clear all", fontsize=vars[:fontsize]
+        gridlayout_results_taskbar3[1, 4]; label="clear all", fontsize=vars[:fontsize]
     )
     Makie.Label(
-        gridlayout_results_taskbar[1, 7],
+        gridlayout_results_taskbar3[1, 5],
         "Export:";
         halign=:right,
         fontsize=vars[:fontsize],
         justification=:right,
     )
     axes_menu = Makie.Menu(
-        gridlayout_results_taskbar[1, 8];
+        gridlayout_results_taskbar3[1, 6];
         options=["All", "Plots", "Topo"],
         default="Plots",
         halign=:left,
@@ -488,7 +517,7 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
         fontsize=vars[:fontsize],
     )
     export_type_menu = Makie.Menu(
-        gridlayout_results_taskbar[1, 9];
+        gridlayout_results_taskbar3[1, 7];
         options=[
             "bmp", "tiff", "tif", "jpg", "jpeg", "lp", "mps", "svg", "xlsx", "png", "REPL"
         ],
@@ -498,7 +527,7 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
         fontsize=vars[:fontsize],
     )
     export_button = Makie.Button(
-        gridlayout_results_taskbar[1, 10]; label="export", fontsize=vars[:fontsize]
+        gridlayout_results_taskbar3[1, 8]; label="export", fontsize=vars[:fontsize]
     )
 
     # Collect all menus into a dictionary
@@ -526,12 +555,17 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
         :axes => axes_menu,
     )
 
+    # Ensure that menus are on top
+    for menu ∈ values(menus)
+        translate!(menu.blockscene, 0, 0, vars[:z_translate_components] + 2000)
+    end
+
     # Collect all toggles into a dictionary
     toggles::Dict{Symbol,Makie.Toggle} = Dict(:expand_all => expand_all_toggle)
 
     # Collect all axes into a dictionary
     axes::Dict{Symbol,Makie.Block} = Dict(
-        :topo => ax, :results => ax_results, :info => ax_info
+        :topo => ax, :results => ax_results, :info => ax_info, :summary => ax_summary
     )
 
     # Update the title of the figure

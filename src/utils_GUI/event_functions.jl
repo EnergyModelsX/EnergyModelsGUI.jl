@@ -109,6 +109,23 @@ function define_event_functions(gui::GUI)
     # Define the double-click threshold
     double_click_threshold = Dates.Millisecond(500) # Default value in Windows
 
+    ax_info = get_ax(gui, :info)
+    ax_summary = get_ax(gui, :summary)
+
+    # Alter scrolling functionality in text areas such that it does not zoom but translates in the y-direction
+    on(events(ax_info).scroll; priority=4) do val
+        mouse_pos::Tuple{Float64,Float64} = events(ax_info).mouseposition[]
+        if mouse_within_axis(ax_info, mouse_pos)
+            scroll_ylim(ax_info, val[2] * 0.1)
+            return Consume(true)
+        end
+        if mouse_within_axis(ax_summary, mouse_pos)
+            scroll_ylim(ax_summary, val[2] * 0.1)
+            return Consume(true)
+        end
+        return Consume(false)
+    end
+
     # Handle cases for mousebutton input
     on(events(get_ax(gui, :topo)).mousebutton; priority=4) do event
         if event.button == Mouse.left
@@ -116,16 +133,11 @@ function define_event_functions(gui::GUI)
             time_difference = current_click_time - last_click_time[]
             dragging = get_var(gui, :dragging)
             if event.action == Mouse.press
-                # Make sure selections are not removed when left-clicking outside axes[:topo]
-                mouse_pos::Tuple{Float64,Float64} = events(get_ax(gui, :topo)).mouseposition[]
-
-                origin::Vec2{Int64} = pixelarea(get_ax(gui, :topo).scene)[].origin
-                widths::Vec2{Int64} = pixelarea(get_ax(gui, :topo).scene)[].widths
-                mouse_pos_loc::Vec2{Float64} = mouse_pos .- origin
+                mouse_pos = events(get_ax(gui, :topo)).mouseposition[]
 
                 # Check if mouseclick is outside the get_ax(gui,:topo) area (and return if so)
                 ctrl_is_pressed = get_var(gui, :ctrl_is_pressed)[]
-                if all(mouse_pos_loc .> 0.0) && all(mouse_pos_loc .- widths .< 0.0)
+                if mouse_within_axis(get_ax(gui, :topo), mouse_pos)
                     if !ctrl_is_pressed && !isempty(get_selected_systems(gui))
                         clear_selection(gui; clear_results=false)
                     end
@@ -139,20 +151,23 @@ function define_event_functions(gui::GUI)
 
                     dragging[] = true
                     return Consume(true)
-                else
-                    time_axis = get_menu(gui, :time).selection[]
-                    origin = pixelarea(get_ax(gui, :results).scene)[].origin
-                    widths = pixelarea(get_ax(gui, :results).scene)[].widths
-                    mouse_pos_loc = mouse_pos .- origin
+                end
 
-                    if all(mouse_pos_loc .> 0.0) && all(mouse_pos_loc .- widths .< 0.0)
-                        if !ctrl_is_pressed && !isempty(get_selected_plots(gui, time_axis))
-                            clear_selection(gui; clear_topo=false)
-                        end
-                        pick_component!(gui; pick_results_component=true)
+                if mouse_within_axis(get_ax(gui, :results), mouse_pos)
+                    time_axis = get_menu(gui, :time).selection[]
+                    if !ctrl_is_pressed && !isempty(get_selected_plots(gui, time_axis))
+                        clear_selection(gui; clear_topo=false)
                     end
+                    pick_component!(gui; pick_results_component=true)
                     return Consume(false)
                 end
+                if mouse_within_axis(get_ax(gui, :info), mouse_pos)
+                    return Consume(true)
+                end
+                if mouse_within_axis(get_ax(gui, :summary), mouse_pos)
+                    return Consume(true)
+                end
+                return Consume(false)
             elseif event.action == Mouse.release
                 if dragging[]
                     dragging[] = false
@@ -165,6 +180,17 @@ function define_event_functions(gui::GUI)
                 notify(get_button(gui, :up).clicks)
                 return Consume(true)
             end
+        end
+        if event.button == Mouse.right
+            # Disable pan in text areas
+            mouse_pos = events(get_ax(gui, :topo)).mouseposition[]
+            if mouse_within_axis(get_ax(gui, :info), mouse_pos)
+                return Consume(true)
+            end
+            if mouse_within_axis(get_ax(gui, :summary), mouse_pos)
+                return Consume(true)
+            end
+            return Consume(false)
         end
 
         return Consume(false)

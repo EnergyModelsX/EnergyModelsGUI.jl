@@ -6,12 +6,7 @@ Based on `element` update the text in info box.
 function update_info_box!(gui::GUI, element; indent::Int64=0)
     info_box = get_ax(gui, :info).scene.plots[1][1]
     if isnothing(element)
-        investment_overview = get_var(gui, :investment_overview)
-        if isempty(investment_overview)
-            info_box[] = get_var(gui, :default_text)
-        else
-            info_box[] = investment_overview
-        end
+        info_box[] = get_var(gui, :default_text)
         return nothing
     end
     if indent == 0

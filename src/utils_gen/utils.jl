@@ -154,11 +154,11 @@ function format_number(x::Number)
 end
 
 """
-    get_max_installed(n, t::Vector{S})
+    get_max_installed(n, t::Vector{<:TS.TimeStructure})
 
 Get the maximum capacity installable by an investemnt.
 """
-function get_max_installed(n::EMB.Node, t::Vector{S}) where {S<:TS.TimeStructure}
+function get_max_installed(n::EMB.Node, t::Vector{<:TS.TimeStructure})
     if EMI.has_investment(n)
         time_profile = EMI.max_installed(EMI.investment_data(n, :cap))
         return maximum(time_profile[t])
@@ -166,7 +166,7 @@ function get_max_installed(n::EMB.Node, t::Vector{S}) where {S<:TS.TimeStructure
         return 0.0
     end
 end
-function get_max_installed(n::Storage, t::Vector{S}) where {S<:TS.TimeStructure}
+function get_max_installed(n::Storage, t::Vector{<:TS.TimeStructure})
     if EMI.has_investment(n)
         storage_data = [
             EMI.investment_data(n, :charge),
@@ -180,9 +180,7 @@ function get_max_installed(n::Storage, t::Vector{S}) where {S<:TS.TimeStructure}
         return 0.0
     end
 end
-function get_max_installed(
-    n::EMG.TransmissionMode, t::Vector{S}
-) where {S<:TS.TimeStructure}
+function get_max_installed(n::EMG.TransmissionMode, t::Vector{<:TS.TimeStructure})
     if EMI.has_investment(n)
         time_profile = EMI.max_installed(EMI.investment_data(n, :cap))
         return maximum(time_profile[t])
@@ -190,11 +188,36 @@ function get_max_installed(
         return 0.0
     end
 end
-function get_max_installed(
-    trans::EMG.Transmission, t::Vector{S}
-) where {S<:TS.TimeStructure}
+function get_max_installed(trans::EMG.Transmission, t::Vector{<:TS.TimeStructure})
     return maximum([get_max_installed(m, t) for m ∈ modes(trans)])
 end
-function get_max_installed(::Any, ::Vector{S}) where {S<:TS.TimeStructure}
+function get_max_installed(::Any, ::Vector{<:TS.TimeStructure})
     return 0.0
+end
+
+"""
+    mouse_within_axis(ax::Makie.AbstractAxis, mouse_pos::Tuple{Float64,Float64})
+
+Check if mouse position is within the pixel area of `ax`.
+"""
+function mouse_within_axis(ax::Makie.AbstractAxis, mouse_pos::Tuple{Float64,Float64})
+    origin::Vec2{Int64} = pixelarea(ax.scene)[].origin
+    widths::Vec2{Int64} = pixelarea(ax.scene)[].widths
+    mouse_pos_loc::Vec2{Float64} = mouse_pos .- origin
+
+    return all(mouse_pos_loc .> 0.0) && all(mouse_pos_loc .- widths .< 0.0)
+end
+
+"""
+    scroll_ylim(ax::Makie.AbstractAxis, val::Float64)
+
+Shift the ylim with `val` units to mimic scrolling feature of an axis `ax`.
+"""
+function scroll_ylim(ax::Makie.AbstractAxis, val::Float64)
+    ylim = collect(ax.yaxis.attributes.limits[])
+    ylim .+= val
+    if ylim[2] > 1
+        ylim = (0, 1)
+    end
+    ylims!(ax, ylim[1], ylim[2])
 end

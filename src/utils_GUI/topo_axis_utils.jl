@@ -741,10 +741,6 @@ function adjust_limits!(gui::GUI)
     vars[:ylimits] = [min_y, max_y]
     ax = get_ax(gui, :topo)
     limits!(ax, vars[:xlimits], vars[:ylimits])
-
-    # Fix the axis limits (needed to avoid resetting limits when adding objects along
-    # connection lines upon zoom)
-    ax.autolimitaspect = nothing
 end
 
 """

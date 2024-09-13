@@ -48,11 +48,11 @@ function square_intersection(
 end
 
 """
-    l2_norm(x::Vector{T}) where T<:Real
+    l2_norm(x::Vector{<:Real})
 
 Compute the l2-norm of a vector.
 """
-function l2_norm(x::Vector{T}) where {T<:Real}
+function l2_norm(x::Vector{<:Real})
     return sqrt(sum(x .^ 2))
 end
 
