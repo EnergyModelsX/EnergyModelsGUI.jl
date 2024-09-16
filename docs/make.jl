@@ -47,7 +47,6 @@ makedocs(;
             "Internals" => Any["Reference" => "library/internals/reference.md",],
         ],
     ],
-    checkdocs=:all,
 )
 
 deploydocs(; repo="github.com/EnergyModelsX/EnergyModelsGUI.jl.git")

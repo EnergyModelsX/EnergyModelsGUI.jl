@@ -36,3 +36,22 @@ gui = GUI(
     descriptive_names_dict=descriptive_names_dict,
 )
 ```
+The variables for `total` quantities (and their descriptions) can be customized in the same manner (see structure in the `src/descriptive_names.yml` file).
+
+It is also possible to ignore certain `JuMP` variables. I.e., ignoring `cap_use` and `flow_in` (in addition to the variable `con_em_tot` which is ignored by default) can be done as follows
+```julia
+gui = GUI(
+    case;
+    model=m,
+    path_to_descriptive_names=path_to_descriptive_names,
+    descriptive_names_dict=Dict(:ignore => ["con_em_tot", "cap_use", "flow_in"]),
+)
+```
+You can similarly customize variables that indicates an investment has occured `investment_indicators` the default variables are
+```
+  - cap_add
+  - trans_cap_add
+  - stor_level_add
+  - stor_charge_add
+  - stor_discharge_add
+```

@@ -22,7 +22,7 @@ using EnergyModelsGUI
 GUI(case)
 ```
 
-Please refer to the [documentation](https://clean_export.pages.sintef.no/energymodelsgui.jl/) for more details.
+Please refer to the [documentation](https://energymodelsx.github.io/EnergyModelsGUI.jl/stable/) for more details.
 
 See examples of usage of the package and a simple guide for running them in the folder [`examples`](examples).
 

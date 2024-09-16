@@ -136,8 +136,7 @@ Processes children or components within an energy system design and populates th
 - **`id_to_color_map::Dict`** is a dictionary of resources and their assigned colors.
 - **`id_to_icon_map::Dict`** is a dictionary of nodes and their assigned icons.
 - **`parent::Symbol`** is a symbol representing the parent of the children.
-- **`parent_xy::Tuple{T,T}`** is a tuple holding the coordinates of the parent,
-  where `T` is a subtype of Real.
+- **`parent_xy::Tuple{<:Real,<:Real}`** is a tuple holding the coordinates of the parent.
 """
 function process_children!(
     children::Vector{EnergySystemDesign},
@@ -147,8 +146,8 @@ function process_children!(
     id_to_color_map::Dict,
     id_to_icon_map::Dict,
     parent::Symbol,
-    parent_xy::Tuple{T,T},
-) where {T<:Real}
+    parent_xy::Tuple{<:Real,<:Real},
+)
     # Create an iterator for the current systems
     systems_iterator::Union{
         Iterators.Enumerate{Vector{EMB.Node}},Iterators.Enumerate{Vector{Area}},Nothing
