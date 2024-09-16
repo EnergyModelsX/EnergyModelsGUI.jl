@@ -1,5 +1,11 @@
 # Release notes
 
+## Version 0.5.6 (2024-09-16)
+
+### Bugfix
+
+* Relax requirements of x- and y- coordinate being of same type.
+
 ## Version 0.5.5 (2024-09-13)
 
 ### Bugfix
