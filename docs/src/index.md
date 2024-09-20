@@ -11,7 +11,7 @@ One of the primary design goals was to develop a model that can eaily be extende
 
 For running and visualizing a basic energy system model, only the base technology package
 [`EnergyModelsBase.jl`](https://github.com/EnergyModelsX/EnergyModelsBase.jl.git),
-[`EnergyModelsGUI.jl`](https://clean_export.pages.sintef.no/energymodelsgui.jl/)
+[`EnergyModelsGUI.jl`](https://github.com/EnergyModelsX/EnergyModelsGUI.jl.git)
 and the time structure package
 [`TimeStruct.jl`](https://github.com/sintefore/TimeStruct.jl/releases)
 are needed.
