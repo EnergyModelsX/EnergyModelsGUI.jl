@@ -1,5 +1,11 @@
 # Release notes
 
+## Version 0.5.7 (2024-10-09)
+
+### Bugfix
+
+* Fix bug that errored on time-indepentent variables by ignoring these.
+
 ## Version 0.5.6 (2024-09-16)
 
 ### Bugfix

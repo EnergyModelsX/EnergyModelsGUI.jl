@@ -12,8 +12,8 @@ Initialize the EnergyModelsGUI window and visualize the topology of a system `ca
 # Keyword arguments:
 
 - **`design_path::String=""`** is a file path or identifier related to the design.
-- **`id_to_color_map::Dict=Dict()` is a dict that maps `Resource`s `id` to colors.
-- **`id_to_icon_map::Dict=Dict()` is a dict that maps `Node/Area` `id` to .png files for icons.
+- **`id_to_color_map::Dict=Dict()`** is a dict that maps `Resource`s `id` to colors.
+- **`id_to_icon_map::Dict=Dict()`** is a dict that maps `Node/Area` `id` to .png files for icons.
 - **`model::JuMP.Model=JuMP.Model()`** is the solved JuMP model with results for the `case`.
 - **`hide_topo_ax_decorations::Bool=true`** is a visibility toggle of ticks, ticklabels and
   grids for the topology axis.
@@ -24,8 +24,9 @@ Initialize the EnergyModelsGUI window and visualize the topology of a system `ca
   representative periods.
 - **`scenarios_labels::Vector=[]`** are descriptive labels for scenarios.
 - **`path_to_results::String=""`** is the path to where exported files are stored.
-- **`path_to_descriptive_names::String=""` is the Path to a .yml file where variables.
-  are described.
+- **`path_to_descriptive_names::String=""`** is the Path to a .yml file where variables
+are described.
+- **`descriptive_names_dict::Dict=Dict()`** is a dictionary where variables are described.
 - **`coarse_coast_lines::Bool=true`** is a toggle for coarse or fine resolution coastlines.
 - **`backgroundcolor=GLMakie.RGBf(0.99, 0.99, 0.99)`** is the background color of the
   main window.

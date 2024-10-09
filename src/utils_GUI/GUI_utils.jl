@@ -235,7 +235,10 @@ function initialize_available_data!(gui)
             if isempty(var)
                 continue
             end
-            i_T, type = get_time_axis(model[sym])
+            i_T, type = get_time_axis(var)
+            if isnothing(type) # No time dimension found
+                continue
+            end
             periods = get_periods(T, type)
 
             for combination ∈ get_combinations(var, i_T)

@@ -488,8 +488,6 @@ solution_summary(m)
 # Uncomment to print all the constraints set in the model.
 # print(m)
 
-solution_summary(m)
-
 ############################################################################################
 ## Code below for displaying the GUI
 
