@@ -14,7 +14,9 @@ function create_description(gui::GUI, key_str::String; pre_desc::String="")
     catch
         description = key_str[(findfirst('.', key_str) + 1):end]
         @warn "Could't find a description for $description. \
-            Using the string $description instead"
+            Using the string $description instead. \
+            You can customize the descriptions as explained here: \
+            https://energymodelsx.github.io/EnergyModelsGUI.jl/stable/how-to/customize-descriptive_names/"
     end
     return description
 end

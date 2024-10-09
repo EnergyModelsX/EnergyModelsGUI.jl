@@ -31,8 +31,8 @@ import EnergyModelsGUI:
 
     case, model, m, gui = run_case()
 
-    op_cost = [3371970.004, 5382390.006, 2010420.002]
-    inv_cost = [0.0, 0.0, 29536224.88]
+    op_cost = [3371970.00359, 5382390.00598, 2010420.00219]
+    inv_cost = [0.0, 0.0, 29536224.881975]
     @testset "Compare with Integrate results" begin
         T = get_design(gui).system[:T]
         for (i, t) ∈ enumerate(strategic_periods(T))
