@@ -219,14 +219,14 @@ function get_periods(T::TS.TimeStructure, type::Type, sp::Int64, rp::Int64, sc::
             if eltype(T.operational[sp].rep_periods) <: TS.OperationalScenarios
                 return [
                     t for
-                    t ∈ T if t.sp == sp && t.period.rp == rp && t.period.period.sc == sc
+                    t ∈ T if t.sp == sp && t.period.rp == rp && t.period.period.osc == sc
                 ],
                 :results_op
             else
                 return [t for t ∈ T if t.sp == sp && t.period.rp == rp], :results_op
             end
         elseif eltype(T.operational) <: TS.OperationalScenarios
-            return [t for t ∈ T if t.sp == sp && t.period.sc == sc], :results_op
+            return [t for t ∈ T if t.sp == sp && t.period.osc == sc], :results_op
         else
             return [t for t ∈ T if t.sp == sp], :results_op
         end

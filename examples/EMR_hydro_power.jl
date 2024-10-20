@@ -72,7 +72,6 @@ function generate_example_data()
         Power,              # Stored resource
         Dict(Power => 0.9), # Input to the power plant, irrelevant in this case
         Dict(Power => 1),   # Output from the Node, in this gase, Power
-        Data[],             # Potential additional data
     )
 
     # Create a power demand node
