@@ -47,6 +47,23 @@ jobs:
             ${{ runner.os }}-test-${{ env.cache-name }}-
             ${{ runner.os }}-test-
             ${{ runner.os }}-
+      - name: Install Dependencies (Linux)
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: sudo apt-get update && sudo apt-get install -y xorg-dev mesa-utils xvfb libgl1 freeglut3-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libxext-dev xsettingsd x11-xserver-utils
+      - name: Install Dependencies (Windows)
+        if: ${{ matrix.os == 'windows-latest' }}
+        run: |
+          ## Install Visual C++ Build Tools
+          choco install visualcpp-build-tools -y
+          ## Install additional dependencies if needed
+          choco install directx -y
+        shell: pwsh
+      - name: Set OpenGL Environment
+        if: ${{ matrix.os == 'windows-latest' }}
+        shell: cmd
+        run: |
+          setx PATH "%PATH%;C:\Windows\System32"
+          setx OPENGL_HOME "C:\Windows\System32"
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
         with:
