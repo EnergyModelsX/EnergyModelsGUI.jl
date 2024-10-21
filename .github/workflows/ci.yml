@@ -19,15 +19,15 @@ jobs:
           - version: '1'  # The latest point-release (Linux)
             os: ubuntu-latest
             arch: x64
-          - version: '1'  # The latest point-release (Windows)
-            os: windows-latest
-            arch: x64
+          #- version: '1'  # The latest point-release (Windows)
+          #  os: windows-latest
+          #  arch: x64
           - version: 'lts'  # lts 
             os: ubuntu-latest
             arch: x64
-          - version: 'lts'  # lts
-            os: ubuntu-latest
-            arch: x86
+          #- version: 'lts'  # lts
+          #  os: ubuntu-latest
+          #  arch: x86
           # - version: 'nightly'
           #   os: ubuntu-latest
           #   arch: x64
