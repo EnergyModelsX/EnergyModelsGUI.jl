@@ -19,63 +19,35 @@ jobs:
           - version: '1'  # The latest point-release (Linux)
             os: ubuntu-latest
             arch: x64
-          #- version: '1'  # The latest point-release (Windows)
-          #  os: windows-latest
-          #  arch: x64
-          - version: '1.9'  # 1.9 
+          - version: '1'  # The latest point-release (Windows)
+            os: windows-latest
+            arch: x64
+          - version: 'lts'  # lts 
             os: ubuntu-latest
             arch: x64
-          #- version: '1.9'  # 1.9
-          #  os: ubuntu-latest
-          #  arch: x86
-          - version: 'nightly'
+          - version: 'lts'  # lts
             os: ubuntu-latest
-            arch: x64
+            arch: x86
+          # - version: 'nightly'
+          #   os: ubuntu-latest
+          #   arch: x64
     steps:
-      - uses: actions/checkout@v3
-      - uses: julia-actions/setup-julia@v1
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
-      - uses: julia-actions/cache@v1
-      - name: Install Dependencies (Linux)
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: sudo apt-get update && sudo apt-get install -y xorg-dev mesa-utils xvfb libgl1 freeglut3-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libxext-dev xsettingsd x11-xserver-utils
-      - name: Install Dependencies (Windows)
-        if: ${{ matrix.os == 'windows-latest' }}
-        run: |
-          ## Install Visual C++ Build Tools
-          choco install visualcpp-build-tools -y
-          ## Install additional dependencies if needed
-          choco install directx -y
-        shell: pwsh
-      - name: Set OpenGL Environment
-        if: ${{ matrix.os == 'windows-latest' }}
-        shell: cmd
-        run: |
-          setx PATH "%PATH%;C:\Windows\System32"
-          setx OPENGL_HOME "C:\Windows\System32"
-      - uses: julia-actions/julia-buildpkg@v1
-      - name: Run the tests (Linux)
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        id: EMGUI_tests_linux
-        continue-on-error: true
-        run: >
-          DISPLAY=:0 xvfb-run -s '-screen 0 1024x768x24' julia --color=yes --project=. -e 'using Pkg; Pkg.test(; coverage=true)'
-          && echo "TESTS_SUCCESSFUL=true" >> $GITHUB_ENV
-      - name: Run the tests (Windows)
-        if: ${{ matrix.os == 'windows-latest' }}
-        id: EMGUI_tests_windows
-        continue-on-error: true
-        run: >
-          julia --color=yes --project=. -e "using Pkg; Pkg.test(; coverage=true)"
-          if %ERRORLEVEL% EQU 0 (
-            set TESTS_SUCCESSFUL=true >> %GITHUB_ENV%
-          )
-      - name: Fail if tests failed
-        if: ${{ env.TESTS_SUCCESSFUL != 'true' }}
-        run: exit 1
-      - uses: julia-actions/julia-processcoverage@v1
-      - uses: codecov/codecov-action@v3
+      - uses: actions/cache@v3
+        env:
+          cache-name: cache-artifacts
         with:
-          file: lcov.info
+          path: ~/.julia/artifacts
+          key: ${{ runner.os }}-test-${{ env.cache-name }}-${{ hashFiles('**/Project.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-test-${{ env.cache-name }}-
+            ${{ runner.os }}-test-
+            ${{ runner.os }}-
+      - uses: julia-actions/julia-buildpkg@v1
+      - uses: julia-actions/julia-runtest@v1
+        with:
+          depwarn: error
