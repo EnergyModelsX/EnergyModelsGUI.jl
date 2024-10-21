@@ -1,5 +1,15 @@
 # Release notes
 
+## Version 0.5.8 (2024-10-21)
+
+### Enhancement
+
+* Bump versions of dependencies.
+
+### Adjustment
+
+* Always show legend and title on top for the topology plot.
+
 ## Version 0.5.7 (2024-10-09)
 
 ### Bugfix

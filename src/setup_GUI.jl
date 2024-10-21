@@ -345,6 +345,9 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
         labelsize=vars[:fontsize],
         titlesize=vars[:fontsize],
     )
+    Makie.translate!(
+        vars[:topo_legend].blockscene, 0, 0, vars[:z_translate_components] + 999
+    )
 
     # Initiate an axis for displaying information about the selected node
     ax_info::Makie.Axis = Axis(
@@ -570,13 +573,14 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
     )
 
     # Update the title of the figure
-    vars[:topo_tile_obj] = text!(
+    vars[:topo_title_obj] = text!(
         ax,
         vars[:topo_title_loc_x],
         vars[:topo_title_loc_y];
         text=vars[:title],
         fontsize=vars[:fontsize],
     )
+    Makie.translate!(vars[:topo_title_obj], 0, 0, vars[:z_translate_components] + 999)
 
     return fig, buttons, menus, toggles, axes
 end

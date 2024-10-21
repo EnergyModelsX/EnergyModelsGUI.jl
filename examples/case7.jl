@@ -168,7 +168,6 @@ function get_sub_system_data(a_id, products, T)
             FixedProfile(0),        # opex_fixed: is the fixed operational costs
             Dict(Power => 1),       # input: input `Resource`s with conversion value `Real`
             Dict(Heat => 1),        # output: generated `Resource`s with conversion value `Real`
-            [],
         )
         water_heater = RefNetworkNode(
             "Water heater",         # Node id
@@ -177,7 +176,6 @@ function get_sub_system_data(a_id, products, T)
             FixedProfile(0),        # opex_fixed: is the fixed operational costs
             Dict(Power => 1),       # input: input `Resource`s with conversion value `Real`
             Dict(WarmWater => 1),   # output: generated `Resource`s with conversion value `Real`
-            [],
         )
         heating_1 = RefSink(
             "Heating 1",                        # Node id
@@ -208,7 +206,6 @@ function get_sub_system_data(a_id, products, T)
                 SingleInvData(
                     FixedProfile(1e7 / cap), # Capex [NOK/MW]
                     FixedProfile(cap),       # Max installed capacity [MW]
-                    0,                       # initial capacity [MW]
                     BinaryInvestment(
                         FixedProfile(cap),   # Investment mode
                     ),
@@ -228,7 +225,6 @@ function get_sub_system_data(a_id, products, T)
                 SingleInvData(
                     FixedProfile(0),      # Capex [NOK/MW]
                     FixedProfile(1),      # Max installed capacity [MW]
-                    0,                    # initial capacity [MW]
                     BinaryInvestment(
                         FixedProfile(1),  # Investment mode
                     ),
@@ -344,7 +340,6 @@ function get_sub_system_data(a_id, products, T)
                 SingleInvData(
                     FixedProfile(5e8 / max_max_outtake), # Capex [NOK/MW]
                     FixedProfile(max_max_outtake),     # Max installed capacity [MW]
-                    0,                                 # initial capacity [MW]
                     BinaryInvestment(
                         FixedProfile(max_max_outtake), # Investment mode
                     ),
