@@ -49,19 +49,3 @@ function run_through_all(gui::GUI, design::EnergySystemDesign, break_after_first
         end
     end
 end
-
-"""
-    select_data(name::String, menu)
-
-Select the data with name `name` from the `menu`
-"""
-function select_data(name::String, menu)
-    # Fetch all menu options
-    available_data = [x[2][:name] for x ∈ collect(menu.options[])]
-
-    # Find menu number for data with name `name`
-    i_selected = findfirst(x -> x == name, available_data)
-
-    # Select data
-    menu.i_selected = i_selected
-end

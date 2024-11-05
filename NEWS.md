@@ -1,5 +1,19 @@
 # Release notes
 
+## Version 0.5.9 (2024-11-05)
+
+### Bugfix
+
+* Attemptet fix of the viewbox of the exported svg-file (this should ideally be fixed by Makie-developers). Also added the legend to the export.
+
+### Enhancement
+
+* Added `reset view` button for the results visualization axis.
+
+### Adjustment
+
+* Adjusted the `element` printout to the information axis to include more nested levels.
+
 ## Version 0.5.8 (2024-10-21)
 
 ### Enhancement

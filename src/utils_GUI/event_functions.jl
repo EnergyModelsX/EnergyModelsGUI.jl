@@ -284,6 +284,12 @@ function define_event_functions(gui::GUI)
         return Consume(false)
     end
 
+    # Reset results view
+    on(get_button(gui, :reset_view_results).clicks; priority=10) do _
+        update_limits!(get_ax(gui, :results))
+        return Consume(false)
+    end
+
     # Pin current plot (the last plot added)
     time_menu = get_menu(gui, :time)
     on(get_button(gui, :pin_plot).clicks; priority=10) do _
@@ -406,16 +412,19 @@ function define_event_functions(gui::GUI)
 
     # Time menu: Handle menu selection (selecting time)
     on(time_menu.selection; priority=10) do time_axis
-        for x ∈ get_plotted_data(gui)
-            if x[:time_axis] == time_axis && x[:visible]
-                x[:plot].visible[] = true
-            else
-                x[:plot].visible[] = false
+        plotted_data = get_plotted_data(gui)
+        if !isempty(plotted_data)
+            for x ∈ plotted_data
+                if x[:time_axis] == time_axis && x[:visible]
+                    x[:plot].visible[] = true
+                else
+                    x[:plot].visible[] = false
+                end
             end
+            update_legend!(gui)
+            update_limits!(get_ax(gui, :results))
+            update_axis!(gui, time_axis)
         end
-        update_legend!(gui)
-        update_limits!(get_ax(gui, :results))
-        update_axis!(gui, time_axis)
         return Consume(false)
     end
 

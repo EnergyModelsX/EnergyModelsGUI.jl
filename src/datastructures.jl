@@ -159,8 +159,10 @@ The main type for the realization of the GUI.
 
 - **`fig::Figure`** is the figure handle to the main figure (window).
 - **`axes::Dict{Symbol,Axis}`** is a collection of axes: :topo (axis for visualizing
-  the topology), :results (axis for plotting operation analaysis), and :info (axis for
+  the topology), :results (axis for plotting results), and :info (axis for
   displaying information).
+- **`legends::Dict{Symbol,Legend}`** is a collection of legends: :topo (legend for
+  the topology), :results (legend for plotting results).
 - **`buttons::Dict{Symbol,Makie.Button}`** is a dictionary of the GLMakie buttons linked
   to the gui.axes[:topo] object.
 - **`menus::Dict{Symbol,Makie.Menu}`** is a dictionary of the GLMakie menus linked to the
@@ -175,6 +177,7 @@ The main type for the realization of the GUI.
 mutable struct GUI
     fig::Figure
     axes::Dict{Symbol,Makie.Block}
+    legends::Dict{Symbol,Union{Makie.Legend,Nothing}}
     buttons::Dict{Symbol,Makie.Button}
     menus::Dict{Symbol,Makie.Menu}
     toggles::Dict{Symbol,Makie.Toggle}
@@ -414,6 +417,13 @@ Returns the `ax` object with name `ax_name` of a `GUI` `gui`.
 get_ax(gui::GUI, ax_name) = gui.axes[ax_name]
 
 """
+    get_legend(gui::GUI, key::Symbol)
+
+Returns the `legend` object `key` of a `GUI` `gui`.
+"""
+get_legend(gui::GUI, key::Symbol) = gui.legends[key]
+
+"""
     get_button(gui::GUI, button_name::Symbol)
 
 Returns the `button` with name `button_name` of a `GUI` `gui`.
@@ -507,11 +517,18 @@ get_visible_data(gui::GUI, time_axis::Symbol) =
     [x for x ∈ get_var(gui, :plotted_data) if x[:visible] && x[:time_axis] == time_axis]
 
 """
+    get_topo_legend(gui::GUI)
+
+Get the legend from the topology axis from the `gui`.
+"""
+get_topo_legend(gui::GUI) = get_legend(gui, :topo)
+
+"""
     get_results_legend(gui::GUI)
 
 Get the legend from the current visible time axis from the `gui`.
 """
-get_results_legend(gui::GUI) = get_var(gui, :results_legend)
+get_results_legend(gui::GUI) = get_legend(gui, :results)
 
 """
     get_available_data(gui::GUI)

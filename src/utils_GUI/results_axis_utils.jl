@@ -195,17 +195,17 @@ function get_data(
 end
 
 """
-    get_periods(
-        T::TS.TimeStructure, type::Type, sp::Int64, rp::Int64, sc::Int64
-    )
+    get_periods(T::TS.TimeStructure, type::Type, sp::Int64, rp::Int64, sc::Int64)
 
-Get the periods for a given TimePeriod `type` (TS.StrategicPeriod, TS.RepresentativePeriod
-or TS.OperationalPeriod) restricted to the strategic period `sp`, representative period `rp`
-and the scenario `sc`.
+Get the periods for a given TimePeriod/TimeProfile `type` (e.g., TS.StrategicPeriod,
+TS.RepresentativePeriod, TS.OperationalPeriod) restricted to
+the strategic period `sp`, representative period `rp` and the scenario `sc`.
 """
 function get_periods(T::TS.TimeStructure, type::Type, sp::Int64, rp::Int64, sc::Int64)
-    if type <: TS.StrategicProfile || type <: FixedProfile || type <: TS.StrategicPeriod
-        return [t for t ∈ TS.strat_periods(T)], :results_sp
+    if type <: StrategicProfile ||
+        type <: FixedProfile ||
+        type <: TS.AbstractStrategicPeriod
+        return collect(TS.strat_periods(T)), :results_sp
     elseif type <: TS.RepresentativeProfile || type <: TS.AbstractRepresentativePeriod
         return [t for t ∈ TS.repr_periods(T) if t.sp == sp], :results_rp
     elseif type <: TS.ScenarioProfile || type <: TS.ScenarioPeriod
@@ -232,16 +232,17 @@ function get_periods(T::TS.TimeStructure, type::Type, sp::Int64, rp::Int64, sc::
         end
     end
 end
-function get_periods(T::TS.TimeStructure, type::Type)
-    if type <: TS.StrategicPeriod
-        return [t for t ∈ TS.strat_periods(T)]
-    elseif type <: TS.RepresentativePeriod
-        return [t for t ∈ TS.repr_periods(T)]
-    elseif type <: TS.ScenarioPeriod
-        return [t for t ∈ TS.opscenarios(T)]
-    else
-        return collect(T)
-    end
+function get_periods(T::TS.TimeStructure, ::Type{<:TS.AbstractStrategicPeriod})
+    return collect(TS.strat_periods(T))
+end
+function get_periods(T::TS.TimeStructure, ::Type{<:TS.AbstractRepresentativePeriod})
+    return collect(TS.repr_periods(T))
+end
+function get_periods(T::TS.TimeStructure, ::Type{<:TS.ScenarioPeriod})
+    return collect(TS.opscenarios(T))
+end
+function get_periods(T::TS.TimeStructure, ::Type{<:Any})
+    return collect(T)
 end
 
 """
@@ -501,11 +502,10 @@ function update_plot!(gui::GUI, element::Plotable)
             toggle_inspector!(plot, true)
         end
 
-        legend = get_results_legend(gui)
-        if isempty(legend) # Initialize the legend box
-            push!(
-                legend, axislegend(ax, [plot], [label]; labelsize=get_var(gui, :fontsize))
-            ) # Add legends inside axes[:results] area
+        if isnothing(get_results_legend(gui)) # Initialize the legend box
+            gui.legends[:results] = axislegend(
+                ax, [plot], [label]; labelsize=get_var(gui, :fontsize)
+            )
         else
             update_legend!(gui)
         end
@@ -572,7 +572,7 @@ Update the legend based on the visible plots of type `time_axis`.
 function update_legend!(gui::GUI)
     time_axis = get_menu(gui, :time).selection[]
     legend = get_results_legend(gui)
-    if !isempty(legend)
+    if !isnothing(legend)
         legend_defaults = Makie.block_defaults(
             :Legend, Dict{Symbol,Any}(), get_ax(gui, :results).scene
         )
@@ -583,7 +583,7 @@ function update_legend!(gui::GUI)
         entry_groups = Makie.to_entry_group(
             Attributes(legend_defaults), contents, labels, title
         )
-        legend[1].entrygroups[] = entry_groups
+        legend.entrygroups[] = entry_groups
     end
 end
 
