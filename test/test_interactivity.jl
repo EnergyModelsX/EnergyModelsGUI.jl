@@ -290,10 +290,13 @@ import EnergyModelsGUI:
     end
 
     @testset "reset_view_results_button.clicks" begin
-        EMGUI.xlims!(gui.axes[:results], 1, 2)
+        ax_results = get_ax(gui, :results)
+        width_x = ax_results.finallimits[].widths[1]
+        origin_x = ax_results.finallimits[].origin[1]
+        EMGUI.xlims!(ax_results, 1, 2)
         notify(get_button(gui, :reset_view_results).clicks)
-        @test get_ax(gui, :results).finallimits[].widths[1] == 24.84
-        @test get_ax(gui, :results).finallimits[].origin[1] == 0.08
+        @test ax_results.finallimits[].widths[1] == width_x
+        @test ax_results.finallimits[].origin[1] == origin_x
     end
 
     @testset "get_button(gui,:export).clicks" begin
