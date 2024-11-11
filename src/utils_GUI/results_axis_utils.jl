@@ -326,6 +326,38 @@ function create_label(selection::Dict{Symbol,Any})
 end
 
 """
+    update_plot!(gui::GUI)
+
+Based on `selected_systems` update plots.
+"""
+function update_plot!(gui)
+    selected_systems = get_selected_systems(gui)
+    if isempty(selected_systems)
+        update_plot!(gui, nothing)
+    else
+        update_plot!(gui, selected_systems[end])
+    end
+end
+
+"""
+    update_plot!(gui::GUI, design::EnergySystemDesign)
+
+Based on `connection` update plots.
+"""
+function update_plot!(gui::GUI, connection::Connection)
+    return update_plot!(gui, get_element(connection))
+end
+
+"""
+    update_plot!(gui::GUI, design::EnergySystemDesign)
+
+Based on `design` update plots.
+"""
+function update_plot!(gui::GUI, design::EnergySystemDesign)
+    return update_plot!(gui, get_element(design))
+end
+
+"""
     update_plot!(gui::GUI, element)
 
 Based on `element` update the results in `get_axes(gui)[:results]`.
@@ -436,6 +468,7 @@ function update_plot!(gui::GUI, element::Plotable)
         ) # get first non-pinned plot
 
         ax = get_ax(gui, :results)
+        finallimits = gui.vars[:finallimits][time_axis]
         if isnothing(overwritable)
             @debug "Could not find anything to overwrite, creating new plot instead"
             n_visible = length(get_visible_data(gui, time_axis)) + 1
@@ -511,7 +544,11 @@ function update_plot!(gui::GUI, element::Plotable)
         end
 
         update_axis!(gui, time_axis)
-        update_limits!(ax)
+        if get_var(gui, :autolimits)[time_axis]
+            update_limits!(ax)
+        else
+            update_limits!(ax, finallimits)
+        end
     end
 end
 
@@ -530,38 +567,6 @@ function update_axis!(gui::GUI, time_axis::Symbol)
         ax.ylabel = selection[end][:ylabel]
         ax.xticks = selection[end][:xticks]
     end
-end
-
-"""
-    update_plot!(gui::GUI)
-
-Based on `selected_systems` update plots.
-"""
-function update_plot!(gui)
-    selected_systems = get_selected_systems(gui)
-    if isempty(selected_systems)
-        update_plot!(gui, nothing)
-    else
-        update_plot!(gui, selected_systems[end])
-    end
-end
-
-"""
-    update_plot!(gui::GUI, design::EnergySystemDesign)
-
-Based on `connection` update plots.
-"""
-function update_plot!(gui::GUI, connection::Connection)
-    return update_plot!(gui, get_element(connection))
-end
-
-"""
-    update_plot!(gui::GUI, design::EnergySystemDesign)
-
-Based on `design` update plots.
-"""
-function update_plot!(gui::GUI, design::EnergySystemDesign)
-    return update_plot!(gui, get_element(design))
 end
 
 """
@@ -599,7 +604,7 @@ end
 """
     update_limits!(ax::Axis)
 
-Update the limits based on the visible plots of type `time_axis`.
+Adjust limits automatically to take into account legend and machine epsilon issues.
 """
 function update_limits!(ax::Axis)
     # Fetch all y-values in the axis
@@ -638,6 +643,19 @@ function update_limits!(ax::Axis)
     end
     # try to avoid legend box overlapping data
     ylims!(ax, yorigin, yorigin + ywidth * 1.1)
+end
+
+"""
+    update_limits!(ax::Axis, limits::GLMakie.HyperRectangle)
+
+Set the limits based on limits.
+"""
+function update_limits!(ax::Axis, limits::GLMakie.HyperRectangle)
+    xmin = limits.origin[1]
+    xmax = limits.origin[1] + limits.widths[1]
+    ymin = limits.origin[2]
+    ymax = limits.origin[2] + limits.widths[2]
+    limits!(ax, xmin, xmax, ymin, ymax)
 end
 
 """

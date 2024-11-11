@@ -17,8 +17,13 @@ function define_event_functions(gui::GUI)
         end
     end
 
+    ax_topo = get_ax(gui, :topo)
+    ax_results = get_ax(gui, :results)
+    ax_info = get_ax(gui, :info)
+    ax_summary = get_ax(gui, :summary)
+
     # On zooming, make sure all graphics are adjusted acordingly
-    on(get_ax(gui, :topo).finallimits; priority=10) do finallimits
+    on(ax_topo.finallimits; priority=10) do finallimits
         @debug "Changes in finallimits"
         widths::Vec = finallimits.widths
         origin::Vec = finallimits.origin
@@ -33,6 +38,13 @@ function define_event_functions(gui::GUI)
         return Consume(false)
     end
 
+    # Capture the final limits after a zoom operation
+    on(ax_results.finallimits; priority=0) do finallimits
+        time_axis = time_menu.selection[]
+        gui.vars[:finallimits][time_axis] = finallimits
+        return Consume(false)
+    end
+
     # If the window is resized, make sure all graphics are adjusted acordingly
     fig = get_fig(gui)
     on(fig.scene.events.window_area; priority=3) do val
@@ -41,13 +53,13 @@ function define_event_functions(gui::GUI)
         get_vars(gui)[:ax_aspect_ratio] =
             get_var(gui, :plot_widths)[1] /
             (get_var(gui, :plot_widths)[2] - get_var(gui, :taskbar_height)) / 2
-        notify(get_ax(gui, :topo).finallimits)
+        notify(ax_topo.finallimits)
         return Consume(false)
     end
 
     # Handle case when user is pressing/releasing any ctrl key (in order to select multiple components)
-    on(events(get_ax(gui, :topo).scene).keyboardbutton; priority=3) do event
-        # For more integers: using GLMakie; typeof(events(get_ax(gui,:topo).scene).keyboardbutton[].key)
+    on(events(ax_topo.scene).keyboardbutton; priority=3) do event
+        # For more integers: using GLMakie; typeof(events(ax_topo.scene).keyboardbutton[].key)
 
         is_ctrl(key::Makie.Keyboard.Button) = Int(key) == 341 || Int(key) == 345 # any of the ctrl buttons is clicked
         if event.action == Keyboard.press
@@ -109,9 +121,6 @@ function define_event_functions(gui::GUI)
     # Define the double-click threshold
     double_click_threshold = Dates.Millisecond(500) # Default value in Windows
 
-    ax_info = get_ax(gui, :info)
-    ax_summary = get_ax(gui, :summary)
-
     # Alter scrolling functionality in text areas such that it does not zoom but translates in the y-direction
     on(events(ax_info).scroll; priority=4) do val
         mouse_pos::Tuple{Float64,Float64} = events(ax_info).mouseposition[]
@@ -123,21 +132,25 @@ function define_event_functions(gui::GUI)
             scroll_ylim(ax_summary, val[2] * 0.1)
             return Consume(true)
         end
+        if mouse_within_axis(ax_results, mouse_pos)
+            time_axis = time_menu.selection[]
+            gui.vars[:autolimits][time_axis] = false
+        end
         return Consume(false)
     end
 
     # Handle cases for mousebutton input
-    on(events(get_ax(gui, :topo)).mousebutton; priority=4) do event
+    on(events(ax_topo).mousebutton; priority=4) do event
         if event.button == Mouse.left
             current_click_time = Dates.now()
             time_difference = current_click_time - last_click_time[]
             dragging = get_var(gui, :dragging)
             if event.action == Mouse.press
-                mouse_pos = events(get_ax(gui, :topo)).mouseposition[]
+                mouse_pos = events(ax_topo).mouseposition[]
 
-                # Check if mouseclick is outside the get_ax(gui,:topo) area (and return if so)
+                # Check if mouseclick is outside the ax_topo area (and return if so)
                 ctrl_is_pressed = get_var(gui, :ctrl_is_pressed)[]
-                if mouse_within_axis(get_ax(gui, :topo), mouse_pos)
+                if mouse_within_axis(ax_topo, mouse_pos)
                     if !ctrl_is_pressed && !isempty(get_selected_systems(gui))
                         clear_selection(gui; clear_results=false)
                     end
@@ -153,18 +166,19 @@ function define_event_functions(gui::GUI)
                     return Consume(true)
                 end
 
-                if mouse_within_axis(get_ax(gui, :results), mouse_pos)
-                    time_axis = get_menu(gui, :time).selection[]
+                if mouse_within_axis(ax_results, mouse_pos)
+                    time_axis = time_menu.selection[]
                     if !ctrl_is_pressed && !isempty(get_selected_plots(gui, time_axis))
                         clear_selection(gui; clear_topo=false)
                     end
                     pick_component!(gui; pick_results_component=true)
+                    gui.vars[:autolimits][time_axis] = false
                     return Consume(false)
                 end
-                if mouse_within_axis(get_ax(gui, :info), mouse_pos)
+                if mouse_within_axis(ax_info, mouse_pos)
                     return Consume(true)
                 end
-                if mouse_within_axis(get_ax(gui, :summary), mouse_pos)
+                if mouse_within_axis(ax_summary, mouse_pos)
                     return Consume(true)
                 end
                 return Consume(false)
@@ -183,28 +197,31 @@ function define_event_functions(gui::GUI)
         end
         if event.button == Mouse.right
             # Disable pan in text areas
-            mouse_pos = events(get_ax(gui, :topo)).mouseposition[]
-            if mouse_within_axis(get_ax(gui, :info), mouse_pos)
+            mouse_pos = events(ax_topo).mouseposition[]
+            if mouse_within_axis(ax_info, mouse_pos)
                 return Consume(true)
             end
-            if mouse_within_axis(get_ax(gui, :summary), mouse_pos)
+            if mouse_within_axis(ax_results, mouse_pos)
+                time_axis = time_menu.selection[]
+                gui.vars[:autolimits][time_axis] = false
+            end
+            if mouse_within_axis(ax_summary, mouse_pos)
                 return Consume(true)
             end
-            return Consume(false)
         end
 
         return Consume(false)
     end
 
     # Handle mouse movement
-    on(events(get_ax(gui, :topo)).mouseposition; priority=2) do mouse_pos # priority ≥ 2 in order to suppress GLMakie left-click and drag zoom feature
+    on(events(ax_topo).mouseposition; priority=2) do mouse_pos # priority ≥ 2 in order to suppress GLMakie left-click and drag zoom feature
         if get_var(gui, :dragging)[]
-            origin::Vec2{Int64} = pixelarea(get_ax(gui, :topo).scene)[].origin
-            widths::Vec2{Int64} = pixelarea(get_ax(gui, :topo).scene)[].widths
+            origin::Vec2{Int64} = pixelarea(ax_topo.scene)[].origin
+            widths::Vec2{Int64} = pixelarea(ax_topo.scene)[].widths
             mouse_pos_loc::Vec2{Float64} = mouse_pos .- origin
 
-            xy_widths::Vec2 = get_ax(gui, :topo).finallimits[].widths
-            xy_origin::Vec2 = get_ax(gui, :topo).finallimits[].origin
+            xy_widths::Vec2 = ax_topo.finallimits[].widths
+            xy_origin::Vec2 = ax_topo.finallimits[].origin
 
             xy::Vec2{Float64} = xy_origin .+ mouse_pos_loc .* xy_widths ./ widths
             selected_systems = get_selected_systems(gui)
@@ -286,7 +303,10 @@ function define_event_functions(gui::GUI)
 
     # Reset results view
     on(get_button(gui, :reset_view_results).clicks; priority=10) do _
-        update_limits!(get_ax(gui, :results))
+        update_limits!(ax_results)
+        time_axis = time_menu.selection[]
+        gui.vars[:finallimits][time_axis] = ax_results.finallimits[]
+        gui.vars[:autolimits][time_axis] = true
         return Consume(false)
     end
 
@@ -320,7 +340,10 @@ function define_event_functions(gui::GUI)
         end
         update_legend!(gui)
         update_barplot_dodge!(gui)
-        update_limits!(get_ax(gui, :results))
+        if get_var(gui, :autolimits)[time_axis]
+            update_limits!(ax_results)
+            gui.vars[:finallimits][time_axis] = ax_results.finallimits[]
+        end
         return Consume(false)
     end
 
@@ -357,11 +380,11 @@ function define_event_functions(gui::GUI)
     # Reset button: Reset view to the original view
     on(get_button(gui, :reset_view).clicks; priority=10) do clicks
         adjust_limits!(gui)
-        notify(get_ax(gui, :topo).finallimits)
+        notify(ax_topo.finallimits)
         return Consume(false)
     end
 
-    # Export button: Export get_ax(gui,:results) to file (format given by export_type_menu.selection[])
+    # Export button: Export ax_results to file (format given by export_type_menu.selection[])
     on(get_button(gui, :export).clicks; priority=10) do _
         if get_menu(gui, :export_type).selection[] == "REPL"
             axes_str::String = get_menu(gui, :axes).selection[]
@@ -422,7 +445,8 @@ function define_event_functions(gui::GUI)
                 end
             end
             update_legend!(gui)
-            update_limits!(get_ax(gui, :results))
+            time_axis = time_menu.selection[]
+            update_limits!(ax_results, get_var(gui, :finallimits)[time_axis])
             update_axis!(gui, time_axis)
         end
         return Consume(false)

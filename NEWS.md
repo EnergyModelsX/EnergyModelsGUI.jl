@@ -1,6 +1,6 @@
 # Release notes
 
-## Version 0.5.9 (2024-11-05)
+## Version 0.5.9 (2024-11-12)
 
 ### Bugfix
 
@@ -13,6 +13,7 @@
 ### Adjustment
 
 * Adjusted the `element` printout to the information axis to include more nested levels.
+* Maintain the axis limits, if altered, across the different time plots.
 
 ## Version 0.5.8 (2024-10-21)
 

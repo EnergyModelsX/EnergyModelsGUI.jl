@@ -98,6 +98,18 @@ function GUI(
         :scale_tot_capex => scale_tot_capex,
         :colormap => colormap,
         :tol => tol,
+        :autolimits => Dict(
+            :results_op => true,
+            :results_sc => true,
+            :results_rp => true,
+            :results_sp => true,
+        ),       # Automatically adjust limits of the axis
+        :finallimits => Dict(
+            :results_op => GLMakie.HyperRectangle(Vec2f(0, 0), Vec2f(1, 1)),
+            :results_sc => GLMakie.HyperRectangle(Vec2f(0, 0), Vec2f(1, 1)),
+            :results_rp => GLMakie.HyperRectangle(Vec2f(0, 0), Vec2f(1, 1)),
+            :results_sp => GLMakie.HyperRectangle(Vec2f(0, 0), Vec2f(1, 1)),
+        ),
     )
 
     # gobal variables for legends
