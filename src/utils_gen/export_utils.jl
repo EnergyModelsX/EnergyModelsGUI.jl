@@ -1,29 +1,70 @@
 """
+    extract_svg(svg_string)
+
+Extracts the raw SVG content from the representation.
+"""
+function extract_svg(svg_string)
+    # Extracts the raw SVG content from the representation
+    if isempty(svg_string)
+        return "", ""
+    else
+        svg_start = findfirst("<svg", svg_string)[1]
+        start_idx = findfirst(">", svg_string[svg_start:end])[end] + svg_start
+        end_idx = findfirst("</svg>", svg_string)[1] - 1
+        return svg_string[start_idx:end_idx], svg_string[1:(start_idx - 1)]
+    end
+end
+
+"""
+    merge_svg_strings(svg1, svg2)
+
+Merge two SVG strings `svg1` and `svg2` into one with header from `svg1`.
+"""
+function merge_svg_strings(svg1, svg2)
+    svg_str1, header = extract_svg(svg1)
+    svg_str2, _ = extract_svg(svg2)
+    return header * svg_str1 * svg_str2 * "</svg>\n"
+end
+
+"""
     export_svg(ax::Makie.Block, filename::String)
 
 Export the `ax` to a .svg file with path given by `filename`.
 """
-function export_svg(ax::Makie.Block, filename::String)
+function export_svg(
+    ax::Makie.Block, filename::String; legend::Union{Makie.Legend,Nothing}=nothing
+)
     bb = ax.layoutobservables.suggestedbbox[]
     protrusions = ax.layoutobservables.reporteddimensions[].outer
 
+    offset = 0 #ax.spinewidth[] / 2
     axis_bb = Rect2f(
-        bb.origin .- (protrusions.left, protrusions.bottom),
+        bb.origin .- (protrusions.left, protrusions.bottom) .- offset,
         bb.widths .+
-        (protrusions.left + protrusions.right, protrusions.bottom + protrusions.top),
+        (protrusions.left + protrusions.right, protrusions.bottom + protrusions.top) .+
+        2 * offset,
     )
 
-    pad = 0
+    pad = 5
 
-    axis_bb_pt = axis_bb * 0.75
-    ws = axis_bb_pt.widths
-    o = axis_bb_pt.origin
+    ws = axis_bb.widths
+    o = axis_bb.origin
     width = "$(ws[1] + 2 * pad)pt"
     height = "$(ws[2] + 2 * pad)pt"
-    viewBox = "$(o[1] - pad) $(o[2] + ws[2] - pad) $(ws[1] + 2 * pad) $(ws[2] + 2 * pad)"
 
-    svgstring = repr(MIME"image/svg+xml"(), ax.blockscene)
+    # Temporary hack to fix viewBox for SVG export:
+    # Based on the default (1920,1080) resolution, set hack such that
+    # [:results]: when ws[2] is 575.80005 then hack should be 202.442, and
+    # [:topo]:    when ws[2] is 1001.0    then hack should be 953.000
+    # Awaiting solution from issue https://github.com/MakieOrg/Makie.jl/issues/4500
+    # pad should arguably also be set to 0 when solution is found
+    hack = 202.442 + (ws[2] - 575.80005) * (953.000 - 202.442) / (1001.0 - 575.80005)
+    viewBox = "$(o[1] - pad) $(o[2] - hack + ws[2] - pad) $(ws[1] + 2 * pad) $(ws[2] + 2 * pad)"
 
+    svgstring_ax = repr(MIME"image/svg+xml"(), ax.blockscene)
+    svgstring_legend =
+        isnothing(legend) ? "" : repr(MIME"image/svg+xml"(), legend.blockscene)
+    svgstring = merge_svg_strings(svgstring_ax, svgstring_legend)
     svgstring = replace(svgstring, r"""(?<=width=")[^"]*(?=")""" => width; count=1)
     svgstring = replace(svgstring, r"""(?<=height=")[^"]*(?=")""" => height; count=1)
     svgstring = replace(svgstring, r"""(?<=viewBox=")[^"]*(?=")""" => viewBox; count=1)
@@ -166,7 +207,17 @@ function export_to_file(gui::GUI)
         end
         filename = joinpath(path, "$ax_sym.$file_ending")
         if file_ending == "svg"
-            flag = export_svg(get_ax(gui, ax_sym), filename)
+            if axes_str == "Plots"
+                flag = export_svg(
+                    get_ax(gui, ax_sym), filename; legend=get_results_legend(gui)
+                )
+            elseif axes_str == "Topo"
+                flag = export_svg(
+                    get_ax(gui, ax_sym), filename; legend=get_topo_legend(gui)
+                )
+            else
+                flag = export_svg(get_ax(gui, ax_sym), filename)
+            end
         elseif file_ending == "xlsx"
             if ax_sym == :topo
                 @warn "Exporting the topology to an xlsx file is not implemented"

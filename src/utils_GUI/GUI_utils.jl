@@ -384,7 +384,7 @@ function initialize_available_data!(gui)
             end
         end
         if !isempty(inv_overview_components)
-            investment_overview *= "Investment overview:\n"
+            investment_overview *= "Investment overview (CAPEX):\n"
             investment_overview *= inv_overview_components
         end
         get_ax(gui, :summary).scene.plots[1][1][] = investment_overview
@@ -569,4 +569,23 @@ function update_descriptive_names!(gui::GUI)
         descriptive_names = merge_dicts(descriptive_names, descriptive_names_dict)
     end
     get_vars(gui)[:descriptive_names] = descriptive_names
+end
+
+"""
+    select_data(name::String, menu)
+
+Select the data with name `name` from the `menu`
+"""
+function select_data!(gui::GUI, name::String)
+    # Fetch the available data menu object
+    menu = get_menu(gui, :available_data)
+
+    # Fetch all menu options
+    available_data = [x[2][:name] for x ∈ collect(menu.options[])]
+
+    # Find menu number for data with name `name`
+    i_selected = findfirst(x -> x == name, available_data)
+
+    # Select data
+    menu.i_selected = i_selected
 end

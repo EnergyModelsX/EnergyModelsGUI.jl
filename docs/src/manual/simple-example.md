@@ -78,7 +78,7 @@ You should then get the following GUI:
     5. `Data`: Select the available data to be visualized in the plot area to the bottom right (if a component is selected, the menu will update to contain the available data for this component).
 
 !!! note "Bottom right visualization area"
-    The bottom right fraction of the window shows a visualization of the results associated with the selected available data. It will automatically adjust when altering the different periods/scenarios.
+    The bottom right fraction of the window shows a visualization of the results associated with the selected available data. It will automatically adjust when altering the different periods/scenarios. Note that the axis limits for the differnt plots are saved individually for each plot if altered (otherwise the axis limits updates automatically) but can be reset by hitting the `reset view` button (see below).
 
     1. You can zoom into the plots by scrolling with the mouse wheel.
     2. Scrolling with the mouse wheel while holding in the x key will zoom in the x-direction and scrolling while holding the y key will zoom in the y-direction.
@@ -87,11 +87,12 @@ You should then get the following GUI:
 !!! note "Bottom right toolbar" 
     An additional toolbar on the bottom right is related to the plot area above and has the following functionality:
     
-    1. `pin current data`: Pin the latest plotted data, which enables comparing with other data in the same time type.
-    2. `remove selected data`: After selecting a plot (left-click the line so it turns green), this button will remove it (the button has shortcut `Delete`). You can select multiple plots by holding the `ctrl` key while selecting.
-    3. `clear all`: Removes all plots.
-    4. Export: Choose which data to export.
+    1. `reset view`: Reset the view to the optimal view if the view has been altered.
+    2. `pin current data`: Pin the latest plotted data, which enables comparing with other data in the same time type.
+    3. `remove selected data`: After selecting a plot (left-click the line so it turns green), this button will remove it (the button has shortcut `Delete`). You can select multiple plots by holding the `ctrl` key while selecting.
+    4. `clear all`: Removes all plots.
+    5. Export: Choose which data to export.
         - `All`: all data (or entire window)
         - `Plots`: the current active plots
-    5. Choose the export format (`REPL` prints the data to the REPL).
-    6. `export`: Export the data using the chosen setup.
+    6. Choose the export format (`REPL` prints the data to the REPL).
+    7. `export`: Export the data using the chosen setup.

@@ -195,17 +195,17 @@ function get_data(
 end
 
 """
-    get_periods(
-        T::TS.TimeStructure, type::Type, sp::Int64, rp::Int64, sc::Int64
-    )
+    get_periods(T::TS.TimeStructure, type::Type, sp::Int64, rp::Int64, sc::Int64)
 
-Get the periods for a given TimePeriod `type` (TS.StrategicPeriod, TS.RepresentativePeriod
-or TS.OperationalPeriod) restricted to the strategic period `sp`, representative period `rp`
-and the scenario `sc`.
+Get the periods for a given TimePeriod/TimeProfile `type` (e.g., TS.StrategicPeriod,
+TS.RepresentativePeriod, TS.OperationalPeriod) restricted to
+the strategic period `sp`, representative period `rp` and the scenario `sc`.
 """
 function get_periods(T::TS.TimeStructure, type::Type, sp::Int64, rp::Int64, sc::Int64)
-    if type <: TS.StrategicProfile || type <: FixedProfile || type <: TS.StrategicPeriod
-        return [t for t ∈ TS.strat_periods(T)], :results_sp
+    if type <: StrategicProfile ||
+        type <: FixedProfile ||
+        type <: TS.AbstractStrategicPeriod
+        return collect(TS.strat_periods(T)), :results_sp
     elseif type <: TS.RepresentativeProfile || type <: TS.AbstractRepresentativePeriod
         return [t for t ∈ TS.repr_periods(T) if t.sp == sp], :results_rp
     elseif type <: TS.ScenarioProfile || type <: TS.ScenarioPeriod
@@ -232,16 +232,17 @@ function get_periods(T::TS.TimeStructure, type::Type, sp::Int64, rp::Int64, sc::
         end
     end
 end
-function get_periods(T::TS.TimeStructure, type::Type)
-    if type <: TS.StrategicPeriod
-        return [t for t ∈ TS.strat_periods(T)]
-    elseif type <: TS.RepresentativePeriod
-        return [t for t ∈ TS.repr_periods(T)]
-    elseif type <: TS.ScenarioPeriod
-        return [t for t ∈ TS.opscenarios(T)]
-    else
-        return collect(T)
-    end
+function get_periods(T::TS.TimeStructure, ::Type{<:TS.AbstractStrategicPeriod})
+    return collect(TS.strat_periods(T))
+end
+function get_periods(T::TS.TimeStructure, ::Type{<:TS.AbstractRepresentativePeriod})
+    return collect(TS.repr_periods(T))
+end
+function get_periods(T::TS.TimeStructure, ::Type{<:TS.ScenarioPeriod})
+    return collect(TS.opscenarios(T))
+end
+function get_periods(T::TS.TimeStructure, ::Type{<:Any})
+    return collect(T)
 end
 
 """
@@ -322,6 +323,38 @@ function create_label(selection::Dict{Symbol,Any})
         end
     end
     return label
+end
+
+"""
+    update_plot!(gui::GUI)
+
+Based on `selected_systems` update plots.
+"""
+function update_plot!(gui)
+    selected_systems = get_selected_systems(gui)
+    if isempty(selected_systems)
+        update_plot!(gui, nothing)
+    else
+        update_plot!(gui, selected_systems[end])
+    end
+end
+
+"""
+    update_plot!(gui::GUI, design::EnergySystemDesign)
+
+Based on `connection` update plots.
+"""
+function update_plot!(gui::GUI, connection::Connection)
+    return update_plot!(gui, get_element(connection))
+end
+
+"""
+    update_plot!(gui::GUI, design::EnergySystemDesign)
+
+Based on `design` update plots.
+"""
+function update_plot!(gui::GUI, design::EnergySystemDesign)
+    return update_plot!(gui, get_element(design))
 end
 
 """
@@ -435,6 +468,7 @@ function update_plot!(gui::GUI, element::Plotable)
         ) # get first non-pinned plot
 
         ax = get_ax(gui, :results)
+        finallimits = gui.vars[:finallimits][time_axis]
         if isnothing(overwritable)
             @debug "Could not find anything to overwrite, creating new plot instead"
             n_visible = length(get_visible_data(gui, time_axis)) + 1
@@ -501,17 +535,20 @@ function update_plot!(gui::GUI, element::Plotable)
             toggle_inspector!(plot, true)
         end
 
-        legend = get_results_legend(gui)
-        if isempty(legend) # Initialize the legend box
-            push!(
-                legend, axislegend(ax, [plot], [label]; labelsize=get_var(gui, :fontsize))
-            ) # Add legends inside axes[:results] area
+        if isnothing(get_results_legend(gui)) # Initialize the legend box
+            gui.legends[:results] = axislegend(
+                ax, [plot], [label]; labelsize=get_var(gui, :fontsize)
+            )
         else
             update_legend!(gui)
         end
 
         update_axis!(gui, time_axis)
-        update_limits!(ax)
+        if get_var(gui, :autolimits)[time_axis]
+            update_limits!(ax)
+        else
+            update_limits!(ax, finallimits)
+        end
     end
 end
 
@@ -533,38 +570,6 @@ function update_axis!(gui::GUI, time_axis::Symbol)
 end
 
 """
-    update_plot!(gui::GUI)
-
-Based on `selected_systems` update plots.
-"""
-function update_plot!(gui)
-    selected_systems = get_selected_systems(gui)
-    if isempty(selected_systems)
-        update_plot!(gui, nothing)
-    else
-        update_plot!(gui, selected_systems[end])
-    end
-end
-
-"""
-    update_plot!(gui::GUI, design::EnergySystemDesign)
-
-Based on `connection` update plots.
-"""
-function update_plot!(gui::GUI, connection::Connection)
-    return update_plot!(gui, get_element(connection))
-end
-
-"""
-    update_plot!(gui::GUI, design::EnergySystemDesign)
-
-Based on `design` update plots.
-"""
-function update_plot!(gui::GUI, design::EnergySystemDesign)
-    return update_plot!(gui, get_element(design))
-end
-
-"""
     update_legend!(gui::GUI)
 
 Update the legend based on the visible plots of type `time_axis`.
@@ -572,7 +577,7 @@ Update the legend based on the visible plots of type `time_axis`.
 function update_legend!(gui::GUI)
     time_axis = get_menu(gui, :time).selection[]
     legend = get_results_legend(gui)
-    if !isempty(legend)
+    if !isnothing(legend)
         legend_defaults = Makie.block_defaults(
             :Legend, Dict{Symbol,Any}(), get_ax(gui, :results).scene
         )
@@ -583,7 +588,7 @@ function update_legend!(gui::GUI)
         entry_groups = Makie.to_entry_group(
             Attributes(legend_defaults), contents, labels, title
         )
-        legend[1].entrygroups[] = entry_groups
+        legend.entrygroups[] = entry_groups
     end
 end
 
@@ -599,7 +604,7 @@ end
 """
     update_limits!(ax::Axis)
 
-Update the limits based on the visible plots of type `time_axis`.
+Adjust limits automatically to take into account legend and machine epsilon issues.
 """
 function update_limits!(ax::Axis)
     # Fetch all y-values in the axis
@@ -638,6 +643,19 @@ function update_limits!(ax::Axis)
     end
     # try to avoid legend box overlapping data
     ylims!(ax, yorigin, yorigin + ywidth * 1.1)
+end
+
+"""
+    update_limits!(ax::Axis, limits::GLMakie.HyperRectangle)
+
+Set the limits based on limits.
+"""
+function update_limits!(ax::Axis, limits::GLMakie.HyperRectangle)
+    xmin = limits.origin[1]
+    xmax = limits.origin[1] + limits.widths[1]
+    ymin = limits.origin[2]
+    ymax = limits.origin[2] + limits.widths[2]
+    limits!(ax, xmin, xmax, ymin, ymax)
 end
 
 """

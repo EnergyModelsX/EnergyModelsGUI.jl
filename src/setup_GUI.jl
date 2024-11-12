@@ -89,7 +89,6 @@ function GUI(
         :selection_color => :green2, # Colors for box boundaries when selection objects
         :investment_lineStyle => Linestyle([1.0, 1.5, 2.0, 2.5] .* 5), # linestyle for investment connections and box boundaries for nodes
         :path_to_results => path_to_results, # Path to the location where axes[:results] can be exported
-        :results_legend => [], # Legend for the results
         :plotted_data => [],
         :periods_labels => periods_labels,
         :representative_periods_labels => representative_periods_labels,
@@ -99,6 +98,18 @@ function GUI(
         :scale_tot_capex => scale_tot_capex,
         :colormap => colormap,
         :tol => tol,
+        :autolimits => Dict(
+            :results_op => true,
+            :results_sc => true,
+            :results_rp => true,
+            :results_sp => true,
+        ),       # Automatically adjust limits of the axis
+        :finallimits => Dict(
+            :results_op => GLMakie.HyperRectangle(Vec2f(0, 0), Vec2f(1, 1)),
+            :results_sc => GLMakie.HyperRectangle(Vec2f(0, 0), Vec2f(1, 1)),
+            :results_rp => GLMakie.HyperRectangle(Vec2f(0, 0), Vec2f(1, 1)),
+            :results_sp => GLMakie.HyperRectangle(Vec2f(0, 0), Vec2f(1, 1)),
+        ),
     )
 
     # gobal variables for legends
@@ -153,10 +164,12 @@ function GUI(
     vars[:ctrl_is_pressed] = Ref(false)
 
     # Construct the makie figure and its objects
-    fig, buttons, menus, toggles, axes = create_makie_objects(vars, root_design)
+    fig, buttons, menus, toggles, axes, legends = create_makie_objects(vars, root_design)
 
     ## Create the main structure for the EnergyModelsGUI
-    gui::GUI = GUI(fig, axes, buttons, menus, toggles, root_design, design, model, vars)
+    gui::GUI = GUI(
+        fig, axes, legends, buttons, menus, toggles, root_design, design, model, vars
+    )
 
     # Create complete Dict of descriptive names
     update_descriptive_names!(gui)
@@ -336,7 +349,7 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
             markers, scatter!(ax, Point2f((0, 0)); marker=:rect, color=color, visible=false)
         ) # add invisible dummy markers to be put in the legend box
     end
-    vars[:topo_legend] = axislegend(
+    topo_legend = axislegend(
         ax,
         markers,
         collect(keys(design.id_to_color_map)),
@@ -345,9 +358,7 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
         labelsize=vars[:fontsize],
         titlesize=vars[:fontsize],
     )
-    Makie.translate!(
-        vars[:topo_legend].blockscene, 0, 0, vars[:z_translate_components] + 999
-    )
+    Makie.translate!(topo_legend.blockscene, 0, 0, vars[:z_translate_components] + 999)
 
     # Initiate an axis for displaying information about the selected node
     ax_info::Makie.Axis = Axis(
@@ -492,28 +503,31 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
     # Add the following to add flexibility
     Makie.Label(gridlayout_results_taskbar3[1, 1], ""; tellwidth=false)
 
+    reset_view_results_button = Makie.Button(
+        gridlayout_results_taskbar3[1, 2]; label="reset view", fontsize=vars[:fontsize]
+    )
     pin_plot_button = Makie.Button(
-        gridlayout_results_taskbar3[1, 2];
+        gridlayout_results_taskbar3[1, 3];
         label="pin current data",
         fontsize=vars[:fontsize],
     )
     remove_plot_button = Makie.Button(
-        gridlayout_results_taskbar3[1, 3];
+        gridlayout_results_taskbar3[1, 4];
         label="remove selected data",
         fontsize=vars[:fontsize],
     )
     clear_all_button = Makie.Button(
-        gridlayout_results_taskbar3[1, 4]; label="clear all", fontsize=vars[:fontsize]
+        gridlayout_results_taskbar3[1, 5]; label="clear all", fontsize=vars[:fontsize]
     )
     Makie.Label(
-        gridlayout_results_taskbar3[1, 5],
+        gridlayout_results_taskbar3[1, 6],
         "Export:";
         halign=:right,
         fontsize=vars[:fontsize],
         justification=:right,
     )
     axes_menu = Makie.Menu(
-        gridlayout_results_taskbar3[1, 6];
+        gridlayout_results_taskbar3[1, 7];
         options=["All", "Plots", "Topo"],
         default="Plots",
         halign=:left,
@@ -521,7 +535,7 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
         fontsize=vars[:fontsize],
     )
     export_type_menu = Makie.Menu(
-        gridlayout_results_taskbar3[1, 7];
+        gridlayout_results_taskbar3[1, 8];
         options=[
             "bmp", "tiff", "tif", "jpg", "jpeg", "lp", "mps", "svg", "xlsx", "png", "REPL"
         ],
@@ -531,7 +545,7 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
         fontsize=vars[:fontsize],
     )
     export_button = Makie.Button(
-        gridlayout_results_taskbar3[1, 8]; label="export", fontsize=vars[:fontsize]
+        gridlayout_results_taskbar3[1, 9]; label="export", fontsize=vars[:fontsize]
     )
 
     # Collect all menus into a dictionary
@@ -543,6 +557,7 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
         :save => save_button,
         :reset_view => reset_view_button,
         :export => export_button,
+        :reset_view_results => reset_view_results_button,
         :pin_plot => pin_plot_button,
         :remove_plot => remove_plot_button,
         :clear_all => clear_all_button,
@@ -557,6 +572,11 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
         :time => time_menu,
         :export_type => export_type_menu,
         :axes => axes_menu,
+    )
+
+    # Collect all legends into a dictionary
+    legends::Dict{Symbol,Union{Makie.Legend,Nothing}} = Dict(
+        :results => nothing, :topo => topo_legend
     )
 
     # Ensure that menus are on top
@@ -582,5 +602,5 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
     )
     Makie.translate!(vars[:topo_title_obj], 0, 0, vars[:z_translate_components] + 999)
 
-    return fig, buttons, menus, toggles, axes
+    return fig, buttons, menus, toggles, axes, legends
 end
