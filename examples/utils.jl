@@ -1,4 +1,4 @@
-function get_cable_data(; type::String="TXSP 1x3x150 AL")
+function get_cable_data(; type::String = "TXSP 1x3x150 AL")
     # For the El line type TXSP 1x3x150 AL we have the following
     if type == "TXSP 1x3x150 AL"
         max_current = 310 # A

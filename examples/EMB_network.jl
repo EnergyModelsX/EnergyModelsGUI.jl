@@ -94,7 +94,7 @@ function generate_example_data()
             StorCapOpex(
                 FixedProfile(60),       # Charge capacity in t/h
                 FixedProfile(9.1),      # Storage variable OPEX for the charging in EUR/t
-                FixedProfile(0),        # Storage fixed OPEX for the charging in EUR/(t/h 8h)
+                FixedProfile(0)        # Storage fixed OPEX for the charging in EUR/(t/h 8h)
             ),
             StorCap(FixedProfile(600)), # Storage capacity in t
             CO2,                        # Stored resource
@@ -138,10 +138,12 @@ m = run_model(case, model, optimizer)
 # Display some results
 ng_ccs_pp, coal_pp, = case[:nodes][[4, 5]]
 @info "Capacity usage of the coal power plant"
-pretty_table(JuMP.Containers.rowtable(value, m[:cap_use][coal_pp, :]; header=[:t, :Value]))
+pretty_table(
+    JuMP.Containers.rowtable(value, m[:cap_use][coal_pp, :]; header = [:t, :Value]),
+)
 @info "Capacity usage of the natural gas + CCS power plant"
 pretty_table(
-    JuMP.Containers.rowtable(value, m[:cap_use][ng_ccs_pp, :]; header=[:t, :Value])
+    JuMP.Containers.rowtable(value, m[:cap_use][ng_ccs_pp, :]; header = [:t, :Value]),
 )
 
 ## Code above identical to the example EnergyModelsBase.jl/examples/network.jl
@@ -166,4 +168,4 @@ id_to_icon_map = set_icons(id_to_icon_map)
 design_path = joinpath(@__DIR__, "design", "EMB", "network")
 
 # Run the GUI
-gui = GUI(case; design_path, id_to_icon_map, model=m)
+gui = GUI(case; design_path, id_to_icon_map, model = m)

@@ -51,11 +51,12 @@ function set_colors(products::Vector{<:Resource}, id_to_color_map::Dict)
         parse(Colorant, hex_color) for hex_color ∈ values(complete_id_to_color_map)
     ]
     products_colors::Vector{RGB} = distinguishable_colors(
-        length(products), seed; dropseed=false
+        length(products), seed; dropseed = false,
     )
     for product ∈ products
         if !haskey(complete_id_to_color_map, product.id)
-            complete_id_to_color_map[product.id] = products_colors[length(complete_id_to_color_map) + 1]
+            complete_id_to_color_map[product.id] =
+                products_colors[length(complete_id_to_color_map)+1]
         end
     end
     return complete_id_to_color_map
@@ -108,7 +109,7 @@ function find_icon_path(icon::String)
 
         # Filter packages with names matching the pattern "EnergyModels*"
         emx_packages = filter(
-            pkg -> occursin(r"EnergyModels", pkg), keys(installed_packages)
+            pkg -> occursin(r"EnergyModels", pkg), keys(installed_packages),
         )
 
         # Search through EMX packages if icons are available there
@@ -190,7 +191,7 @@ function save_design(design::EnergySystemDesign)
         x, y = component.xy[]
 
         design_dict[string(component.system[:node])] = Dict(
-            :x => round(x; digits=5), :y => round(y; digits=5)
+            :x => round(x; digits = 5), :y => round(y; digits = 5),
         )
 
         # Also save the coordinates from sub designs
@@ -235,15 +236,15 @@ function get_linked_nodes!(
 )
     for link ∈ system[:links]
         if node ∈ [link.from, link.to] &&
-            (indices[1] == 1 || !(link ∈ links[1:(indices[1] - 1)]))
+           (indices[1] == 1 || !(link ∈ links[1:(indices[1]-1)]))
             links[indices[1]] = link
             indices[1] += 1
 
             new_node_added::Bool = false
-            if node == link.from && !(link.to ∈ nodes[1:(indices[2] - 1)])
+            if node == link.from && !(link.to ∈ nodes[1:(indices[2]-1)])
                 nodes[indices[2]] = link.to
                 new_node_added = true
-            elseif node == link.to && !(link.from ∈ nodes[1:(indices[2] - 1)])
+            elseif node == link.to && !(link.from ∈ nodes[1:(indices[2]-1)])
                 nodes[indices[2]] = link.from
                 new_node_added = true
             end
@@ -251,7 +252,7 @@ function get_linked_nodes!(
             # Recursively add other nodes
             if new_node_added
                 indices[2] += 1
-                get_linked_nodes!(nodes[indices[2] - 1], system, links, nodes, indices)
+                get_linked_nodes!(nodes[indices[2]-1], system, links, nodes, indices)
             end
         end
     end

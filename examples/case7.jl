@@ -39,7 +39,7 @@ function read_data()
     # Creation of the time structure
     dur = [8, 10, 10]          # duration of the three strategic period 2022--2029, 2030--2039, 2040--2049
 
-    T = TwoLevel(dur, representative_periods; op_per_strat=8760)
+    T = TwoLevel(dur, representative_periods; op_per_strat = 8760)
 
     noSP = length(dur)     # Number of strategic periods
 
@@ -86,13 +86,15 @@ function read_data()
 
     # Create a power line between the busbars
     Power_line = RefStatic(
-        "El power line_11126", Power, trans_cap, loss, opex_var, opex_fix, direction, []
+        "El power line_11126", Power, trans_cap, loss, opex_var, opex_fix, direction, [],
     )
     Power_line2 = RefStatic(
-        "El power line_11139", Power, trans_cap2, loss, opex_var, opex_fix, direction, []
+        "El power line_11139", Power, trans_cap2, loss, opex_var, opex_fix, direction,
+        [],
     )
     Power_line3 = RefStatic(
-        "El power line_11139", Power, trans_cap3, loss, opex_var, opex_fix, direction, []
+        "El power line_11139", Power, trans_cap3, loss, opex_var, opex_fix, direction,
+        [],
     )
 
     # Construct the transmission object
@@ -157,7 +159,7 @@ function get_sub_system_data(a_id, products, T)
             StrategicProfile(El_1_demand),    # cap: the demand
             Dict(                             # penality: penalties for surplus or deficits
                 :surplus => FixedProfile(0),  # Penalty for surplus
-                :deficit => FixedProfile(1e5), # Penalty for deficit
+                :deficit => FixedProfile(1e5) # Penalty for deficit
             ),
             Dict(Power => 1),                  # input `Resource`s with conversion value `Real`
         )
@@ -182,7 +184,7 @@ function get_sub_system_data(a_id, products, T)
             RepresentativeProfile(Heat_demand), # cap: the demand
             Dict(                               # penality: penalties for surplus or deficits
                 :surplus => FixedProfile(0),    # Penalty for surplus
-                :deficit => FixedProfile(1e5),   # Penalty for deficit
+                :deficit => FixedProfile(1e5)   # Penalty for deficit
             ),
             Dict(Heat => 1),                     # input `Resource`s with conversion value `Real`
         )
@@ -191,7 +193,7 @@ function get_sub_system_data(a_id, products, T)
             FixedProfile(0.2),                  # cap: the demand
             Dict(                               # penality: penalties for surplus or deficits
                 :surplus => FixedProfile(0),    # Penalty for surplus
-                :deficit => FixedProfile(1e5),   # Penalty for deficit
+                :deficit => FixedProfile(1e5)   # Penalty for deficit
             ),
             Dict(WarmWater => 1),                # input `Resource`s with conversion value `Real`
         )
@@ -207,10 +209,10 @@ function get_sub_system_data(a_id, products, T)
                     FixedProfile(1e7 / cap), # Capex [NOK/MW]
                     FixedProfile(cap),       # Max installed capacity [MW]
                     BinaryInvestment(
-                        FixedProfile(cap),   # Investment mode
+                        FixedProfile(cap)   # Investment mode
                     ),
                     RollingLife(
-                        FixedProfile(30),    # life_mode: type of handling the lifetime
+                        FixedProfile(30)    # life_mode: type of handling the lifetime
                     ),
                 ),
             ],
@@ -226,10 +228,10 @@ function get_sub_system_data(a_id, products, T)
                     FixedProfile(0),      # Capex [NOK/MW]
                     FixedProfile(1),      # Max installed capacity [MW]
                     BinaryInvestment(
-                        FixedProfile(1),  # Investment mode
+                        FixedProfile(1)  # Investment mode
                     ),
                     RollingLife(
-                        FixedProfile(30), # life_mode: type of handling the lifetime
+                        FixedProfile(30) # life_mode: type of handling the lifetime
                     ),
                 ),
             ],
@@ -294,7 +296,7 @@ function get_sub_system_data(a_id, products, T)
                 OperationalProfile(0.0 * ones(24))
             else
                 OperationalProfile(
-                    EV_charger_demand_day * EV_charger_change_factors[i - 1]
+                    EV_charger_demand_day * EV_charger_change_factors[i-1],
                 )
             end for i ∈ 1:(T.len)
         ] # Make EV charger available from 2030 (that is FixedProfile in the first strategic period 2022 -- 2030)
@@ -309,7 +311,7 @@ function get_sub_system_data(a_id, products, T)
             StrategicProfile(EV_charger_demand),    # cap: the demand
             Dict(                                   # penality: penalties for surplus or deficits
                 :surplus => FixedProfile(0),        # Penalty for surplus
-                :deficit => FixedProfile(1e5),       # Penalty for deficit
+                :deficit => FixedProfile(1e5)       # Penalty for deficit
             ),
             Dict(Power => 1),                        # input `Resource`s with conversion value `Real`
         )
@@ -341,7 +343,7 @@ function get_sub_system_data(a_id, products, T)
                     FixedProfile(5e8 / max_max_outtake), # Capex [NOK/MW]
                     FixedProfile(max_max_outtake),     # Max installed capacity [MW]
                     BinaryInvestment(
-                        FixedProfile(max_max_outtake), # Investment mode
+                        FixedProfile(max_max_outtake) # Investment mode
                     ),
                     RollingLife(FixedProfile(30)),  # Lifetime mode
                 ),
@@ -352,24 +354,24 @@ function get_sub_system_data(a_id, products, T)
             StorCapOpex(
                 FixedProfile(100),   # Charge capacity in Wh/h
                 FixedProfile(0),     # Storage variable OPEX for the charging in NOK/Wh
-                FixedProfile(0),     # Storage fixed OPEX for the charging in NOK/Wh
+                FixedProfile(0)     # Storage fixed OPEX for the charging in NOK/Wh
             ),
             StorCap(
-                FixedProfile(0),     # Storage capacity in Wh
+                FixedProfile(0)     # Storage capacity in Wh
             ),
             Power,                   # Stored resource
             Dict(Power => 1),        # Input resource with input ratio
             Dict(Power => 0.9),      # Output from the node with output ratio
             [
                 StorageInvData(
-                    level=NoStartInvData(
+                    level = NoStartInvData(
                         FixedProfile(0),             # capex: capital costs [NOK/MW]
                         FixedProfile(100),           # max_inst: maximum installed capacity
                         BinaryInvestment(
-                            FixedProfile(100),       # inv_mode: chosen investment mode
+                            FixedProfile(100)       # inv_mode: chosen investment mode
                         ),
                         RollingLife(
-                            FixedProfile(30), # life_mode: type of handling the lifetime
+                            FixedProfile(30) # life_mode: type of handling the lifetime
                         ),
                     ),
                 ),
@@ -412,15 +414,15 @@ function run_case()
     # Run the GUI
     gui = GUI(
         case;
-        design_path=path,
-        model=m,
-        periods_labels=["2022 - 2030", "2030 - 2040", "2040 - 2050"],
-        representative_periods_labels=["Winter", "Remaining"],
-        expand_all=true,
-        path_to_results=path_to_results,
-        case_name=case_name,
-        scale_tot_opex=false,
-        scale_tot_capex=true,
+        design_path = path,
+        model = m,
+        periods_labels = ["2022 - 2030", "2030 - 2040", "2040 - 2050"],
+        representative_periods_labels = ["Winter", "Remaining"],
+        expand_all = true,
+        path_to_results = path_to_results,
+        case_name = case_name,
+        scale_tot_opex = false,
+        scale_tot_capex = true,
     )
 
     return case, model, m, gui

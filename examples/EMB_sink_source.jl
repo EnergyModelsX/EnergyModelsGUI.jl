@@ -73,7 +73,7 @@ m = run_model(case, model, optimizer)
 # Display some results
 source, sink = case[:nodes]
 @info "Capacity usage of the power source"
-pretty_table(JuMP.Containers.rowtable(value, m[:cap_use][source, :]; header=[:t, :Value]))
+pretty_table(JuMP.Containers.rowtable(value, m[:cap_use][source, :]; header = [:t, :Value]))
 
 ## Code above identical to the example EnergyModelsBase.jl/examples/sink_source.jl
 ############################################################################################
@@ -83,7 +83,8 @@ using EnergyModelsGUI
 
 # Set custom icons
 icon_names = Dict(
-    "electricity source" => "hydro_power_plant", "electricity demand" => "factory_emissions"
+    "electricity source" => "hydro_power_plant",
+    "electricity demand" => "factory_emissions",
 )
 id_to_icon_map = set_icons(icon_names)
 
@@ -91,4 +92,4 @@ id_to_icon_map = set_icons(icon_names)
 design_path = joinpath(@__DIR__, "design", "EMB", "sink_source")
 
 # Run the GUI
-gui = GUI(case; design_path, id_to_icon_map, model=m)
+gui = GUI(case; design_path, id_to_icon_map, model = m)

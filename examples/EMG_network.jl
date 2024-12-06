@@ -43,11 +43,11 @@ function generate_example_data()
     model = OperationalModel(
         Dict(
             CO2 => StrategicProfile([160, 140, 120, 100]),  # CO₂ emission cap in t/24h
-            NG => FixedProfile(1e6),                       # NG cap in MWh/24h
+            NG => FixedProfile(1e6)                       # NG cap in MWh/24h
         ),
         Dict(
             CO2 => FixedProfile(0),                         # CO₂ emission cost in EUR/t
-            NG => FixedProfile(0),                         # NG emission cost in EUR/t
+            NG => FixedProfile(0)                         # NG emission cost in EUR/t
         ),
         CO2,
     )
@@ -108,9 +108,9 @@ function generate_example_data()
         n, l = get_sub_system_data(
             a_id,
             products;
-            mc_scale=mc_scale[a_id],
-            d_scale=d_scale[a_id],
-            demand=demand[a_id],
+            mc_scale = mc_scale[a_id],
+            d_scale = d_scale[a_id],
+            demand = demand[a_id],
         )
         append!(nodes, n)
         append!(links, l)
@@ -150,29 +150,29 @@ function generate_example_data()
     opex_fix = FixedProfile(0.05)   # Fixed OPEX in EUR/24h
 
     OB_OverheadLine_50MW = RefStatic(
-        "OB_PowerLine_50", Power, cap_ohl, loss, opex_var, opex_fix, 2
+        "OB_PowerLine_50", Power, cap_ohl, loss, opex_var, opex_fix, 2,
     )
     OT_OverheadLine_50MW = RefStatic(
-        "OT_PowerLine_50", Power, cap_ohl, loss, opex_var, opex_fix, 2
+        "OT_PowerLine_50", Power, cap_ohl, loss, opex_var, opex_fix, 2,
     )
     OK_OverheadLine_50MW = RefStatic(
-        "OK_PowerLine_50", Power, cap_ohl, loss, opex_var, opex_fix, 2
+        "OK_PowerLine_50", Power, cap_ohl, loss, opex_var, opex_fix, 2,
     )
     BT_OverheadLine_50MW = RefStatic(
-        "BT_PowerLine_50", Power, cap_ohl, loss, opex_var, opex_fix, 2
+        "BT_PowerLine_50", Power, cap_ohl, loss, opex_var, opex_fix, 2,
     )
     BTN_LNG_Ship_100MW = RefDynamic("BTN_LNG_100", NG, cap_lng, loss, opex_var, opex_fix, 1)
     BK_OverheadLine_50MW = RefStatic(
-        "BK_PowerLine_50", Power, cap_ohl, loss, opex_var, opex_fix, 2
+        "BK_PowerLine_50", Power, cap_ohl, loss, opex_var, opex_fix, 2,
     )
     TTN_OverheadLine_50MW = RefStatic(
-        "TTN_PowerLine_50", Power, cap_ohl, loss, opex_var, opex_fix, 2
+        "TTN_PowerLine_50", Power, cap_ohl, loss, opex_var, opex_fix, 2,
     )
     KS_OverheadLine_50MW = RefStatic(
-        "KS_PowerLine_50", Power, cap_ohl, loss, opex_var, opex_fix, 2
+        "KS_PowerLine_50", Power, cap_ohl, loss, opex_var, opex_fix, 2,
     )
     SD_OverheadLine_50MW = RefStatic(
-        "SD_PowerLine_50", Power, cap_ohl, loss, opex_var, opex_fix, 2
+        "SD_PowerLine_50", Power, cap_ohl, loss, opex_var, opex_fix, 2,
     )
 
     # Create the different transmission corridors between the individual areas
@@ -216,7 +216,7 @@ end
 # profiles
 # The subsystem is similar to the subsystem in the `network.jl` example of EnergyModelsBase.
 function get_sub_system_data(
-    i, products; mc_scale::Float64=1.0, d_scale::Float64=1.0, demand=false
+    i, products; mc_scale::Float64 = 1.0, d_scale::Float64 = 1.0, demand = false,
 )
     NG, Coal, Power, CO2 = products
 
@@ -296,7 +296,7 @@ function get_sub_system_data(
             StorCapOpex(
                 FixedProfile(20),       # Charge capacity in t/h
                 FixedProfile(9.1),      # Storage variable OPEX for the charging in EUR/t
-                FixedProfile(0),        # Storage fixed OPEX for the charging in EUR/(t/h 8h)
+                FixedProfile(0)        # Storage fixed OPEX for the charging in EUR/(t/h 8h)
             ),
             StorCap(FixedProfile(600)), # Storage capacity in t
             CO2,                        # Stored resource
@@ -354,4 +354,4 @@ id_to_color_map = Dict(Power.id => :cyan, NG.id => "#FF9876")
 design_path = joinpath(@__DIR__, "design", "EMG", "network")
 
 # Run the GUI
-gui = GUI(case; design_path, id_to_color_map, model=m)
+gui = GUI(case; design_path, id_to_color_map, model = m)

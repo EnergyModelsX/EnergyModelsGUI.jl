@@ -130,7 +130,7 @@ function generate_example_data()
             StorCapOpex(
                 FixedProfile(0),        # Charge capacity in t/h
                 FixedProfile(9.1),      # Storage variable OPEX for the charging in EUR/t
-                FixedProfile(15 * 1e3),   # Storage fixed OPEX for the charging in EUR/(t/h 8h)
+                FixedProfile(15 * 1e3)   # Storage fixed OPEX for the charging in EUR/(t/h 8h)
             ),
             StorCap(FixedProfile(1e8)), # Storage capacity in t
             CO2,                        # Stored resource
@@ -140,7 +140,7 @@ function generate_example_data()
             # In practice, for CO2 storage, this is never used.
             [
                 StorageInvData(;
-                    charge=NoStartInvData(
+                    charge = NoStartInvData(
                         FixedProfile(200 * 1e3),  # CAPEX [EUR/(t/h)]
                         FixedProfile(60),       # Max installed capacity [EUR/(t/h)]
                         ContinuousInvestment(FixedProfile(0), FixedProfile(5)),
@@ -190,14 +190,15 @@ ng_ccs_pp, CO2_stor, = case[:nodes][[4, 6]]
 individual strategic periods"
 pretty_table(
     JuMP.Containers.rowtable(
-        value, m[:cap_add][ng_ccs_pp, :]; header=[:StrategicPeriod, :InvestCapacity]
+        value, m[:cap_add][ng_ccs_pp, :]; header = [:StrategicPeriod, :InvestCapacity],
     ),
 )
 @info "Invested capacity for the CO2 storage in the beginning of the
 individual strategic periods"
 pretty_table(
     JuMP.Containers.rowtable(
-        value, m[:stor_charge_add][CO2_stor, :]; header=[:StrategicPeriod, :InvestCapacity]
+        value, m[:stor_charge_add][CO2_stor, :];
+        header = [:StrategicPeriod, :InvestCapacity],
     ),
 )
 
@@ -211,4 +212,4 @@ using EnergyModelsGUI
 design_path = joinpath(@__DIR__, "design", "EMI", "network")
 
 # Run the GUI
-gui = GUI(case; design_path, model=m)
+gui = GUI(case; design_path, model = m)

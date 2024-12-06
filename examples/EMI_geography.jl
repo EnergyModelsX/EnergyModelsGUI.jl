@@ -46,9 +46,9 @@ function generate_example_data()
         n, l = get_sub_system_data(
             a_id,
             products;
-            gen_scale=gen_scale[a_id],
-            mc_scale=mc_scale[a_id],
-            d_scale=d_scale[a_id],
+            gen_scale = gen_scale[a_id],
+            mc_scale = mc_scale[a_id],
+            d_scale = d_scale[a_id],
         )
         append!(nodes, n)
         append!(links, l)
@@ -67,7 +67,7 @@ function generate_example_data()
 
     # Create the investment data for the different power line investment modes
     inv_data_12 = SingleInvData(
-        FixedProfile(500), FixedProfile(50), 0, BinaryInvestment(FixedProfile(50.0))
+        FixedProfile(500), FixedProfile(50), 0, BinaryInvestment(FixedProfile(50.0)),
     )
 
     inv_data_13 = SingleInvData(
@@ -78,7 +78,7 @@ function generate_example_data()
     )
 
     inv_data_23 = SingleInvData(
-        FixedProfile(10), FixedProfile(50), 20, DiscreteInvestment(FixedProfile(6))
+        FixedProfile(10), FixedProfile(50), 20, DiscreteInvestment(FixedProfile(6)),
     )
 
     inv_data_34 = SingleInvData(
@@ -191,10 +191,10 @@ end
 function get_sub_system_data(
     i,
     products;
-    gen_scale::Float64=1.0,
-    mc_scale::Float64=1.0,
-    d_scale::Float64=1.0,
-    demand=false,
+    gen_scale::Float64 = 1.0,
+    mc_scale::Float64 = 1.0,
+    d_scale::Float64 = 1.0,
+    demand = false,
 )
     NG, Coal, Power, CO2 = products
 
@@ -387,12 +387,12 @@ function get_sub_system_data(
             Dict(CO2 => 1),
             [
                 StorageInvData(;
-                    charge=NoStartInvData(
+                    charge = NoStartInvData(
                         FixedProfile(500),
                         FixedProfile(600),
                         ContinuousInvestment(FixedProfile(0), FixedProfile(600)),
                     ),
-                    level=NoStartInvData(
+                    level = NoStartInvData(
                         FixedProfile(500),
                         FixedProfile(600),
                         ContinuousInvestment(FixedProfile(0), FixedProfile(600)),
@@ -425,12 +425,12 @@ function get_sub_system_data(
             Dict(CO2 => 1),
             [
                 StorageInvData(;
-                    charge=NoStartInvData(
+                    charge = NoStartInvData(
                         FixedProfile(500),
                         FixedProfile(30),
                         ContinuousInvestment(FixedProfile(0), FixedProfile(3)),
                     ),
-                    level=NoStartInvData(
+                    level = NoStartInvData(
                         FixedProfile(500),
                         FixedProfile(50),
                         ContinuousInvestment(FixedProfile(0), FixedProfile(2)),
@@ -500,8 +500,8 @@ design_path = joinpath(@__DIR__, "design", "EMI", "geography")
 gui = GUI(
     case;
     design_path,
-    model=m,
-    coarse_coast_lines=false,
-    scale_tot_opex=true,
-    scale_tot_capex=false,
+    model = m,
+    coarse_coast_lines = false,
+    scale_tot_opex = true,
+    scale_tot_capex = false,
 )

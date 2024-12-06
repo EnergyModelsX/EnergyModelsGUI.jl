@@ -66,34 +66,34 @@ import EnergyModelsGUI:
     @testset "Toggle colors" begin
         area1 = components[1] # fetch Area 1
         plt_area1 = area1.plots[1]
-        pick_component!(gui, plt_area1; pick_topo_component=true)
+        pick_component!(gui, plt_area1; pick_topo_component = true)
         update!(gui)
         @test area1.color[] == get_selection_color(gui)
-        pick_component!(gui, nothing; pick_topo_component=true)
+        pick_component!(gui, nothing; pick_topo_component = true)
         @test area1.color[] == :black
 
         node2 = get_components(components[1])[2] # fetch node El 1
         plt_node2 = node2.plots[1]
-        pick_component!(gui, plt_node2; pick_topo_component=true)
+        pick_component!(gui, plt_node2; pick_topo_component = true)
         update!(gui)
         @test node2.color[] == get_selection_color(gui)
-        pick_component!(gui, nothing; pick_topo_component=true)
+        pick_component!(gui, nothing; pick_topo_component = true)
         @test node2.color[] == :black
 
         connection1 = connections[1] # fetch the Area 1 - Area 2 transmission
         plt_connection1 = connection1.plots[1][][1]
-        pick_component!(gui, plt_connection1; pick_topo_component=true)
+        pick_component!(gui, plt_connection1; pick_topo_component = true)
         update!(gui)
         @test get_plots(connection1)[1][][1].color[] == get_selection_color(gui)
-        pick_component!(gui, nothing; pick_topo_component=true)
+        pick_component!(gui, nothing; pick_topo_component = true)
         @test get_plots(connection1)[1][][1].color[] == connection1.colors[1]
 
         link1 = get_connections(components[1])[5] # fetch the link to heat pump
         plt_link1 = link1.plots[1][][1]
-        pick_component!(gui, plt_link1; pick_topo_component=true)
+        pick_component!(gui, plt_link1; pick_topo_component = true)
         update!(gui)
         @test get_plots(link1)[1][][1].color[] == get_selection_color(gui)
-        pick_component!(gui, nothing; pick_topo_component=true)
+        pick_component!(gui, nothing; pick_topo_component = true)
         for plot ∈ link1.plots
             for (i, color) ∈ enumerate(link1.colors)
                 @test plot[][i].color[] == color
@@ -104,7 +104,7 @@ import EnergyModelsGUI:
     # Test the open button functionality
     area1 = components[1] # fetch Area 1
     @testset "get_button(gui,:open).clicks" begin
-        pick_component!(gui, area1; pick_topo_component=true) # Select Area 1
+        pick_component!(gui, area1; pick_topo_component = true) # Select Area 1
         notify(get_button(gui, :open).clicks) # Open Area 1
         @test get_var(gui, :title)[] == "top_level.Area 1"
     end
@@ -118,18 +118,18 @@ import EnergyModelsGUI:
     # Test the align horz. button (aligning nodes horizontally)
     area2 = components[2] # fetch Area 2
     @testset "get_button(gui,:align_horizontal).clicks" begin
-        pick_component!(gui, area1; pick_topo_component=true) # Select Area 1
-        pick_component!(gui, area2; pick_topo_component=true) # Select Area 2
+        pick_component!(gui, area1; pick_topo_component = true) # Select Area 1
+        pick_component!(gui, area2; pick_topo_component = true) # Select Area 2
         notify(get_button(gui, :align_horizontal).clicks) # Align Area 1 and 2 horizontally
         @test get_xy(components[1])[][2] == get_xy(components[2])[][2]
     end
 
     # Test the align vert. button (aligning nodes horizontally)
     area3 = components[3] # fetch Area 3
-    clear_selection(gui; clear_topo=true)
+    clear_selection(gui; clear_topo = true)
     @testset "get_button(gui,:align_vertical).clicks" begin
-        pick_component!(gui, area2; pick_topo_component=true) # Select Area 2
-        pick_component!(gui, area3; pick_topo_component=true) # Select Area 3
+        pick_component!(gui, area2; pick_topo_component = true) # Select Area 2
+        pick_component!(gui, area3; pick_topo_component = true) # Select Area 3
         notify(get_button(gui, :align_vertical).clicks) # Align Area 2 and 3 vertically
         @test get_xy(components[2])[][1] == get_xy(components[3])[][1]
     end
@@ -182,14 +182,14 @@ import EnergyModelsGUI:
 
     # Run through all components
     @testset "Run through all components" begin
-        run_through_all(gui; break_after_first=false)
+        run_through_all(gui; break_after_first = false)
         true
     end
 
     @testset "get_menu(gui,:period).i_selected" begin
-        clear_selection(gui; clear_topo=true)
+        clear_selection(gui; clear_topo = true)
         sub_component = get_components(components[2])[2] # fetch the n_Power supply node
-        pick_component!(gui, sub_component; pick_topo_component=true)
+        pick_component!(gui, sub_component; pick_topo_component = true)
         update!(gui)
         select_data!(gui, "cap_use")
         time_axis = time_menu.selection[]
@@ -208,9 +208,9 @@ import EnergyModelsGUI:
     end
 
     @testset "get_menu(gui,:representative_period).i_selected" begin
-        clear_selection(gui; clear_topo=true)
+        clear_selection(gui; clear_topo = true)
         sub_component = get_components(components[1])[4] # fetch the Heating 1 node
-        pick_component!(gui, sub_component; pick_topo_component=true)
+        pick_component!(gui, sub_component; pick_topo_component = true)
         update!(gui)
         select_data!(gui, "flow_in")
         time_axis = time_menu.selection[]
@@ -249,36 +249,36 @@ import EnergyModelsGUI:
 
         time_menu.i_selected[] = 1
         @test check_visibility(:results_sp) &&
-            !check_visibility(:results_rp) &&
-            check_visibility(:results_sc) &&
-            !check_visibility(:results_op)
+              !check_visibility(:results_rp) &&
+              check_visibility(:results_sc) &&
+              !check_visibility(:results_op)
         time_menu.i_selected[] = 2
         @test !check_visibility(:results_sp) &&
-            check_visibility(:results_rp) &&
-            check_visibility(:results_sc) &&
-            !check_visibility(:results_op)
+              check_visibility(:results_rp) &&
+              check_visibility(:results_sc) &&
+              !check_visibility(:results_op)
         time_menu.i_selected[] = 3
         @test !check_visibility(:results_sp) &&
-            !check_visibility(:results_rp) &&
-            check_visibility(:results_sc) &&
-            !check_visibility(:results_op)
+              !check_visibility(:results_rp) &&
+              check_visibility(:results_sc) &&
+              !check_visibility(:results_op)
         time_menu.i_selected[] = 4
         @test !check_visibility(:results_sp) &&
-            !check_visibility(:results_rp) &&
-            check_visibility(:results_sc) &&
-            check_visibility(:results_op)
+              !check_visibility(:results_rp) &&
+              check_visibility(:results_sc) &&
+              check_visibility(:results_op)
     end
 
     @testset "pin_plot_button.clicks" begin
-        clear_selection(gui; clear_topo=true)
+        clear_selection(gui; clear_topo = true)
         sub_component = get_components(components[4])[2] # fetch the Solar Power node
-        pick_component!(gui, sub_component; pick_topo_component=true)
+        pick_component!(gui, sub_component; pick_topo_component = true)
         update!(gui)
         select_data!(gui, "profile")
         time_axis = time_menu.selection[]
         notify(pin_plot_button.clicks)
         sub_component2 = components[3].components[2] # fetch the EV charger node
-        pick_component!(gui, sub_component2; pick_topo_component=true) # Select Area 1
+        pick_component!(gui, sub_component2; pick_topo_component = true) # Select Area 1
         update!(gui)
         select_data!(gui, "cap")
         notify(pin_plot_button.clicks)
@@ -323,7 +323,7 @@ import EnergyModelsGUI:
     @testset "get_button(gui,:remove_plot).clicks" begin
         time_axis = time_menu.selection[]
         element = get_visible_data(gui, time_axis)[1]
-        pick_component!(gui, element; pick_results_component=true)
+        pick_component!(gui, element; pick_results_component = true)
 
         notify(get_button(gui, :remove_plot).clicks)
         notify(get_button(gui, :remove_plot).clicks) # test redundant clicks
@@ -331,7 +331,7 @@ import EnergyModelsGUI:
     end
 
     @testset "get_button(gui,:clear_all).clicks" begin
-        clear_selection(gui; clear_topo=true)
+        clear_selection(gui; clear_topo = true)
         update_available_data_menu!(gui, nothing) # Make sure the menu is updated
         select_data!(gui, "emissions_strategic")
         notify(pin_plot_button.clicks)
@@ -344,7 +344,7 @@ import EnergyModelsGUI:
 
     @testset "Test plotting of representative periods from JuMP" begin
         sub_component = get_components(components[4])[3] # fetch the Battery node
-        pick_component!(gui, sub_component; pick_topo_component=true)
+        pick_component!(gui, sub_component; pick_topo_component = true)
         update!(gui)
         get_menu(gui, :period).i_selected = 3
         select_data!(gui, "stor_level_Δ_rp")
@@ -374,7 +374,7 @@ import EnergyModelsGUI:
         push!(case[:nodes], test_source)
         push!(case[:links], Direct("Link to test source", test_source, av, Linear()))
         push!(case[:links], Direct("Link to test sink", av, test_sink, Linear()))
-        gui = GUI(case; id_to_icon_map=id_to_icon_map, scenarios_labels=["Scenario 1"])
+        gui = GUI(case; id_to_icon_map = id_to_icon_map, scenarios_labels = ["Scenario 1"])
         components = get_components(get_root_design(gui))
         @test isempty(get_components(components[4])[3].id_to_icon_map["Battery"])
     end
@@ -383,7 +383,7 @@ import EnergyModelsGUI:
     include("example_test.jl")
 
     ## Run a case with no representative periods nor scenarios
-    case, model, m, gui = run_case(; use_rp=false, use_sc=false)
+    case, model, m, gui = run_case(; use_rp = false, use_sc = false)
     available_data_menu = get_menu(gui, :available_data)
     @testset "Test SP(OP)" begin
 
@@ -397,7 +397,7 @@ import EnergyModelsGUI:
     end
 
     ## Run a case with scenarios but no representative periods
-    case, model, m, gui = run_case(; use_rp=false, use_sc=true)
+    case, model, m, gui = run_case(; use_rp = false, use_sc = true)
     available_data_menu = get_menu(gui, :available_data)
     @testset "Test SP(SC(OP))" begin
         # Test plotting over operational periods
@@ -411,14 +411,14 @@ import EnergyModelsGUI:
 
         # Test plotting over scenarios
         sink = get_components(get_root_design(gui))[2]
-        pick_component!(gui, sink; pick_topo_component=true)
+        pick_component!(gui, sink; pick_topo_component = true)
         update!(gui)
         select_data!(gui, "penalty.deficit")
         @test get_ax(gui, :results).scene.plots[3][1][][4][2] ≈ 200000 atol = 1e-5
     end
 
     ## Run a case with representative periods but no scenarios
-    case, model, m, gui = run_case(; use_rp=true, use_sc=false)
+    case, model, m, gui = run_case(; use_rp = true, use_sc = false)
     available_data_menu = get_menu(gui, :available_data)
     @testset "Test SP(RP(OP))" begin
         # Test plotting over operational periods
@@ -433,14 +433,14 @@ import EnergyModelsGUI:
         # Test plotting over representative periods
         get_menu(gui, :period).i_selected = 3
         sink = get_components(get_root_design(gui))[2]
-        pick_component!(gui, sink; pick_topo_component=true)
+        pick_component!(gui, sink; pick_topo_component = true)
         update!(gui)
         select_data!(gui, "penalty.deficit")
         @test get_ax(gui, :results).scene.plots[3][1][][2][2] ≈ 2.0e6 atol = 1e-5
     end
 
     ## Run a case with representative periods and scenarios
-    case, model, m, gui = run_case(; use_rp=true, use_sc=true)
+    case, model, m, gui = run_case(; use_rp = true, use_sc = true)
     available_data_menu = get_menu(gui, :available_data)
 
     @testset "Test SP(RP(SC(OP)))" begin
@@ -476,7 +476,7 @@ import EnergyModelsGUI:
 
         # Test plotting over scenarios
         sink = get_components(get_root_design(gui))[2]
-        pick_component!(gui, sink; pick_topo_component=true)
+        pick_component!(gui, sink; pick_topo_component = true)
         update!(gui)
         select_data!(gui, "penalty.deficit")
         @test get_ax(gui, :results).scene.plots[3][1][][2][2] ≈ 4.0e6 atol = 1e-5

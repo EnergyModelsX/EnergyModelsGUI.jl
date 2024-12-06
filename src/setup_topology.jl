@@ -24,13 +24,13 @@ It constructs and returns an `EnergySystemDesign` instance.
 """
 function EnergySystemDesign(
     system::Dict;
-    design_path::String="",
-    id_to_color_map::Dict=Dict(),
-    id_to_icon_map::Dict=Dict(),
-    x::Real=0.0,
-    y::Real=0.0,
-    icon::String="",
-    parent::Union{Symbol,Nothing}=nothing,
+    design_path::String = "",
+    id_to_color_map::Dict = Dict(),
+    id_to_icon_map::Dict = Dict(),
+    x::Real = 0.0,
+    y::Real = 0.0,
+    icon::String = "",
+    parent::Union{Symbol,Nothing} = nothing,
 )
     # Create the path to the file where existing design is stored (if any)
     file::String = design_file(system, design_path)
@@ -150,7 +150,7 @@ function process_children!(
 )
     # Create an iterator for the current systems
     systems_iterator::Union{
-        Iterators.Enumerate{Vector{EMB.Node}},Iterators.Enumerate{Vector{Area}},Nothing
+        Iterators.Enumerate{Vector{EMB.Node}},Iterators.Enumerate{Vector{Area}},Nothing,
     } = if haskey(systems, :areas)
         enumerate(systems[:areas])
     elseif haskey(systems, :nodes)
@@ -190,8 +190,8 @@ function process_children!(
                     @error "Missing lon and/or lat coordinates"
                 end
             elseif !haskey(system_info, "x") &&
-                !haskey(system_info, "y") &&
-                haskey(systems, :nodes)
+                   !haskey(system_info, "y") &&
+                   haskey(systems, :nodes)
                 if !parent_node_found && (
                     (haskey(systems, :node) && system == systems[:node].node) ||
                     (parent == :parent_not_found && typeof(system) <: Availability)
@@ -202,7 +202,7 @@ function process_children!(
                     parent_node_found = true
                 else # place nodes in a circle around the parents availability node
                     x, y = place_nodes_in_circle(
-                        nodes_count, current_node, 1, parent_x, parent_y
+                        nodes_count, current_node, 1, parent_x, parent_y,
                     )
                     current_node += 1
                 end
@@ -216,7 +216,7 @@ function process_children!(
                 # Allocate redundantly large vector (for efficiency) to collect all links and nodes
                 area_links::Vector{Link} = Vector{Link}(undef, length(systems[:links]))
                 area_nodes::Vector{EMB.Node} = Vector{EMB.Node}(
-                    undef, length(systems[:nodes])
+                    undef, length(systems[:nodes]),
                 )
 
                 area_nodes[1] = area_an
@@ -242,8 +242,8 @@ function process_children!(
                     id_to_icon_map,
                     x,
                     y,
-                    icon=find_icon(this_sys, id_to_icon_map),
-                    parent=parent,
+                    icon = find_icon(this_sys, id_to_icon_map),
+                    parent = parent,
                 ),
             )
         end

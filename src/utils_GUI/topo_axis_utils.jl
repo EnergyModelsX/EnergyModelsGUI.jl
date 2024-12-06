@@ -141,11 +141,11 @@ Plot the topology of get_design(gui) (only if not already available), and toggle
 based on the optional argument `visible`.
 """
 function plot_design!(
-    gui::GUI, design::EnergySystemDesign; visible::Bool=true, expand_all::Bool=true
+    gui::GUI, design::EnergySystemDesign; visible::Bool = true, expand_all::Bool = true,
 )
     for component ∈ get_components(design)
         component_visibility::Bool = (component == get_design(gui)) || expand_all
-        plot_design!(gui, component; visible=component_visibility, expand_all)
+        plot_design!(gui, component; visible = component_visibility, expand_all)
     end
     if get_design(gui) == design
         update_distances!(gui)
@@ -169,12 +169,12 @@ function connect!(gui::GUI, design::EnergySystemDesign)
     components = get_components(design)
     for component ∈ components
         linked_to_component::Vector{Connection} = filter(
-            x -> component.system[:node].id == get_element(x).to.id, connections
+            x -> component.system[:node].id == get_element(x).to.id, connections,
         )
         linked_from_component::Vector{Connection} = filter(
-            x -> component.system[:node].id == get_element(x).from.id, connections
+            x -> component.system[:node].id == get_element(x).from.id, connections,
         )
-        on(component.xy; priority=4) do _
+        on(component.xy; priority = 4) do _
             angles::Vector{Float64} = vcat(
                 [
                     angle(component, linked_component.from) for
@@ -249,7 +249,7 @@ function connect!(gui::GUI, connection::Connection, two_way::Bool)
     update =
         () -> begin
             markersize_lengths::Tuple{Float64,Float64} = pixel_to_data(
-                gui, get_var(gui, :markersize)
+                gui, get_var(gui, :markersize),
             )
             xy_1::Vector{Real} = collect(connection.from.xy[])
             xy_2::Vector{Real} = collect(connection.to.xy[])
@@ -265,7 +265,7 @@ function connect!(gui::GUI, connection::Connection, two_way::Bool)
                 pixel_to_data(gui, get_var(gui, :connection_linewidth)) .+
                 pixel_to_data(gui, get_var(gui, :line_sep_px))
             two_way_sep::Tuple{Float64,Float64} = pixel_to_data(
-                gui, get_var(gui, :two_way_sep_px)
+                gui, get_var(gui, :two_way_sep_px),
             )
             θ::Float64 = atan(xy_2[2] - xy_1[2], xy_2[1] - xy_1[1])
             cosθ::Float64 = cos(θ)
@@ -315,21 +315,21 @@ function connect!(gui::GUI, connection::Connection, two_way::Bool)
                         get_axes(gui)[:topo],
                         xy_midpoint[1],
                         xy_midpoint[2];
-                        marker=arrow_parts[j],
-                        markersize=get_var(gui, :markersize),
-                        rotation=θ,
-                        color=colors[j],
-                        inspectable=false,
+                        marker = arrow_parts[j],
+                        markersize = get_var(gui, :markersize),
+                        rotation = θ,
+                        color = colors[j],
+                        inspectable = false,
                     )
                     lns = lines!(
                         get_axes(gui)[:topo],
                         xs,
                         ys;
-                        color=colors[j],
-                        linewidth=get_var(gui, :connection_linewidth),
-                        linestyle=linestyle[j],
-                        inspector_label=(self, i, p) -> get_hover_string(connection),
-                        inspectable=true,
+                        color = colors[j],
+                        linewidth = get_var(gui, :connection_linewidth),
+                        linestyle = linestyle[j],
+                        inspector_label = (self, i, p) -> get_hover_string(connection),
+                        inspectable = true,
                     )
                     Makie.translate!(sctr, 0, 0, get_var(gui, :z_translate_lines))
                     get_vars(gui)[:z_translate_lines] += 1
@@ -338,7 +338,8 @@ function connect!(gui::GUI, connection::Connection, two_way::Bool)
                     push!(arrow_heads[], sctr)
                     push!(line_connections[], lns)
                 else
-                    arrow_heads[][j][1][] = [Point{2,Float64}(xy_midpoint[1], xy_midpoint[2])]
+                    arrow_heads[][j][1][] =
+                        [Point{2,Float64}(xy_midpoint[1], xy_midpoint[2])]
                     arrow_heads[][j][:rotation] = θ
                     arrow_heads[][j].visible = true
                     line_connections[][j][1][] = [
@@ -353,7 +354,7 @@ function connect!(gui::GUI, connection::Connection, two_way::Bool)
 
     # If components changes position, so must the connections
     for component ∈ [connection.from, connection.to]
-        on(component.xy; priority=3) do _
+        on(component.xy; priority = 3) do _
             if component.plots[1].visible[]
                 update()
             end
@@ -430,24 +431,25 @@ function draw_box!(gui::GUI, design::EnergySystemDesign)
         xo2::Observable{Vector{Real}} = Observable(zeros(5))
         yo2::Observable{Vector{Real}} = Observable(zeros(5))
         vertices2::Vector{Tuple{Real,Real}} = [
-            (x, y) for (x, y) ∈ zip(xo2[][1:(end - 1)], yo2[][1:(end - 1)])
+            (x, y) for (x, y) ∈ zip(xo2[][1:(end-1)], yo2[][1:(end-1)])
         ]
 
         white_rect2 = poly!(
-            get_axes(gui)[:topo], vertices2; color=:white, strokewidth=0, inspectable=false
+            get_axes(gui)[:topo], vertices2; color = :white, strokewidth = 0,
+            inspectable = false,
         ) # Create a white background rectangle to hide lines from connections
         Makie.translate!(white_rect2, 0, 0, get_var(gui, :z_translate_components))
         get_vars(gui)[:z_translate_components] += 1
         push!(design.plots, white_rect2)
 
         # observe changes in design coordinates and update enlarged box position
-        on(design.xy; priority=3) do val
+        on(design.xy; priority = 3) do val
             x = val[1]
             y = val[2]
 
             xo2[], yo2[] = box(x, y, get_var(gui, :Δh) / 2 * get_var(gui, :parent_scaling))
             white_rect2[1] = [
-                (x, y) for (x, y) ∈ zip(xo2[][1:(end - 1)], yo2[][1:(end - 1)])
+                (x, y) for (x, y) ∈ zip(xo2[][1:(end-1)], yo2[][1:(end-1)])
             ]
         end
 
@@ -455,10 +457,10 @@ function draw_box!(gui::GUI, design::EnergySystemDesign)
             get_axes(gui)[:topo],
             xo2,
             yo2;
-            color=design.color,
-            linewidth=get_var(gui, :linewidth),
-            linestyle=:solid,
-            inspectable=false,
+            color = design.color,
+            linewidth = get_var(gui, :linewidth),
+            linestyle = :solid,
+            inspectable = false,
         )
         Makie.translate!(box_boundary2, 0, 0, get_var(gui, :z_translate_components))
         get_vars(gui)[:z_translate_components] += 1
@@ -470,10 +472,11 @@ function draw_box!(gui::GUI, design::EnergySystemDesign)
     xo::Observable{Vector{Real}} = Observable(zeros(5))
     yo::Observable{Vector{Real}} = Observable(zeros(5))
     vertices::Vector{Tuple{Real,Real}} = [
-        (x, y) for (x, y) ∈ zip(xo[][1:(end - 1)], yo[][1:(end - 1)])
+        (x, y) for (x, y) ∈ zip(xo[][1:(end-1)], yo[][1:(end-1)])
     ]
     white_rect = poly!(
-        get_axes(gui)[:topo], vertices; color=:white, strokewidth=0, inspectable=false
+        get_axes(gui)[:topo], vertices; color = :white, strokewidth = 0,
+        inspectable = false,
     ) # Create a white background rectangle to hide lines from connections
     add_inspector_to_poly!(white_rect, (self, i, p) -> get_hover_string(design))
     Makie.translate!(white_rect, 0, 0, get_var(gui, :z_translate_components))
@@ -482,22 +485,22 @@ function draw_box!(gui::GUI, design::EnergySystemDesign)
     push!(design.plots, white_rect)
 
     # Observe changes in design coordinates and update box position
-    on(design.xy; priority=3) do val
+    on(design.xy; priority = 3) do val
         x::Real = val[1]
         y::Real = val[2]
 
         xo[], yo[] = box(x, y, get_var(gui, :Δh) / 2)
-        white_rect[1] = [(x, y) for (x, y) ∈ zip(xo[][1:(end - 1)], yo[][1:(end - 1)])]
+        white_rect[1] = [(x, y) for (x, y) ∈ zip(xo[][1:(end-1)], yo[][1:(end-1)])]
     end
 
     box_boundary = lines!(
         get_axes(gui)[:topo],
         xo,
         yo;
-        color=design.color,
-        linewidth=get_var(gui, :linewidth),
-        linestyle=linestyle,
-        inspectable=false,
+        color = design.color,
+        linewidth = get_var(gui, :linewidth),
+        linestyle = linestyle,
+        inspectable = false,
     )
     Makie.translate!(box_boundary, 0, 0, get_var(gui, :z_translate_components))
     get_vars(gui)[:z_translate_components] += 1
@@ -516,7 +519,7 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
     yo::Observable{Vector{Real}} = Observable([0.0, 0.0])
     xo_image = Observable(0.0 .. 0.0)
     yo_image = Observable(0.0 .. 0.0)
-    on(design.xy; priority=3) do val
+    on(design.xy; priority = 3) do val
         x::Real = val[1]
         y::Real = val[2]
 
@@ -540,10 +543,10 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
         end
 
         colors_input::Vector{RGB} = get_resource_colors(
-            inputs(node), design.id_to_color_map
+            inputs(node), design.id_to_color_map,
         )
         colors_output::Vector{RGB} = get_resource_colors(
-            outputs(node), design.id_to_color_map
+            outputs(node), design.id_to_color_map,
         )
         geometry::Symbol = if isa(node, Source)
             :rect
@@ -570,20 +573,21 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
                 sector = get_sector_points()
 
                 network_poly = poly!(
-                    get_axes(gui)[:topo], sector; color=color, inspectable=false
+                    get_axes(gui)[:topo], sector; color = color, inspectable = false,
                 )
                 if isa(node, Sink) || isa(node, Source)
                     add_inspector_to_poly!(
-                        network_poly, (self, i, p) -> get_hover_string(design)
+                        network_poly, (self, i, p) -> get_hover_string(design),
                     )
                 end
                 Makie.translate!(network_poly, 0, 0, get_var(gui, :z_translate_components))
                 get_vars(gui)[:z_translate_components] += 1
                 network_poly.kw[:EMGUI_obj] = design
                 push!(design.plots, network_poly)
-                on(design.xy; priority=3) do c
+                on(design.xy; priority = 3) do c
                     Δ = get_var(gui, :Δh) * get_var(gui, :icon_scale) / 2
-                    sector = get_sector_points(; c, Δ, θ₁=θᵢ, θ₂=θᵢ₊₁, geometry=geometry)
+                    sector =
+                        get_sector_points(; c, Δ, θ₁ = θᵢ, θ₂ = θᵢ₊₁, geometry = geometry)
                     network_poly[1][] = sector
                 end
             end
@@ -595,15 +599,15 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
                 get_axes(gui)[:topo],
                 zeros(4),
                 zeros(4);
-                color=:black,
-                linewidth=get_var(gui, :linewidth),
-                inspectable=false,
+                color = :black,
+                linewidth = get_var(gui, :linewidth),
+                inspectable = false,
             )
             Makie.translate!(center_box, 0, 0, get_var(gui, :z_translate_components))
             get_vars(gui)[:z_translate_components] += 1
             center_box.kw[:EMGUI_obj] = design
             push!(design.plots, center_box)
-            on(design.xy; priority=3) do center
+            on(design.xy; priority = 3) do center
                 radius = get_var(gui, :Δh) * get_var(gui, :icon_scale) / 2
                 x_coords, y_coords = box(center[1], center[2], radius / 4)
                 center_box[1][] = Vector{Point{2,Float64}}([
@@ -618,7 +622,7 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
             xo_image,
             yo_image,
             rotr90(FileIO.load(design.icon));
-            inspectable=false,
+            inspectable = false,
         )
         Makie.translate!(icon_image, 0, 0, get_var(gui, :z_translate_components))
         get_vars(gui)[:z_translate_components] += 1
@@ -640,7 +644,7 @@ function draw_label!(gui::GUI, component::EnergySystemDesign)
 
         scale = 0.7
 
-        on(component.xy; priority=3) do val
+        on(component.xy; priority = 3) do val
             x = val[1]
             y = val[2]
 
@@ -671,11 +675,11 @@ function draw_label!(gui::GUI, component::EnergySystemDesign)
             get_axes(gui)[:topo],
             xo,
             yo;
-            text=get_element_label(node),
-            align=alignment,
-            fontsize=get_var(gui, :fontsize),
-            inspectable=false,
-            color=font_color,
+            text = get_element_label(node),
+            align = alignment,
+            fontsize = get_var(gui, :fontsize),
+            inspectable = false,
+            color = font_color,
         )
         Makie.translate!(label_text, 0, 0, get_var(gui, :z_translate_components))
         get_vars(gui)[:z_translate_components] += 1

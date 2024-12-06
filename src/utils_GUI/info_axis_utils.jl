@@ -10,7 +10,12 @@ function update_info_box!(gui::GUI, element)
         return nothing
     end
     info_box[] = ""
-    print_nested_structure!(element, info_box; vector_limit=5, show_the_n_last_elements=1)
+    print_nested_structure!(
+        element,
+        info_box;
+        vector_limit = 5,
+        show_the_n_last_elements = 1,
+    )
 end
 
 """
@@ -27,9 +32,9 @@ parameter `vector_limit` is used to truncate large vectors.
 function print_nested_structure!(
     element,
     output;
-    indent::Int64=0,
-    vector_limit::Int64=typemax(Int64),
-    show_the_n_last_elements::Int64=3,
+    indent::Int64 = 0,
+    vector_limit::Int64 = typemax(Int64),
+    show_the_n_last_elements::Int64 = 3,
 )
     if indent == 0
         if isa(element, Dict) || isa(element, Vector)
@@ -102,8 +107,8 @@ function print_nested_structure!(
                 print_nested_structure!(value1, output; indent, vector_limit)
             else
                 if isa(value1, OperationalProfile) &&
-                    !isa(value1, FixedProfile) &&
-                    length(value1.vals) > vector_limit
+                   !isa(value1, FixedProfile) &&
+                   length(value1.vals) > vector_limit
                     # Truncate large vectors
                     output[] *= indent_str * "$(field1): $(typeof(value1))\n"
                 else
