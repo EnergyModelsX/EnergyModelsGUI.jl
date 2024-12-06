@@ -38,7 +38,7 @@ gui = GUI(
 ```
 The variables for `total` quantities (and their descriptions) can be customized in the same manner (see structure in the `src/descriptive_names.yml` file).
 
-It is also possible to ignore certain `JuMP` variables. I.e., ignoring `cap_use` and `flow_in` (in addition to the variable `con_em_tot` which is ignored by default) can be done as follows
+It is also possible to ignore certain `JuMP` variables. *E.g.*, ignoring `cap_use` and `flow_in` (in addition to the variable `con_em_tot` which is ignored by default) can be done as follows
 ```julia
 gui = GUI(
     case;

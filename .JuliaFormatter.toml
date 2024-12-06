@@ -1,5 +1,7 @@
+# Configuration file for JuliaFormatter.jl
+# For more information, see: https://domluna.github.io/JuliaFormatter.jl/stable/config/
+
 style = "blue"
-format_docstrings = false
 for_in_replacement = "∈"
 separate_kwargs_with_semicolon = false
 always_use_return = false

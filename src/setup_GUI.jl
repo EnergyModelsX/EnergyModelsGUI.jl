@@ -25,7 +25,7 @@ Initialize the EnergyModelsGUI window and visualize the topology of a system `ca
 - **`scenarios_labels::Vector=[]`** are descriptive labels for scenarios.
 - **`path_to_results::String=""`** is the path to where exported files are stored.
 - **`path_to_descriptive_names::String=""`** is the Path to a .yml file where variables
-are described.
+  are described.
 - **`descriptive_names_dict::Dict=Dict()`** is a dictionary where variables are described.
 - **`coarse_coast_lines::Bool=true`** is a toggle for coarse or fine resolution coastlines.
 - **`backgroundcolor=GLMakie.RGBf(0.99, 0.99, 0.99)`** is the background color of the

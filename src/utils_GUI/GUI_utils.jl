@@ -366,9 +366,11 @@ function initialize_available_data!(gui)
         get_investment_times(gui, max_inst)
 
         # Create investment overview in the information box
-        investment_overview = "Result summary (no values discounted):\n\n"
         total_opex = sum(tot_opex_unscaled .* sp_dur)
         total_capex = sum(tot_capex_unscaled)
+        investment_overview = "Result summary:\n\n"
+        investment_overview *= "Objective value: $(format_number(objective_value(model)))\n\n"
+        investment_overview *= "Investment summary (no values discounted):\n\n"
         investment_overview *= "Total operational cost: $(format_number(total_opex))\n"
         investment_overview *= "Total investment cost: $(format_number(total_capex))\n\n"
         inv_overview_components = ""

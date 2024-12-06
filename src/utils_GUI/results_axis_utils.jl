@@ -64,7 +64,7 @@ end
         gui::GUI,
     )
 
-Loop through all `dictnames` for a `field` of type `Dict` (i.e. for the field `penalty`
+Loop through all `dictnames` for a `field` of type `Dict` (*e.g.* for the field `penalty`
 having the keys :deficit and surplus) and update `available_data` with an added description.
 """
 function add_description!(
@@ -197,7 +197,7 @@ end
 """
     get_periods(T::TS.TimeStructure, type::Type, sp::Int64, rp::Int64, sc::Int64)
 
-Get the periods for a given TimePeriod/TimeProfile `type` (e.g., TS.StrategicPeriod,
+Get the periods for a given TimePeriod/TimeProfile `type` (*e.g.*, TS.StrategicPeriod,
 TS.RepresentativePeriod, TS.OperationalPeriod) restricted to
 the strategic period `sp`, representative period `rp` and the scenario `sc`.
 """

@@ -16,6 +16,6 @@ using Pkg
 Pkg.activate(exdir)
 Pkg.instantiate()
 
-# Include the code into the Julia REPL to run an example (i.e., EMI_geography.jl):
+# Include the code into the Julia REPL to run an example (*e.g.*, EMI_geography.jl):
 include(joinpath(exdir, "EMI_geography.jl"))
 ```

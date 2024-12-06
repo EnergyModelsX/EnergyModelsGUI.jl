@@ -1,5 +1,11 @@
 # Release notes
 
+## Version 0.5.10 (2024-11-30)
+
+### Enhancement
+
+* Show objective value in the solution summary.
+
 ## Version 0.5.9 (2024-11-12)
 
 ### Bugfix
@@ -238,7 +244,7 @@
 
 ### Feature
 
-* You can now use Button4 (used in i.e. browsers to go back to previous page) to go back to the `TopLevel` of the design (as an alternative to the `Esc` button).
+* You can now use Button4 (used in, *e.g.*, browsers to go back to previous page) to go back to the `TopLevel` of the design (as an alternative to the `Esc` button).
 * Double-clicking a node now opens its sub-system.
 * Customized labels can now be provided for the different time structures.
 * Plot data can now be exported to bit-map formats and to vector formats (.svg and .pdf).

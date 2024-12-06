@@ -1,4 +1,4 @@
-# Example with functionality overview
+# [Example with functionality overview](@id simple-example)
 
 For the content of the individual examples, see the [examples](https://github.com/EnergyModelsX/EnergyModelsGUI.jl/tree/main/examples) directory in the project repository.
 
