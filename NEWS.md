@@ -4,7 +4,7 @@
 
 ### Bugfix
 
-* Generalize get_element_label to use EMB.Link (insteada of Direct)
+* Generalize get_element_label to use EMB.Link (instead of Direct)
 
 ### Enhancement
 
