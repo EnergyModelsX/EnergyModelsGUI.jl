@@ -7,12 +7,12 @@
 
 Create description from `get_var(gui,:descriptive_names)` if available
 """
-function create_description(gui::GUI, key_str::String; pre_desc::String="")
+function create_description(gui::GUI, key_str::String; pre_desc::String = "")
     description = pre_desc
     try
         description *= String(get_nested_value(get_var(gui, :descriptive_names), key_str))
     catch
-        description = key_str[(findfirst('.', key_str) + 1):end]
+        description = key_str[(findfirst('.', key_str)+1):end]
         @warn "Could't find a description for $description. \
             Using the string $description instead. \
             You can customize the descriptions as explained here: \
@@ -64,7 +64,7 @@ end
         gui::GUI,
     )
 
-Loop through all `dictnames` for a `field` of type `Dict` (i.e. for the field `penalty`
+Loop through all `dictnames` for a `field` of type `Dict` (*e.g.* for the field `penalty`
 having the keys :deficit and surplus) and update `available_data` with an added description.
 """
 function add_description!(
@@ -80,7 +80,7 @@ function add_description!(
         name_field = "$name.$dictname"
         key_str_field = "$key_str.$dictname"
         add_description!(
-            dictvalue, name_field, key_str_field, pre_desc, element, available_data, gui
+            dictvalue, name_field, key_str_field, pre_desc, element, available_data, gui,
         )
     end
 end
@@ -113,7 +113,7 @@ function add_description!(
         name_field = "$name.$data_type"
         key_str_field = "$key_str.$data_type"
         add_description!(
-            data, name_field, key_str_field, pre_desc, element, available_data, gui
+            data, name_field, key_str_field, pre_desc, element, available_data, gui,
         )
     end
 end
@@ -153,7 +153,7 @@ function add_description!(
         pre_desc_sub = "$pre_desc$name_field_type: "
         key_str = "structures.$name_field_type.$sub_field_name"
         add_description!(
-            sub_field, name_field, key_str, pre_desc_sub, element, available_data, gui
+            sub_field, name_field, key_str, pre_desc_sub, element, available_data, gui,
         )
     end
 end
@@ -172,7 +172,7 @@ Get the values from the JuMP `model`, or the input data, at `selection` for all 
 restricted to strategic period `sp`, representative period `rp`, and scenario `sc`.
 """
 function get_data(
-    model::JuMP.Model, selection::Dict, T::TS.TimeStructure, sp::Int64, rp::Int64, sc::Int64
+    model::JuMP.Model, selection::Dict, T::TS.TimeStructure, sp::Int64, rp::Int64, sc::Int64,
 )
     field_data = selection[:field_data]
     if selection[:is_jump_data]
@@ -197,14 +197,14 @@ end
 """
     get_periods(T::TS.TimeStructure, type::Type, sp::Int64, rp::Int64, sc::Int64)
 
-Get the periods for a given TimePeriod/TimeProfile `type` (e.g., TS.StrategicPeriod,
+Get the periods for a given TimePeriod/TimeProfile `type` (*e.g.*, TS.StrategicPeriod,
 TS.RepresentativePeriod, TS.OperationalPeriod) restricted to
 the strategic period `sp`, representative period `rp` and the scenario `sc`.
 """
 function get_periods(T::TS.TimeStructure, type::Type, sp::Int64, rp::Int64, sc::Int64)
     if type <: StrategicProfile ||
-        type <: FixedProfile ||
-        type <: TS.AbstractStrategicPeriod
+       type <: FixedProfile ||
+       type <: TS.AbstractStrategicPeriod
         return collect(TS.strat_periods(T)), :results_sp
     elseif type <: TS.RepresentativeProfile || type <: TS.AbstractRepresentativePeriod
         return [t for t ∈ TS.repr_periods(T) if t.sp == sp], :results_rp
@@ -266,7 +266,7 @@ function get_time_axis(
 )
     types::Vector{Type} = collect(get_jump_axis_types(data))
     i_T::Union{Int64,Nothing} = findfirst(
-        x -> x <: TS.TimePeriod || x <: TS.TimeStructure{T} where {T}, types
+        x -> x <: TS.TimePeriod || x <: TS.TimeStructure{T} where {T}, types,
     )
     if isnothing(i_T)
         return i_T, nothing
@@ -464,7 +464,7 @@ function update_plot!(gui::GUI, element::Plotable)
         plotted_data = get_plotted_data(gui)
 
         overwritable = getfirst(
-            x -> !x[:pinned] && x[:time_axis] == time_axis, plotted_data
+            x -> !x[:pinned] && x[:time_axis] == time_axis, plotted_data,
         ) # get first non-pinned plot
 
         ax = get_ax(gui, :results)
@@ -476,19 +476,19 @@ function update_plot!(gui::GUI, element::Plotable)
             i = (n_visible - 1 % length(colormap)) + 1
             color = Observable(parse(Colorant, colormap[i]))
             if time_axis == :results_op
-                plot = stairs!(ax, points; step=:pre, label=label, color=color)
+                plot = stairs!(ax, points; step = :pre, label = label, color = color)
                 plot.color = color
                 plot.plots[1].color = color
             else
                 plot = barplot!(
                     ax,
                     points;
-                    dodge=n_visible * ones(Int, length(points)),
-                    n_dodge=n_visible,
-                    strokecolor=:black,
-                    strokewidth=1,
-                    label=label,
-                    color=color,
+                    dodge = n_visible * ones(Int, length(points)),
+                    n_dodge = n_visible,
+                    strokecolor = :black,
+                    strokewidth = 1,
+                    label = label,
+                    color = color,
                 )
             end
             new_data = Dict(
@@ -537,7 +537,7 @@ function update_plot!(gui::GUI, element::Plotable)
 
         if isnothing(get_results_legend(gui)) # Initialize the legend box
             gui.legends[:results] = axislegend(
-                ax, [plot], [label]; labelsize=get_var(gui, :fontsize)
+                ax, [plot], [label]; labelsize = get_var(gui, :fontsize),
             )
         else
             update_legend!(gui)
@@ -579,14 +579,14 @@ function update_legend!(gui::GUI)
     legend = get_results_legend(gui)
     if !isnothing(legend)
         legend_defaults = Makie.block_defaults(
-            :Legend, Dict{Symbol,Any}(), get_ax(gui, :results).scene
+            :Legend, Dict{Symbol,Any}(), get_ax(gui, :results).scene,
         )
         visible_data = get_visible_data(gui, time_axis)
         labels = [x[:plot].label[] for x ∈ visible_data]
         contents = [x[:plot] for x ∈ visible_data]
         title = nothing
         entry_groups = Makie.to_entry_group(
-            Attributes(legend_defaults), contents, labels, title
+            Attributes(legend_defaults), contents, labels, title,
         )
         legend.entrygroups[] = entry_groups
     end

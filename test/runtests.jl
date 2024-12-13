@@ -12,7 +12,7 @@ include("utils.jl")
 include("../examples/utils.jl")
 
 @testset "EnergyModelsGUI" verbose = true begin
-    redirect_stdio(stdout=devnull) do
+    redirect_stdio(stdout = devnull) do
         # Run all Aqua tests
         include("Aqua.jl")
 

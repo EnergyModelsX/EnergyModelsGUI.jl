@@ -17,3 +17,5 @@ using EnergyModelsGUI
 
 GUI(case)
 ```
+
+A complete overview of the keyword arguments available for the `GUI` functions is available [`here`](@ref GUI(::Dict)). The GUI and its functionality is described through an example [`here`](@ref simple-example).

@@ -12,7 +12,7 @@ using TimeStruct
 Generate the data based on the EMB_sink_source.jl example with posibilities for different
 time structures.
 """
-function generate_example_data(; use_rp::Bool=true, use_sc::Bool=true)
+function generate_example_data(; use_rp::Bool = true, use_sc::Bool = true)
     @info "Generate case data - Sink-source example with non-tensorial time structure"
 
     # Define the different resources and their emission intensity in tCO2/MWh
@@ -32,7 +32,7 @@ function generate_example_data(; use_rp::Bool=true, use_sc::Bool=true)
     # Creation of the time structure
     prob = [[[0.6, 0.4]], [[1.0], [0.5, 0.3, 0.2]], [[0.4, 0.3, 0.2, 0.1], [0.1, 0.9]]]
     scale_scenario = [
-        [[0.9, 0.3]], [[0.2], [0.5, 0.4, 0.2]], [[1, 0.5, 0.26, 0.2], [0.4, 1.2]]
+        [[0.9, 0.3]], [[0.2], [0.5, 0.4, 0.2]], [[1, 0.5, 0.26, 0.2], [0.4, 1.2]],
     ]
 
     demand_prof = [3, 2, 1, 1, 2, 4, 6, 7, 8, 7, 5, 4, 4, 4, 5, 5, 6, 8, 8, 8, 8, 6, 5, 4]
@@ -50,7 +50,8 @@ function generate_example_data(; use_rp::Bool=true, use_sc::Bool=true)
                     segments[sp] / no_days_in_year,
                     [
                         OperationalScenarios(
-                            fill(operational_periods, length(prob[sp][rp])), prob[sp][rp]
+                            fill(operational_periods, length(prob[sp][rp])),
+                            prob[sp][rp],
                         ) for rp ∈ 1:length(segments[sp])
                     ],
                 ) for sp ∈ 1:no_dur
@@ -59,7 +60,7 @@ function generate_example_data(; use_rp::Bool=true, use_sc::Bool=true)
                 RepresentativeProfile([
                     ScenarioProfile([
                         OperationalProfile(
-                            demand[rp] * scale_scenario[sp][rp][sc] * rp * sp
+                            demand[rp] * scale_scenario[sp][rp][sc] * rp * sp,
                         ) for sc ∈ 1:length(prob[sp][rp])
                     ]) for rp ∈ 1:length(segments[sp])
                 ]) for sp ∈ 1:no_dur
@@ -85,12 +86,12 @@ function generate_example_data(; use_rp::Bool=true, use_sc::Bool=true)
                 ]) for sp ∈ 1:no_dur
             ]
             deficit = RepresentativeProfile([FixedProfile(1e6 * rp) for rp ∈ [1, 2]])
-            T = TwoLevel(dur, periods; op_per_strat=8760)
+            T = TwoLevel(dur, periods; op_per_strat = 8760)
         end
     else
         if use_sc
             periods = OperationalScenarios(
-                fill(operational_periods, length(prob[end][1])), prob[end][1]
+                fill(operational_periods, length(prob[end][1])), prob[end][1],
             )
             profile = [
                 ScenarioProfile([
@@ -106,7 +107,7 @@ function generate_example_data(; use_rp::Bool=true, use_sc::Bool=true)
             profile = [OperationalProfile(demand[1] * sp) for sp ∈ 1:no_dur]
             deficit = FixedProfile(1e6)
         end
-        T = TwoLevel(dur, periods; op_per_strat=8760)
+        T = TwoLevel(dur, periods; op_per_strat = 8760)
     end
 
     model = OperationalModel(
@@ -147,16 +148,16 @@ end
 
 Generate the case and model data, run the model and show results in GUI
 """
-function run_case(; use_rp::Bool=true, use_sc::Bool=true)
+function run_case(; use_rp::Bool = true, use_sc::Bool = true)
     case, model = generate_example_data(; use_rp, use_sc)
     optimizer = optimizer_with_attributes(HiGHS.Optimizer, MOI.Silent() => true)
     m = run_model(case, model, optimizer)
     gui = GUI(
         case;
-        model=m,
-        periods_labels=["2022 - 2030", "2030 - 2040", "2040 - 2050"],
-        representative_periods_labels=["Winter", "Remaining"],
-        scenarios_labels=["Scen 1", "Scen 2", "Scen 3", "Scen 4"],
+        model = m,
+        periods_labels = ["2022 - 2030", "2030 - 2040", "2040 - 2050"],
+        representative_periods_labels = ["Winter", "Remaining"],
+        scenarios_labels = ["Scen 1", "Scen 2", "Scen 3", "Scen 4"],
     )
     return case, model, m, gui
 end

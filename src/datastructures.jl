@@ -188,15 +188,15 @@ mutable struct GUI
 end
 
 function Base.show(io::IO, obj::AbstractGUIObj)
-    return dump(io, obj; maxdepth=1)
+    return dump(io, obj; maxdepth = 1)
 end
 
 function Base.show(io::IO, obj::ProcInvData)
-    return dump(io, obj; maxdepth=1)
+    return dump(io, obj; maxdepth = 1)
 end
 
 function Base.show(io::IO, gui::GUI)
-    return dump(io, gui; maxdepth=1)
+    return dump(io, gui; maxdepth = 1)
 end
 
 function EnergySystemIterator(design::EnergySystemDesign)
@@ -223,7 +223,7 @@ end
 Initialize the iteration over an `EnergySystemIterator`, returning the first `EnergySystemDesign` object
 in the stack and the iterator itself. If the stack is empty, return `nothing`.
 """
-function Base.iterate(itr::EnergySystemIterator, state=nothing)
+function Base.iterate(itr::EnergySystemIterator, state = nothing)
     idx = isnothing(state) ? 1 : state + 1
     idx === length(itr) + 1 && return nothing
     return itr.stack[idx], idx
@@ -231,7 +231,7 @@ end
 Base.length(itr::EnergySystemIterator) = length(itr.stack)
 Base.length(design::EnergySystemDesign) = length(EnergySystemIterator(design))
 
-function Base.iterate(design::EnergySystemDesign, state=(nothing, nothing))
+function Base.iterate(design::EnergySystemDesign, state = (nothing, nothing))
     itr = isnothing(state[2]) ? EnergySystemIterator(design) : state[2]
     state[1] === length(itr) && return nothing
     next = isnothing(state[1]) ? iterate(itr) : iterate(itr, state[1])

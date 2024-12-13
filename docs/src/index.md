@@ -4,7 +4,7 @@
 EnergyModelsGUI
 ```
 
-**EnergyModelsX** is an operational, multi nodeal energy system model, written in Julia.
+**EnergyModelsX** is an operational, multi nodal energy system framework, written in Julia.
 The model is based on the [`JuMP`](https://jump.dev/JuMP.jl/stable/) optimization framework.
 It is a multi carrier energy model, where the definition of the resources are fully up to the user of the model.
 One of the primary design goals was to develop a model that can eaily be extended with new functionality without the need to understand and remember every variable and constraint in the model.

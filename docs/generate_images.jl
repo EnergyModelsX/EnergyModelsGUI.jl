@@ -27,16 +27,16 @@ function create_colors_visualization_image()
     height = markersize * length(colors_name)
 
     # Create the figure
-    fig = Figure(size=(width, height))
+    fig = Figure(size = (width, height))
 
     ax = Axis(
         fig[1, 1],
-        yticks=(y_positions, colors_name),
-        ygridvisible=false,
-        xgridvisible=false,
-        backgroundcolor=:white,
-        width=markersize * 5 / 4,    # Adjust the width of the axis to match the box size
-        height=height,  # Ensure enough height for all boxes,
+        yticks = (y_positions, colors_name),
+        ygridvisible = false,
+        xgridvisible = false,
+        backgroundcolor = :white,
+        width = markersize * 5 / 4,    # Adjust the width of the axis to match the box size
+        height = height,  # Ensure enough height for all boxes,
     )
     ax.xlabelvisible = false
     ax.ylabelvisible = false
@@ -50,7 +50,7 @@ function create_colors_visualization_image()
 
     # Plot each color
     for (i, (name, color)) ∈ enumerate(colors)
-        scatter!(ax, [0.5], [i], markersize=markersize, marker=:rect, color=color)
+        scatter!(ax, [0.5], [i], markersize = markersize, marker = :rect, color = color)
     end
 
     # Save the figure
@@ -77,7 +77,7 @@ function create_EMI_geography_images()
     mv(
         joinpath(path_to_results, "All.png"),
         joinpath(path_to_results, "example.png"),
-        force=true,
+        force = true,
     )
 
     # Create EMI_geography.png image
@@ -94,7 +94,7 @@ function create_EMI_geography_images()
     mv(
         joinpath(path_to_results, "All.png"),
         joinpath(path_to_results, "EMI_geography.png"),
-        force=true,
+        force = true,
     )
 
     # Create EMI_geography_Oslo.png image
@@ -112,7 +112,7 @@ function create_EMI_geography_images()
     mv(
         joinpath(path_to_results, "All.png"),
         joinpath(path_to_results, "EMI_geography_Oslo.png"),
-        force=true,
+        force = true,
     )
 end
 

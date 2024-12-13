@@ -24,7 +24,7 @@ function toggle_selection_color!(gui::GUI, selection::Connection, selected::Bool
         no_colors::Int64 = length(colors)
         for plot ∈ plots
             for (i, plot_sub) ∈ enumerate(plot[])
-                plot_sub.color = colors[((i - 1) % no_colors) + 1]
+                plot_sub.color = colors[((i-1)%no_colors)+1]
             end
         end
     end
@@ -62,7 +62,7 @@ function get_EMGUI_obj(plt)
                 if haskey(plt.parent.parent.kw, :EMGUI_obj)
                     return plt.parent.parent.kw[:EMGUI_obj]
                 elseif isa(plt.parent.parent.parent, AbstractPlot) &&
-                    haskey(plt.parent.parent.parent.kw, :EMGUI_obj)
+                       haskey(plt.parent.parent.parent.kw, :EMGUI_obj)
                     return plt.parent.parent.parent.kw[:EMGUI_obj]
                 end
             end
@@ -76,13 +76,17 @@ end
 Check if a system is found under the mouse pointer and if it is an `EnergySystemDesign`
 or a `Connection` and update state variables.
 """
-function pick_component!(gui::GUI; pick_topo_component=false, pick_results_component=false)
+function pick_component!(
+    gui::GUI;
+    pick_topo_component = false,
+    pick_results_component = false,
+)
     plt, _ = pick(get_fig(gui))
 
     pick_component!(gui, plt; pick_topo_component, pick_results_component)
 end
 function pick_component!(
-    gui::GUI, plt::AbstractPlot; pick_topo_component=false, pick_results_component=false
+    gui::GUI, plt::AbstractPlot; pick_topo_component = false, pick_results_component = false,
 )
     if pick_topo_component || pick_results_component
         element = get_EMGUI_obj(plt)
@@ -92,12 +96,12 @@ end
 function pick_component!(
     gui::GUI,
     element::Union{EnergySystemDesign,Connection};
-    pick_topo_component=false,
-    pick_results_component=false,
+    pick_topo_component = false,
+    pick_results_component = false,
 )
     if isnothing(element)
         clear_selection(
-            gui; clear_topo=pick_topo_component, clear_results=pick_results_component
+            gui; clear_topo = pick_topo_component, clear_results = pick_results_component,
         )
     else
         push!(gui.vars[:selected_systems], element)
@@ -105,11 +109,11 @@ function pick_component!(
     end
 end
 function pick_component!(
-    gui::GUI, element::Dict; pick_topo_component=false, pick_results_component=false
+    gui::GUI, element::Dict; pick_topo_component = false, pick_results_component = false,
 )
     if isnothing(element)
         clear_selection(
-            gui; clear_topo=pick_topo_component, clear_results=pick_results_component
+            gui; clear_topo = pick_topo_component, clear_results = pick_results_component,
         )
     else
         element[:selected] = true
@@ -117,10 +121,10 @@ function pick_component!(
     end
 end
 function pick_component!(
-    gui::GUI, ::Nothing; pick_topo_component=false, pick_results_component=false
+    gui::GUI, ::Nothing; pick_topo_component = false, pick_results_component = false,
 )
     clear_selection(
-        gui; clear_topo=pick_topo_component, clear_results=pick_results_component
+        gui; clear_topo = pick_topo_component, clear_results = pick_results_component,
     )
 end
 
@@ -130,7 +134,7 @@ end
 Clear the color selection of components within 'get_design(gui)' instance and reset the
 `get_selected_systems(gui)` variable.
 """
-function clear_selection(gui::GUI; clear_topo=true, clear_results=true)
+function clear_selection(gui::GUI; clear_topo = true, clear_results = true)
     if clear_topo
         selected_systems = get_selected_systems(gui)
         for selection ∈ selected_systems
@@ -158,9 +162,9 @@ function update!(gui::GUI)
     updateplot = !isempty(selected_systems)
 
     if updateplot
-        update!(gui, selected_systems[end]; updateplot=updateplot)
+        update!(gui, selected_systems[end]; updateplot = updateplot)
     else
-        update!(gui, nothing; updateplot=updateplot)
+        update!(gui, nothing; updateplot = updateplot)
     end
 end
 
@@ -170,7 +174,7 @@ end
 Based on `element`, update the text in `get_axes(gui)[:info]` and update plot in
 `get_axes(gui)[:results]` if `updateplot = true`.
 """
-function update!(gui::GUI, element::Plotable; updateplot::Bool=true)
+function update!(gui::GUI, element::Plotable; updateplot::Bool = true)
     update_info_box!(gui, element)
     update_available_data_menu!(gui, element)
     if updateplot
@@ -184,7 +188,7 @@ end
 Based on `Connection`, update the text in `get_axes(gui)[:info]`
 and update plot in `get_axes(gui)[:results]` if `updateplot = true`.
 """
-function update!(gui::GUI, connection::Connection; updateplot::Bool=true)
+function update!(gui::GUI, connection::Connection; updateplot::Bool = true)
     return update!(gui, get_element(connection); updateplot)
 end
 
@@ -194,7 +198,7 @@ end
 Based on `design`, update the text in `get_axes(gui)[:info]`
 and update plot in `get_axes(gui)[:results]` if `updateplot = true`.
 """
-function update!(gui::GUI, design::EnergySystemDesign; updateplot::Bool=true)
+function update!(gui::GUI, design::EnergySystemDesign; updateplot::Bool = true)
     return update!(gui, get_element(design); updateplot)
 end
 
@@ -245,7 +249,7 @@ function initialize_available_data!(gui)
                 selection = collect(combination)
                 field_data = extract_data_selection(var, selection, i_T, periods)
                 element::Plotable = getfirst(
-                    x -> isa(x, Union{EMB.Node,Link,Area,TransmissionMode}), selection
+                    x -> isa(x, Union{EMB.Node,Link,Area,TransmissionMode}), selection,
                 )
                 if isa(element, TransmissionMode)
                     element = mode_to_transmission[element]
@@ -275,7 +279,7 @@ function initialize_available_data!(gui)
             opex_key = Symbol(opex_field[1])
             description = opex_field[2]
             if haskey(model, opex_key)
-                opex = vec(sum(Array(value.(model[opex_key])), dims=1))
+                opex = vec(sum(Array(value.(model[opex_key])), dims = 1))
                 tot_opex_unscaled .+= opex
                 if scale_tot_opex
                     opex .*= sp_dur
@@ -303,7 +307,7 @@ function initialize_available_data!(gui)
             capex_key = Symbol(capex_field[1])
             description = capex_field[2]
             if haskey(model, capex_key)
-                capex = vec(sum(Array(value.(model[capex_key])), dims=1))
+                capex = vec(sum(Array(value.(model[capex_key])), dims = 1))
                 tot_capex_unscaled .+= capex
                 if scale_tot_capex
                     capex ./= sp_dur
@@ -366,9 +370,11 @@ function initialize_available_data!(gui)
         get_investment_times(gui, max_inst)
 
         # Create investment overview in the information box
-        investment_overview = "Result summary (no values discounted):\n\n"
         total_opex = sum(tot_opex_unscaled .* sp_dur)
         total_capex = sum(tot_capex_unscaled)
+        investment_overview = "Result summary:\n\n"
+        investment_overview *= "Objective value: $(format_number(objective_value(model)))\n\n"
+        investment_overview *= "Investment summary (no values discounted):\n\n"
         investment_overview *= "Total operational cost: $(format_number(total_opex))\n"
         investment_overview *= "Total investment cost: $(format_number(total_capex))\n\n"
         inv_overview_components = ""
@@ -415,17 +421,17 @@ end
 Extract data from `var` having its time dimension at index `i_T` for all time periods in `periods`.
 """
 function extract_data_selection(
-    var::SparseVars, selection::Vector, i_T::Int64, periods::Vector
+    var::SparseVars, selection::Vector, i_T::Int64, periods::Vector,
 )
     return JuMP.Containers.DenseAxisArray(
-        [var[vcat(selection[1:(i_T - 1)], t, selection[i_T:end])...] for t ∈ periods],
+        [var[vcat(selection[1:(i_T-1)], t, selection[i_T:end])...] for t ∈ periods],
         periods,
     )
 end
 function extract_data_selection(
-    var::JuMP.Containers.DenseAxisArray, selection::Vector, i_T::Int64, ::Vector
+    var::JuMP.Containers.DenseAxisArray, selection::Vector, i_T::Int64, ::Vector,
 )
-    return var[vcat(selection[1:(i_T - 1)], :, selection[i_T:end])...]
+    return var[vcat(selection[1:(i_T-1)], :, selection[i_T:end])...]
 end
 
 """
@@ -462,15 +468,15 @@ function get_investment_times(gui::GUI, max_inst::Float64)
             for investment_indicator ∈ investment_indicators # important not to use shorthand loop syntax here due to the break command (exiting both loops in that case)
                 sym = Symbol(investment_indicator)
                 if haskey(model, sym) &&
-                    !isempty(model[sym]) &&
-                    element ∈ axes(model[sym])[1]
+                   !isempty(model[sym]) &&
+                   element ∈ axes(model[sym])[1]
                     val = value(model[sym][element, t])
                     if val > get_var(gui, :tol) * max_inst
                         capex::Float64 = 0.0
                         for capex_field ∈ capex_fields
                             capex_key = Symbol(capex_field[1])
                             if haskey(model, capex_key) &&
-                                element ∈ axes(model[capex_key])[1]
+                               element ∈ axes(model[capex_key])[1]
                                 capex += value(model[capex_key][element, t])
                             end
                         end
@@ -494,10 +500,10 @@ end
 Get an iterator of combinations of unique indices excluding the time index located at index `i_T`.
 """
 function get_combinations(var::SparseVars, i_T::Int)
-    return unique((key[1:(i_T - 1)]..., key[(i_T + 1):end]...) for key ∈ keys(var.data))
+    return unique((key[1:(i_T-1)]..., key[(i_T+1):end]...) for key ∈ keys(var.data))
 end
 function get_combinations(var::JuMP.Containers.DenseAxisArray, i_T::Int)
-    return Iterators.product(axes(var)[vcat(1:(i_T - 1), (i_T + 1):end)]...)
+    return Iterators.product(axes(var)[vcat(1:(i_T-1), (i_T+1):end)]...)
 end
 
 """
@@ -527,7 +533,7 @@ following order:
 """
 function update_descriptive_names!(gui::GUI)
     descriptive_names = YAML.load_file(
-        joinpath(@__DIR__, "..", "descriptive_names.yml"); dicttype=Dict{Symbol,Any}
+        joinpath(@__DIR__, "..", "descriptive_names.yml"); dicttype = Dict{Symbol,Any},
     )
 
     # Get a dictionary of installed packages
@@ -541,14 +547,14 @@ function update_descriptive_names!(gui::GUI)
         package_path::Union{String,Nothing} = Base.find_package(package)
         if !isnothing(package_path)
             path_to_descriptive_names_ext = joinpath(
-                package_path, "ext", "EMGUIExt", "descriptive_names.yml"
+                package_path, "ext", "EMGUIExt", "descriptive_names.yml",
             )
             if isfile(path_to_descriptive_names_ext)
                 descriptive_names_dict_ext_file = YAML.load_file(
-                    path_to_descriptive_names_ext; dicttype=Dict{Symbol,Any}
+                    path_to_descriptive_names_ext; dicttype = Dict{Symbol,Any},
                 )
                 descriptive_names = merge_dicts(
-                    descriptive_names, descriptive_names_dict_ext_file
+                    descriptive_names, descriptive_names_dict_ext_file,
                 )
             end
         end
@@ -558,7 +564,7 @@ function update_descriptive_names!(gui::GUI)
     path_to_descriptive_names = get_var(gui, :path_to_descriptive_names)
     if !isempty(path_to_descriptive_names)
         descriptive_names_dict_user_file = YAML.load_file(
-            path_to_descriptive_names; dicttype=Dict{Symbol,Any}
+            path_to_descriptive_names; dicttype = Dict{Symbol,Any},
         )
         descriptive_names = merge_dicts(descriptive_names, descriptive_names_dict_user_file)
     end

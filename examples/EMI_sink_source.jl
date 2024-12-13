@@ -18,7 +18,7 @@ The electricity source has initially no capacity. Hence, investments are require
 
 The example is partly based on the provided example `sink_source.jl` in `EnergyModelsBase`.
 """
-function generate_example_data(lifemode=RollingLife; discount_rate=0.05)
+function generate_example_data(lifemode = RollingLife; discount_rate = 0.05)
     @info "Generate case data - Simple sink-source example"
 
     # Define the different resources and their emission intensity in tCO2/MWh
@@ -98,13 +98,13 @@ source, sink = case[:nodes]
 @info "Invested capacity for the source in the beginning of the individual strategic periods"
 pretty_table(
     JuMP.Containers.rowtable(
-        value, m[:cap_add][source, :]; header=[:StrategicPeriod, :InvestCapacity]
+        value, m[:cap_add][source, :]; header = [:StrategicPeriod, :InvestCapacity],
     ),
 )
 @info "Retired capacity of the source at the end of the individual strategic periods"
 pretty_table(
     JuMP.Containers.rowtable(
-        value, m[:cap_rem][source, :]; header=[:StrategicPeriod, :InvestCapacity]
+        value, m[:cap_rem][source, :]; header = [:StrategicPeriod, :InvestCapacity],
     ),
 )
 
@@ -118,4 +118,4 @@ using EnergyModelsGUI
 design_path = joinpath(@__DIR__, "design", "EMI", "sink_source")
 
 # Run the GUI
-gui = GUI(case; design_path, model=m)
+gui = GUI(case; design_path, model = m)

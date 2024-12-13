@@ -108,14 +108,14 @@ m = EMB.run_model(case, model, optimizer)
 # Display some results
 @info "Storage level of the hydro power plant"
 pretty_table(
-    JuMP.Containers.rowtable(value, m[:stor_level]; header=[:Node, :TimePeriod, :Level])
+    JuMP.Containers.rowtable(value, m[:stor_level]; header = [:Node, :TimePeriod, :Level]),
 )
 @info "Power production of the two power sources"
 pretty_table(
     JuMP.Containers.rowtable(
         value,
         m[:flow_out][case[:nodes][2:3], :, case[:products][2]];
-        header=[:Node, :TimePeriod, :Production],
+        header = [:Node, :TimePeriod, :Production],
     ),
 )
 
@@ -132,4 +132,4 @@ using EnergyModelsGUI
 design_path = joinpath(@__DIR__, "design", "EMR", "hydro_power")
 
 # Run the GUIidToIconMap,
-gui = GUI(case; design_path, model=m)
+gui = GUI(case; design_path, model = m)

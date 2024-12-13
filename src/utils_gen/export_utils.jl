@@ -11,7 +11,7 @@ function extract_svg(svg_string)
         svg_start = findfirst("<svg", svg_string)[1]
         start_idx = findfirst(">", svg_string[svg_start:end])[end] + svg_start
         end_idx = findfirst("</svg>", svg_string)[1] - 1
-        return svg_string[start_idx:end_idx], svg_string[1:(start_idx - 1)]
+        return svg_string[start_idx:end_idx], svg_string[1:(start_idx-1)]
     end
 end
 
@@ -32,7 +32,7 @@ end
 Export the `ax` to a .svg file with path given by `filename`.
 """
 function export_svg(
-    ax::Makie.Block, filename::String; legend::Union{Makie.Legend,Nothing}=nothing
+    ax::Makie.Block, filename::String; legend::Union{Makie.Legend,Nothing} = nothing,
 )
     bb = ax.layoutobservables.suggestedbbox[]
     protrusions = ax.layoutobservables.reporteddimensions[].outer
@@ -65,9 +65,9 @@ function export_svg(
     svgstring_legend =
         isnothing(legend) ? "" : repr(MIME"image/svg+xml"(), legend.blockscene)
     svgstring = merge_svg_strings(svgstring_ax, svgstring_legend)
-    svgstring = replace(svgstring, r"""(?<=width=")[^"]*(?=")""" => width; count=1)
-    svgstring = replace(svgstring, r"""(?<=height=")[^"]*(?=")""" => height; count=1)
-    svgstring = replace(svgstring, r"""(?<=viewBox=")[^"]*(?=")""" => viewBox; count=1)
+    svgstring = replace(svgstring, r"""(?<=width=")[^"]*(?=")""" => width; count = 1)
+    svgstring = replace(svgstring, r"""(?<=height=")[^"]*(?=")""" => height; count = 1)
+    svgstring = replace(svgstring, r"""(?<=viewBox=")[^"]*(?=")""" => viewBox; count = 1)
     open(filename, "w") do io
         print(io, svgstring)
     end
@@ -85,14 +85,14 @@ function export_xlsx(plots::Vector, filename::String, xlabel::Symbol)
         return 1
     end
     # Create a new Excel file and write data
-    XLSX.openxlsx(filename; mode="w") do xf
+    XLSX.openxlsx(filename; mode = "w") do xf
         sheet = xf[1] # Access the first sheet
 
         no_columns = length(plots) + 1
         data = Vector{Any}(undef, no_columns)
         data[1] = string.(plots[1][:t])
         for (i, plot) ∈ enumerate(plots)
-            data[i + 1] = plot[:y]
+            data[i+1] = plot[:y]
         end
         labels::Vector{String} = [plot[:name] for plot ∈ plots]
 
@@ -116,7 +116,7 @@ function export_xlsx(gui::GUI, filename::String)
         return 1
     end
     # Create a new Excel file and write data
-    XLSX.openxlsx(filename; mode="w") do xf
+    XLSX.openxlsx(filename; mode = "w") do xf
         first_sheet::Bool = true
         for (i, dict) ∈ enumerate(get_JuMP_names(gui))
             container = model[dict]
@@ -138,7 +138,7 @@ function export_xlsx(gui::GUI, filename::String)
                 @info "dict = $dict, container = $container, typeof(container) = $(typeof(container))"
             end
             header = vcat(axisTypes, [:value])
-            data_jump = JuMP.Containers.rowtable(value, container; header=header)
+            data_jump = JuMP.Containers.rowtable(value, container; header = header)
             no_columns = length(fieldnames(eltype(data_jump)))
             num_tuples = length(data_jump)
             data = [Vector{Any}(undef, num_tuples) for i ∈ range(1, no_columns)]
@@ -209,11 +209,11 @@ function export_to_file(gui::GUI)
         if file_ending == "svg"
             if axes_str == "Plots"
                 flag = export_svg(
-                    get_ax(gui, ax_sym), filename; legend=get_results_legend(gui)
+                    get_ax(gui, ax_sym), filename; legend = get_results_legend(gui),
                 )
             elseif axes_str == "Topo"
                 flag = export_svg(
-                    get_ax(gui, ax_sym), filename; legend=get_topo_legend(gui)
+                    get_ax(gui, ax_sym), filename; legend = get_topo_legend(gui),
                 )
             else
                 flag = export_svg(get_ax(gui, ax_sym), filename)

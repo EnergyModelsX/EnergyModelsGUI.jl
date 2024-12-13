@@ -8,7 +8,7 @@ Calculate the intersection point between a line starting at `x` and direction de
 `θ` and a square with half side lengths `Δ` centered at center `c`.
 """
 function square_intersection(
-    c::Vector{Tc}, x::Vector{Tx}, θ::Tθ, Δ::TΔ
+    c::Vector{Tc}, x::Vector{Tx}, θ::Tθ, Δ::TΔ,
 ) where {Tc<:Real,Tx<:Real,Tθ<:Real,TΔ<:Real}
     # Ensure that -π ≤ θ ≤ π
     θ = θ > π ? θ - 2π : θ
@@ -42,7 +42,7 @@ Calculate the intersection point between a line starting at `c` and direction de
 by `θ` and a square with half side lengths `Δ` centered at center `c`.
 """
 function square_intersection(
-    c::Tuple{Tc,Tc}, θ::Tθ, Δ::TΔ
+    c::Tuple{Tc,Tc}, θ::Tθ, Δ::TΔ,
 ) where {Tc<:Real,Tθ<:Real,TΔ<:Real}
     return square_intersection(collect(c), collect(c), θ, Δ)
 end
@@ -69,7 +69,7 @@ Find the minimum and maximum coordinates of the components of `EnergySystemDesig
 given the minimum and maximum coordinates `min_x`, `min_y`, `max_x`, and `max_y`.
 """
 function find_min_max_coordinates(
-    design::EnergySystemDesign, min_x::Number, max_x::Number, min_y::Number, max_y::Number
+    design::EnergySystemDesign, min_x::Number, max_x::Number, min_y::Number, max_y::Number,
 )
     if design.xy !== nothing && haskey(design.system, :node)
         x, y = design.xy[]
@@ -81,7 +81,7 @@ function find_min_max_coordinates(
 
     for child ∈ get_components(design)
         min_x, max_x, min_y, max_y = find_min_max_coordinates(
-            child, min_x, max_x, min_y, max_y
+            child, min_x, max_x, min_y, max_y,
         )
     end
 
@@ -167,12 +167,12 @@ and angles `θ₁` and `θ₂` for a square (geometry = :rect), a circle (geomet
 triangle (geometry = :triangle).
 """
 function get_sector_points(;
-    c::Tuple{Real,Real}=(0.0, 0.0),
-    Δ::Real=1.0,
-    θ₁::Real=0.0,
-    θ₂::Real=π / 4,
-    steps::Int=200,
-    geometry::Symbol=:circle,
+    c::Tuple{Real,Real} = (0.0, 0.0),
+    Δ::Real = 1.0,
+    θ₁::Real = 0.0,
+    θ₂::Real = π / 4,
+    steps::Int = 200,
+    geometry::Symbol = :circle,
 )
     if geometry == :circle
         θ::Vector{Float64} = LinRange(θ₁, θ₂, Int(round(steps * (θ₂ - θ₁) / (2π))))
