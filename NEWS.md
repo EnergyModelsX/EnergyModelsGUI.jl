@@ -2,9 +2,17 @@
 
 ## Version 0.5.10 (2024-11-30)
 
+### Bugfix
+
+* Generalize get_element_label to use EMB.Link (insteada of Direct)
+
 ### Enhancement
 
 * Show objective value in the solution summary.
+
+### Adjustment
+
+* Use the EMB JuliaFormatting setup.
 
 ## Version 0.5.9 (2024-11-12)
 

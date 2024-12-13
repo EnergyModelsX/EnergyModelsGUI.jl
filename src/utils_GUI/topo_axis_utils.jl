@@ -700,7 +700,7 @@ end
 function get_element_label(element::Union{Area,EMB.Node,TransmissionMode})
     return isa(element.id, Number) ? string(element) : string(element.id)
 end
-function get_element_label(element::Union{Transmission,Direct})
+function get_element_label(element::Union{Transmission,EMB.Link})
     return get_element_label(element.from) * "-" * get_element_label(element.to)
 end
 
