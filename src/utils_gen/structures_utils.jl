@@ -38,27 +38,43 @@ string of the identifier for default colors in the `src/colors.yml` file.
 """
 function set_colors(products::Vector{<:Resource}, id_to_color_map::Dict)
     complete_id_to_color_map::Dict = Dict()
+
+    # Get the default colors
     default_colors::Dict = get_default_colors()
+
+    # Add default colors to the complete_id_to_color_map
     for product ∈ products
         if haskey(default_colors, product.id)
             complete_id_to_color_map[product.id] = default_colors[product.id]
         end
     end
+
+    # Add the colors from the id_to_color_map (also overwrites default colors)
     for (key, val) ∈ id_to_color_map
         complete_id_to_color_map[string(key)] = val
     end
+
+    # Add missing colors and make these most distinguishable to the existing ones
+    # Find the resources that are missing colors
+    missing_product_colors::Vector{Resource} = filter(
+        product -> !haskey(complete_id_to_color_map, product.id), products,
+    )
+
+    # Create a seed based on the existing colors
     seed::Vector{RGB} = [
         parse(Colorant, hex_color) for hex_color ∈ values(complete_id_to_color_map)
     ]
+
+    # Create new colors for the missing resources
     products_colors::Vector{RGB} = distinguishable_colors(
-        length(products), seed; dropseed = false,
+        length(missing_product_colors), seed; dropseed = true,
     )
-    for product ∈ products
-        if !haskey(complete_id_to_color_map, product.id)
-            complete_id_to_color_map[product.id] =
-                products_colors[length(complete_id_to_color_map)+1]
-        end
+
+    # Set the new colors for the missing resources
+    for (product, color) ∈ zip(missing_product_colors, products_colors)
+        complete_id_to_color_map[product.id] = color
     end
+
     return complete_id_to_color_map
 end
 
