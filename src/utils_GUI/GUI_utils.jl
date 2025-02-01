@@ -547,7 +547,7 @@ function update_descriptive_names!(gui::GUI)
         package_path::Union{String,Nothing} = Base.find_package(package)
         if !isnothing(package_path)
             path_to_descriptive_names_ext = joinpath(
-                package_path, "ext", "EMGUIExt", "descriptive_names.yml",
+                package_path, "..", "..", "ext", "EMGUIExt", "descriptive_names.yml",
             )
             if isfile(path_to_descriptive_names_ext)
                 descriptive_names_dict_ext_file = YAML.load_file(
