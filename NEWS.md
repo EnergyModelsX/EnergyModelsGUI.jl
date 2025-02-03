@@ -1,5 +1,12 @@
 # Release notes
 
+## Version 0.5.11 (2025-02-01)
+
+### Bugfix
+
+* Fix bug that occured when providing a color for a `Resource.id` not present in `products` for the `id_to_color_map`-argument of the `GUI`-function.
+* Fix the path to the `descriptive_names.yml` file of an EMX package.
+
 ## Version 0.5.10 (2024-12-13)
 
 ### Bugfix
