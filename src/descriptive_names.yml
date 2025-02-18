@@ -210,6 +210,7 @@ variables:
   opex_fixed:                     "Absolute fixed operating expenses"
   sink_surplus:                   "Surplus delivered to a sink, i.e., oversatisfied demand"
   sink_deficit:                   "Deficit in a sink, i.e., not satisfied demand"
+  link_cap_inst:                  "Installed capacity"
 
   ## EnergyModelsGeography
   area_exchange:                  "Area exchange"

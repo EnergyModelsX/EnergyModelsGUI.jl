@@ -1,13 +1,12 @@
 """
-    GUI(case::Dict)
+    GUI(case::Dict; kwargs...)
+    GUI(case::Case; kwargs...)
 
 Initialize the EnergyModelsGUI window and visualize the topology of a system `case` \
-(and optionally visualize its results in a JuMP object model).
-
-# Arguments:
-
-- **`case::Dict`** is a dictionary containing system-related data stored as key-value pairs.
-  This dictionary is corresponding to the the EnergyModelsX `case` dictionary.
+(and optionally visualize its results in a JuMP object model). The input argument can either
+be a `Case` object from the EnergyModelsBase package or a dictionary containing system-related
+data stored as key-value pairs. This dictionary is corresponding to the the old EnergyModelsX
+`case` dictionary.
 
 # Keyword arguments:
 
@@ -38,7 +37,7 @@ Initialize the EnergyModelsGUI window and visualize the topology of a system `ca
 - **`tol::Float64=1e-12`** the tolerance for numbers close to machine epsilon precision.
 """
 function GUI(
-    case::Dict;
+    case::Case;
     design_path::String = "",
     id_to_color_map::Dict = Dict(),
     id_to_icon_map::Dict = Dict(),
@@ -205,6 +204,17 @@ function GUI(
     display(GLMakie.Screen(title = fig_title), fig)
 
     return gui
+end
+function GUI(case::Dict; kwargs...)
+    elements = [case[:nodes], case[:links]]
+    if haskey(case, :areas)
+        push!(elements, case[:areas])
+    end
+    if haskey(case, :transmission)
+        push!(elements, case[:transmission])
+    end
+    case_new = Case(case[:T], case[:products], elements)
+    GUI(case_new; kwargs...)
 end
 
 """

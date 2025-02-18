@@ -17,9 +17,6 @@ using FileIO
 using TimeStruct
 using EnergyModelsBase
 
-# Use Colors to visualize using the colors in the colors.yml file
-using Colors
-
 # To format numbers with @sprintf
 using Printf
 
@@ -38,7 +35,7 @@ using SparseVariables
 using EnergyModelsGeography
 using EnergyModelsInvestments
 
-# Needed for plottig geographical map
+# Needed for plottig geographical map (note that GeoMakie reexports Colors)
 using GeoMakie, GeoJSON
 
 # Needed to download the .json file for geographical coastlines

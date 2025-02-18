@@ -1,10 +1,11 @@
 """
+    EnergySystemDesign(system::Dict; kwargs...)
+    EnergySystemDesign(case::Case; kwargs...)
+
 Create and initialize an instance of the `EnergySystemDesign` struct, representing energy
-system designs.
-
-# Arguments:
-
-- **`system::Dict`** is a dictionary containing system-related data stored as key-value pairs.
+system designs. If the argument is a `Case` instance, the function converts the case to a
+dictionary, and initializes the `EnergySystemDesign`. If the argument is a dictionary,
+the function initializes the `EnergySystemDesign`.
 
 # Keyword arguments:
 
@@ -78,30 +79,22 @@ function EnergySystemDesign(
     end
 
     # Add  `Transmission`s and `Link`s to `connections` as a `Connection`
-    if haskey(system, :areas) && haskey(system, :transmission)
-        for transmission ∈ system[:transmission]
-            # Find the EnergySystemDesign corresponding to transmission.from.node
-            from = getfirst(x -> get_element(x) == transmission.from, components)
+    elements = if haskey(system, :transmission)
+        system[:transmission]
+    elseif haskey(system, :links)
+        system[:links]
+    end
+    if !isnothing(elements)
+        for element ∈ elements
+            # Find the EnergySystemDesign corresponding to element.from.node
+            from = getfirst(x -> get_element(x) == element.from, components)
 
-            # Find the EnergySystemDesign corresponding to transmission.to.node
-            to = getfirst(x -> get_element(x) == transmission.to, components)
-
-            # If `EnergySystemDesign`s found, create a new `Connection`
-            if !isnothing(from) && !isnothing(to)
-                push!(connections, Connection(from, to, transmission, id_to_color_map))
-            end
-        end
-    elseif haskey(system, :nodes) && haskey(system, :links)
-        for link ∈ system[:links]
-            # Find the EnergySystemDesign corresponding to link.from
-            from = getfirst(x -> get_element(x) == link.from, components)
-
-            # Find the EnergySystemDesign corresponding to link.to
-            to = getfirst(x -> get_element(x) == link.to, components)
+            # Find the EnergySystemDesign corresponding to element.to.node
+            to = getfirst(x -> get_element(x) == element.to, components)
 
             # If `EnergySystemDesign`s found, create a new `Connection`
             if !isnothing(from) && !isnothing(to)
-                push!(connections, Connection(from, to, link, id_to_color_map))
+                push!(connections, Connection(from, to, element, id_to_color_map))
             end
         end
     end
@@ -119,6 +112,24 @@ function EnergySystemDesign(
         Observable(:E),
         file,
     )
+end
+function EnergySystemDesign(case::Case; kwargs...)
+    system = Dict(
+        :nodes => get_nodes(case),
+        :links => get_links(case),
+        :products => get_products(case),
+        :T => get_time_struct(case),
+    )
+    areas = filter(el -> isa(el, Vector{<:Area}), get_elements_vec(case))
+    if !isempty(areas)
+        system[:areas] = areas[1]
+    end
+    transmissions = filter(el -> isa(el, Vector{<:Transmission}), get_elements_vec(case))
+    if !isempty(transmissions)
+        system[:transmission] = transmissions[1]
+    end
+
+    return EnergySystemDesign(system; kwargs...)
 end
 
 """
