@@ -39,9 +39,8 @@ function generate_example_data()
 
     # Create identical areas with index according to input array
     an = Dict()
-    transmission = []
-    nodes = []
-    links = []
+    nodes = EMB.Node[]
+    links = Link[]
     for a_id ∈ area_ids
         n, l = get_sub_system_data(
             a_id,
@@ -164,14 +163,11 @@ function generate_example_data()
     em_cost = Dict(NG => FixedProfile(0), CO2 => FixedProfile(0))
     modeltype = InvestmentModel(em_limits, em_cost, CO2, 0.07)
 
-    # WIP data structure
-    case = Dict(
-        :areas => Array{Area}(areas),
-        :transmission => Array{Transmission}(transmission),
-        :nodes => Array{EMB.Node}(nodes),
-        :links => Array{Link}(links),
-        :products => products,
-        :T => T,
+    case = Case(
+        T,
+        products,
+        [nodes, links, areas, transmission],
+        [[get_nodes, get_links], [get_areas, get_transmissions]],
     )
     return case, modeltype
 end
@@ -479,7 +475,7 @@ end
 # Generate case data
 case, model = generate_example_data()
 optimizer = optimizer_with_attributes(HiGHS.Optimizer, MOI.Silent() => true)
-m = EMG.create_model(case, model)
+m = create_model(case, model)
 set_optimizer(m, optimizer)
 optimize!(m)
 

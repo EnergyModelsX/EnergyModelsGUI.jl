@@ -126,7 +126,7 @@ function generate_example_data()
     ]
 
     # WIP data structure
-    case = Dict(:nodes => nodes, :links => links, :products => products, :T => T)
+    case = Case(T, products, [nodes, links])
     return case, model
 end
 
@@ -136,7 +136,7 @@ optimizer = optimizer_with_attributes(HiGHS.Optimizer, MOI.Silent() => true)
 m = run_model(case, model, optimizer)
 
 # Display some results
-ng_ccs_pp, coal_pp, = case[:nodes][[4, 5]]
+ng_ccs_pp, coal_pp, = get_nodes(case)[4:5]
 @info "Capacity usage of the coal power plant"
 pretty_table(
     JuMP.Containers.rowtable(value, m[:cap_use][coal_pp, :]; header = [:t, :Value]),

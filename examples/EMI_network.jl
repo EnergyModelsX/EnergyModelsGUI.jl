@@ -175,7 +175,7 @@ function generate_example_data()
     ]
 
     # WIP case structure
-    case = Dict(:nodes => nodes, :links => links, :products => products, :T => T)
+    case = Case(T, products, [nodes, links])
     return case, model
 end
 
@@ -185,7 +185,7 @@ optimizer = optimizer_with_attributes(HiGHS.Optimizer, MOI.Silent() => true)
 m = EMB.run_model(case, model, optimizer)
 
 # Display some results
-ng_ccs_pp, CO2_stor, = case[:nodes][[4, 6]]
+ng_ccs_pp, CO2_stor, = get_nodes(case)[[4, 6]]
 @info "Invested capacity for the natural gas plant in the beginning of the \
 individual strategic periods"
 pretty_table(

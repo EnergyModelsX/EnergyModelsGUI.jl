@@ -102,8 +102,8 @@ function generate_example_data()
 
     # Create identical areas with index according to the input array
     an = Dict()
-    nodes = []
-    links = []
+    nodes = EMB.Node[]
+    links = Link[]
     for a_id ∈ area_ids
         n, l = get_sub_system_data(
             a_id,
@@ -188,14 +188,11 @@ function generate_example_data()
         Transmission(areas[6], areas[7], [SD_OverheadLine_50MW]),
     ]
 
-    # WIP data structure
-    case = Dict(
-        :areas => Array{Area}(areas),
-        :transmission => Array{Transmission}(transmission),
-        :nodes => Array{EMB.Node}(nodes),
-        :links => Array{Link}(links),
-        :products => products,
-        :T => T,
+    case = Case(
+        T,
+        products,
+        [nodes, links, areas, transmission],
+        [[get_nodes, get_links], [get_areas, get_transmissions]],
     )
     return case, model
 end
@@ -333,7 +330,7 @@ end
 # Generate the case and model data and run the model
 case, model = generate_example_data()
 optimizer = optimizer_with_attributes(HiGHS.Optimizer, MOI.Silent() => true)
-m = EMG.create_model(case, model)
+m = create_model(case, model)
 set_optimizer(m, optimizer)
 optimize!(m)
 
@@ -346,8 +343,9 @@ solution_summary(m)
 using EnergyModelsGUI
 
 # Colors can be taylored as in the following example
-NG = case[:products][1] # Extract NG object
-Power = case[:products][3] # Extract Power object
+products = get_products(case)
+NG = products[1] # Extract NG object
+Power = products[3] # Extract Power object
 id_to_color_map = Dict(Power.id => :cyan, NG.id => "#FF9876")
 
 # Set folder where visualization info is saved and retrieved

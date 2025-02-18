@@ -95,7 +95,7 @@ function generate_example_data()
     ]
 
     # Create the case dictionary
-    case = Dict(:nodes => nodes, :links => links, :products => products, :T => T)
+    case = Case(T, products, [nodes, links])
 
     return case, model
 end
@@ -114,7 +114,7 @@ pretty_table(
 pretty_table(
     JuMP.Containers.rowtable(
         value,
-        m[:flow_out][case[:nodes][2:3], :, case[:products][2]];
+        m[:flow_out][get_nodes(case)[2:3], :, get_products(case)[2]];
         header = [:Node, :TimePeriod, :Production],
     ),
 )

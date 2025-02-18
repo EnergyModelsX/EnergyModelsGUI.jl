@@ -160,9 +160,7 @@ function process_children!(
     parent_xy::Tuple{<:Real,<:Real},
 )
     # Create an iterator for the current systems
-    systems_iterator::Union{
-        Iterators.Enumerate{Vector{EMB.Node}},Iterators.Enumerate{Vector{Area}},Nothing,
-    } = if haskey(systems, :areas)
+    systems_iterator = if haskey(systems, :areas)
         enumerate(systems[:areas])
     elseif haskey(systems, :nodes)
         enumerate(systems[:nodes])

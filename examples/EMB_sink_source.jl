@@ -61,7 +61,7 @@ function generate_example_data()
     links = [Direct("source-demand", nodes[1], nodes[2], Linear())]
 
     # WIP data structure
-    case = Dict(:nodes => nodes, :links => links, :products => products, :T => T)
+    case = Case(T, products, [nodes, links])
     return case, model
 end
 
@@ -71,7 +71,7 @@ optimizer = optimizer_with_attributes(HiGHS.Optimizer, MOI.Silent() => true)
 m = run_model(case, model, optimizer)
 
 # Display some results
-source, sink = case[:nodes]
+source, sink = get_nodes(case)
 @info "Capacity usage of the power source"
 pretty_table(JuMP.Containers.rowtable(value, m[:cap_use][source, :]; header = [:t, :Value]))
 

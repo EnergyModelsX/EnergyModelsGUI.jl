@@ -84,7 +84,7 @@ function generate_example_data(lifemode = RollingLife; discount_rate = 0.05)
     links = [Direct("source-demand", nodes[1], nodes[2], Linear())]
 
     # WIP data structure
-    case = Dict(:nodes => nodes, :links => links, :products => products, :T => T)
+    case = Case(T, products, [nodes, links])
     return case, model
 end
 
@@ -94,7 +94,7 @@ optimizer = optimizer_with_attributes(HiGHS.Optimizer, MOI.Silent() => true)
 m = EMB.run_model(case, model, optimizer)
 
 # Display some results
-source, sink = case[:nodes]
+source, sink = get_nodes(case)
 @info "Invested capacity for the source in the beginning of the individual strategic periods"
 pretty_table(
     JuMP.Containers.rowtable(
