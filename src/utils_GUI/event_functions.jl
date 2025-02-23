@@ -254,30 +254,23 @@ function define_event_functions(gui::GUI)
         if !isempty(get_selected_systems(gui))
             get_vars(gui)[:expand_all] = false
             component = get_selected_systems(gui)[end] # Choose the last selected node
-            if isa(component, EnergySystemDesign)
-                if component.parent == :top_level
-                    component.parent = if haskey(get_design(gui).system, :name)
-                        get_design(gui).system[:name]
-                    else
-                        :top_level
-                    end
-                    plot_design!(
-                        gui,
-                        get_design(gui);
-                        visible = false,
-                        expand_all = get_var(gui, :expand_all),
-                    )
-                    gui.design = component
-                    plot_design!(
-                        gui,
-                        get_design(gui);
-                        visible = true,
-                        expand_all = get_var(gui, :expand_all),
-                    )
-                    update_title!(gui)
-                    clear_selection(gui)
-                    notify(get_button(gui, :reset_view).clicks)
-                end
+            if isa(component, EnergySystemDesign) && !isempty(get_components(component))
+                plot_design!(
+                    gui,
+                    get_design(gui);
+                    visible = false,
+                    expand_all = get_var(gui, :expand_all),
+                )
+                gui.design = component
+                plot_design!(
+                    gui,
+                    get_design(gui);
+                    visible = true,
+                    expand_all = get_var(gui, :expand_all),
+                )
+                update_title!(gui)
+                clear_selection(gui)
+                notify(get_button(gui, :reset_view).clicks)
             end
         end
         return Consume(false)
@@ -285,7 +278,7 @@ function define_event_functions(gui::GUI)
 
     # Navigate up button: Handle click on the navigate up button (go back to the root_design)
     on(get_button(gui, :up).clicks; priority = 10) do clicks
-        if !isnothing(get_design(gui).parent)
+        if !isa(get_parent(get_design(gui)), NothingElement)
             get_vars(gui)[:expand_all] = get_toggle(gui, :expand_all).active[]
             plot_design!(
                 gui, get_design(gui); visible = false,
@@ -458,7 +451,7 @@ function define_event_functions(gui::GUI)
         return Consume(false)
     end
 
-    T = get_design(gui).system[:T]
+    T = get_time_struct(gui)
 
     # Period menu: Handle menu selection (selecting period)
     period_menu = get_menu(gui, :period)

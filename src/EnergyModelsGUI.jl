@@ -16,6 +16,7 @@ using YAML
 using FileIO
 using TimeStruct
 using EnergyModelsBase
+import EnergyModelsBase: get_elements_vec, get_nodes
 
 # To format numbers with @sprintf
 using Printf

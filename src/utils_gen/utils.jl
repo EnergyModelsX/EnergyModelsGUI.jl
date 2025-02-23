@@ -2,7 +2,7 @@
 const SparseVars = Union{JuMP.Containers.SparseAxisArray,SparseVariables.IndexedVarArray}
 
 # Create a type for all Clickable objects in the get_axes(gui)[:topo]
-const Plotable = Union{Nothing,EMB.Node,Link,Area,Transmission,TransmissionMode} # Types that can trigger an update in the get_axes(gui)[:results] plot
+const Plotable = Union{Nothing,AbstractElement,TransmissionMode} # Types that can trigger an update in the get_axes(gui)[:results] plot
 
 """
     get_representative_period_indices(T::TS.TimeStructure, sp::Int64)

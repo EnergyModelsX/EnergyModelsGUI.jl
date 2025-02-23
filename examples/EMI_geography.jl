@@ -11,7 +11,7 @@ const EMG = EnergyModelsGeography
 const EMI = EnergyModelsInvestments
 
 """
-    generate_example_data()
+    generate_example_data_geo()
 
 Generate the data for an example consisting of a simple electricity network. The simple \
 network is existing within 5 regions with differing demand. Each region has the same \
@@ -21,12 +21,12 @@ The example is partly based on the provided example `network.jl` in `EnergyModel
 It will be repalced in the near future with a simplified example.
 """
 
-function generate_example_data()
+function generate_example_data_geo()
     @debug "Generate case data"
     @info "Generate data coded dummy model for now (Investment Model)"
 
     # Retrieve the products
-    products = get_resources()
+    products = get_resources_inv()
     NG = products[1]
     Power = products[3]
     CO2 = products[4]
@@ -41,8 +41,8 @@ function generate_example_data()
     an = Dict()
     nodes = EMB.Node[]
     links = Link[]
-    for a_id ∈ area_ids
-        n, l = get_sub_system_data(
+    for a_id in area_ids
+        n, l = get_sub_system_data_inv(
             a_id,
             products;
             gen_scale = gen_scale[a_id],
@@ -66,24 +66,30 @@ function generate_example_data()
 
     # Create the investment data for the different power line investment modes
     inv_data_12 = SingleInvData(
-        FixedProfile(500), FixedProfile(50), 0, BinaryInvestment(FixedProfile(50.0)),
+        FixedProfile(500),
+        FixedProfile(50),
+        FixedProfile(0),
+        BinaryInvestment(FixedProfile(50.0)),
     )
 
     inv_data_13 = SingleInvData(
         FixedProfile(10),
         FixedProfile(100),
-        0,
+        FixedProfile(0),
         SemiContinuousInvestment(FixedProfile(10), FixedProfile(100)),
     )
 
     inv_data_23 = SingleInvData(
-        FixedProfile(10), FixedProfile(50), 20, DiscreteInvestment(FixedProfile(6)),
+        FixedProfile(10),
+        FixedProfile(50),
+        FixedProfile(20),
+        DiscreteInvestment(FixedProfile(6)),
     )
 
     inv_data_34 = SingleInvData(
         FixedProfile(10),
         FixedProfile(50),
-        0,
+        FixedProfile(0),
         ContinuousInvestment(FixedProfile(1), FixedProfile(100)),
     )
 
@@ -128,17 +134,7 @@ function generate_example_data()
         2,
         [inv_data_34],
     )
-    LNG_Ship_100MW_23 = RefDynamic(
-        "LNG_100",
-        NG,
-        FixedProfile(100.0),
-        FixedProfile(0.05),
-        FixedProfile(0),
-        FixedProfile(0),
-        2,
-        [],
-    )
-    LNG_Ship_100MW_42 = RefDynamic(
+    LNG_Ship_100MW = RefDynamic(
         "LNG_100",
         NG,
         FixedProfile(100.0),
@@ -149,12 +145,12 @@ function generate_example_data()
         [],
     )
 
-    transmission = [
+    transmissions = [
         Transmission(areas[1], areas[2], [OverheadLine_50MW_12]),
         Transmission(areas[1], areas[3], [OverheadLine_50MW_13]),
-        Transmission(areas[2], areas[3], [OverheadLine_50MW_23, LNG_Ship_100MW_23]),
+        Transmission(areas[2], areas[3], [OverheadLine_50MW_23]),
         Transmission(areas[3], areas[4], [OverheadLine_50MW_34]),
-        Transmission(areas[4], areas[2], [LNG_Ship_100MW_42]),
+        Transmission(areas[4], areas[2], [LNG_Ship_100MW]),
     ]
 
     # Creation of the time structure and global data
@@ -163,16 +159,19 @@ function generate_example_data()
     em_cost = Dict(NG => FixedProfile(0), CO2 => FixedProfile(0))
     modeltype = InvestmentModel(em_limits, em_cost, CO2, 0.07)
 
+
+    # Input data structure
     case = Case(
         T,
         products,
-        [nodes, links, areas, transmission],
+        [nodes, links, areas, transmissions],
         [[get_nodes, get_links], [get_areas, get_transmissions]],
     )
     return case, modeltype
 end
 
-function get_resources()
+
+function get_resources_inv()
 
     # Define the different resources
     NG = ResourceEmit("NG", 0.2)
@@ -184,7 +183,8 @@ function get_resources()
     return products
 end
 
-function get_sub_system_data(
+
+function get_sub_system_data_inv(
     i,
     products;
     gen_scale::Float64 = 1.0,
@@ -192,6 +192,7 @@ function get_sub_system_data(
     d_scale::Float64 = 1.0,
     demand = false,
 )
+
     NG, Coal, Power, CO2 = products
 
     if demand == false
@@ -337,7 +338,7 @@ function get_sub_system_data(
                 SingleInvData(
                     FixedProfile(1000), # capex [€/kW]
                     FixedProfile(200),  # max installed capacity [kW]
-                    0,
+                    FixedProfile(0),
                     ContinuousInvestment(FixedProfile(10), FixedProfile(200)), # investment mode
                 ),
             ],
@@ -382,7 +383,7 @@ function get_sub_system_data(
             Dict(CO2 => 1, Power => 0.02),
             Dict(CO2 => 1),
             [
-                StorageInvData(;
+                StorageInvData(
                     charge = NoStartInvData(
                         FixedProfile(500),
                         FixedProfile(600),
@@ -420,7 +421,7 @@ function get_sub_system_data(
             Dict(CO2 => 1, Power => 0.02),
             Dict(CO2 => 1),
             [
-                StorageInvData(;
+                StorageInvData(
                     charge = NoStartInvData(
                         FixedProfile(500),
                         FixedProfile(30),
@@ -472,8 +473,9 @@ function get_sub_system_data(
     return nodes, links
 end
 
+
 # Generate case data
-case, model = generate_example_data()
+case, model = generate_example_data_geo()
 optimizer = optimizer_with_attributes(HiGHS.Optimizer, MOI.Silent() => true)
 m = create_model(case, model)
 set_optimizer(m, optimizer)

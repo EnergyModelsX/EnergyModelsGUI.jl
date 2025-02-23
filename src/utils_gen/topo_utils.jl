@@ -71,7 +71,7 @@ given the minimum and maximum coordinates `min_x`, `min_y`, `max_x`, and `max_y`
 function find_min_max_coordinates(
     design::EnergySystemDesign, min_x::Number, max_x::Number, min_y::Number, max_y::Number,
 )
-    if design.xy !== nothing && haskey(design.system, :node)
+    if design.xy !== nothing && !isa(get_parent(design), NothingElement)
         x, y = design.xy[]
         min_x = min(min_x, x)
         max_x = max(max_x, x)

@@ -1,10 +1,9 @@
 """
-    EnergySystemDesign(system::Dict; kwargs...)
-    EnergySystemDesign(case::Case; kwargs...)
+    EnergySystemDesign(system::AbstractSystem)
 
 Create and initialize an instance of the `EnergySystemDesign` struct, representing energy
 system designs. If the argument is a `Case` instance, the function converts the case to a
-dictionary, and initializes the `EnergySystemDesign`. If the argument is a dictionary,
+dictionary, and initializes the `EnergySystemDesign`. If the argument is a `AbstractSystem`,
 the function initializes the `EnergySystemDesign`.
 
 # Keyword arguments:
@@ -24,14 +23,13 @@ The function reads system configuration data from a TOML file specified by `desi
 It constructs and returns an `EnergySystemDesign` instance.
 """
 function EnergySystemDesign(
-    system::Dict;
+    system::AbstractSystem;
     design_path::String = "",
     id_to_color_map::Dict = Dict(),
     id_to_icon_map::Dict = Dict(),
     x::Real = 0.0,
     y::Real = 0.0,
     icon::String = "",
-    parent::Union{Symbol,Nothing} = nothing,
 )
     # Create the path to the file where existing design is stored (if any)
     file::String = design_file(system, design_path)
@@ -45,43 +43,27 @@ function EnergySystemDesign(
 
     # Complete the `id_to_color_map` if some products are lacking (this is done by choosing
     # colors for the lacking `Resource`s that are most distinct to the existing set of colors)
-    if haskey(system, :products) && !(length(system[:products]) == length(id_to_color_map))
-        id_to_color_map = set_colors(system[:products], id_to_color_map)
+    if !(length(get_products(system)) == length(id_to_color_map))
+        id_to_color_map = set_colors(get_products(system), id_to_color_map)
     end
 
     # Initialize components and connections
     components::Vector{EnergySystemDesign} = EnergySystemDesign[]
     connections::Vector{Connection} = Connection[]
 
-    # Create the name for the parent system
-    parent_arg::Symbol = if haskey(system, :areas)
-        :top_level
-    elseif haskey(system, :node)
-        Symbol(system[:node])
-    else
-        :parent_not_found
-    end
-
     # Create an observable for the coordinate xy that can be inherited as the coordinate
     # parent_xy
     xy::Observable{Tuple{Real,Real}} = Observable((x, y))
 
     # Create an iterator for the current system
-    elements = if haskey(system, :areas)
-        system[:areas]
-    elseif haskey(system, :nodes)
-        system[:nodes]
-    end
+    elements = get_children(system)
     parent_x, parent_y = xy[] # extract parent coordinates
 
     # If system contains any components (i.e. !isnothing(elements)) add all components
     # (constructed as an EnergySystemDesign) to `components`
     if !isnothing(elements)
         current_node::Int64 = 1
-        if haskey(system, :nodes)
-            nodes_count::Int64 = length(system[:nodes])
-        end
-        parent_node_found::Bool = false
+        nodes_count::Int64 = length(get_children(system))
 
         # Loop through all components of `system`
         for element ∈ elements
@@ -101,17 +83,11 @@ function EnergySystemDesign(
                 else
                     @error "Missing lon and/or lat coordinates"
                 end
-            elseif !haskey(system_info, "x") &&
-                   !haskey(system_info, "y") &&
-                   haskey(system, :nodes)
-                if !parent_node_found && (
-                    (haskey(system, :node) && element == system[:node].node) ||
-                    (parent_arg == :parent_not_found && typeof(element) <: Availability)
-                )  # use the parent coordinate for the RefArea node or the first Availability node found
+            else
+                if element == get_ref_element(system)
                     x = parent_x
                     y = parent_y
                     nodes_count -= 1
-                    parent_node_found = true
                 else # place nodes in a circle around the parents availability node
                     x, y = place_nodes_in_circle(
                         nodes_count, current_node, 1, parent_x, parent_y,
@@ -121,14 +97,14 @@ function EnergySystemDesign(
             end
 
             # Construct the system dict for the current system
-            this_sys::Dict{Symbol,Any} = Dict()
-            if haskey(system, :areas)
+            this_sys = if isa(system, SystemGeo)
                 area_an::EMB.Node = availability_node(element)
 
                 # Allocate redundantly large vector (for efficiency) to collect all links and nodes
-                area_links::Vector{Link} = Vector{Link}(undef, length(system[:links]))
+                links::Vector{Link} = get_links(system)
+                area_links::Vector{Link} = Vector{Link}(undef, length(links))
                 area_nodes::Vector{EMB.Node} = Vector{EMB.Node}(
-                    undef, length(system[:nodes]),
+                    undef, length(get_nodes(system)),
                 )
 
                 area_nodes[1] = area_an
@@ -136,13 +112,28 @@ function EnergySystemDesign(
                 # Create counting indices for area_links and area_nodes respectively
                 indices::Vector{Int} = [1, 2]
 
-                get_linked_nodes!(area_an, system, area_links, area_nodes, indices)
+                get_linked_nodes!(area_an, links, area_links, area_nodes, indices)
                 resize!(area_links, indices[1] - 1)
                 resize!(area_nodes, indices[2] - 1)
-                this_sys =
-                    Dict(:node => element, :links => area_links, :nodes => area_nodes)
+                System(
+                    get_time_struct(system),
+                    get_products(system),
+                    get_elements_vec(system),
+                    area_nodes,
+                    area_links,
+                    element,
+                    area_an,
+                )
             else
-                this_sys = Dict(:node => element)
+                System(
+                    get_time_struct(system),
+                    get_products(system),
+                    get_elements_vec(system),
+                    EMB.Node[],
+                    Link[],
+                    element,
+                    element,
+                )
             end
 
             # Add child to `components`
@@ -156,18 +147,13 @@ function EnergySystemDesign(
                     x,
                     y,
                     icon = find_icon(this_sys, id_to_icon_map),
-                    parent = parent_arg,
                 ),
             )
         end
     end
 
     # Add  `Transmission`s and `Link`s to `connections` as a `Connection`
-    elements = if haskey(system, :transmission)
-        system[:transmission]
-    elseif haskey(system, :links)
-        system[:links]
-    end
+    elements = get_transmissions(system)
     if !isnothing(elements)
         for element ∈ elements
             # Find the EnergySystemDesign corresponding to element.from.node
@@ -184,7 +170,6 @@ function EnergySystemDesign(
     end
 
     return EnergySystemDesign(
-        parent,
         system,
         id_to_color_map,
         id_to_icon_map,
@@ -198,20 +183,28 @@ function EnergySystemDesign(
     )
 end
 function EnergySystemDesign(case::Case; kwargs...)
-    system = Dict(
-        :nodes => get_nodes(case),
-        :links => get_links(case),
-        :products => get_products(case),
-        :T => get_time_struct(case),
-    )
-    areas = filter(el -> isa(el, Vector{<:Area}), get_elements_vec(case))
-    if !isempty(areas)
-        system[:areas] = areas[1]
-    end
-    transmissions = filter(el -> isa(el, Vector{<:Transmission}), get_elements_vec(case))
-    if !isempty(transmissions)
-        system[:transmission] = transmissions[1]
-    end
+    return EnergySystemDesign(parse_case(case); kwargs...)
+end
 
-    return EnergySystemDesign(system; kwargs...)
+"""
+    includes_area(case::Case)
+
+Check if the case includes elements from the EnergyModelsGeography package.
+"""
+function includes_area(case::Case)
+    return if @isdefined(Area)
+        area = filter(el -> isa(el, Vector{<:Area}), get_elements_vec(case))
+        !isempty(area)
+    else
+        false
+    end
+end
+
+"""
+    parse_case(case::Case)
+
+Parse the case and return a `AbstractSystem` instance.
+"""
+function parse_case(case::Case)
+    return includes_area(case) ? SystemGeo(case) : System(case)
 end

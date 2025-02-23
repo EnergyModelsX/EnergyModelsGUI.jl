@@ -3,13 +3,13 @@
 ## GUI constructor
 
 ```@docs
-EnergyModelsGUI.GUI(case::Case)
+EnergyModelsGUI.GUI(case::Case; kwargs...)
 ```
 
 ## EnergySystemDesign constructor
 
 ```@docs
-EnergyModelsGUI.EnergySystemDesign(case::Case)
+EnergyModelsGUI.EnergySystemDesign(system::EnergyModelsGUI.AbstractSystem)
 ```
 
 ## Structures

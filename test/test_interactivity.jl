@@ -35,7 +35,7 @@ import EnergyModelsGUI:
     op_cost = [3371970.00359, 5382390.00598, 2010420.00219]
     inv_cost = [0.0, 0.0, 29536224.881975]
     @testset "Compare with Integrate results" begin
-        T = get_design(gui).system[:T]
+        T = EMGUI.get_time_struct(gui)
         for (i, t) ∈ enumerate(strategic_periods(T))
             if haskey(m, :cap_capex)
                 tot_capex_sp = sum(value.(m[:cap_capex][:, t])) / duration_strat(t)

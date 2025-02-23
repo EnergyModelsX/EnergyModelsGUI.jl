@@ -145,44 +145,37 @@ function find_icon_path(icon::String)
 end
 
 """
-    design_file(system::Dict, path::String)
+    design_file(system::AbstractSystem, path::String)
 
 Construct the path for the .yml file for `system` in the folder `path`.
 """
-function design_file(system::Dict, path::String)
+function design_file(system::AbstractSystem, path::String)
     if isempty(path)
         return ""
     end
     if !isdir(path)
         mkpath(path)
     end
-    system_name::String = if !haskey(system, :node)
-        "top_level"
-    else
-        string(system[:node])
-    end
-    file::String = joinpath(path, "$(system_name).yml")
-
-    return file
+    return joinpath(path, "$(get_parent(system)).yml")
 end
 
 """
-    find_icon(system::Dict, id_to_icon_map::Dict)
+    find_icon(system::AbstractSystem, id_to_icon_map::Dict)
 
 Find the icon associated with a given `system`'s node id utilizing the mapping provided
 through `id_to_icon_map`.
 """
-function find_icon(system::Dict, id_to_icon_map::Dict)
+function find_icon(system::AbstractSystem, id_to_icon_map::Dict)
     icon::String = ""
-    if haskey(system, :node) && !isempty(id_to_icon_map)
-        supertype::DataType = find_type_field(id_to_icon_map, system[:node])
-        if haskey(id_to_icon_map, system[:node].id)
-            icon = id_to_icon_map[system[:node].id]
+    if !isempty(id_to_icon_map)
+        supertype::DataType = find_type_field(id_to_icon_map, get_parent(system))
+        if haskey(id_to_icon_map, get_parent(system).id)
+            icon = id_to_icon_map[get_parent(system).id]
         elseif supertype != Nothing
             icon = id_to_icon_map[supertype]
         else
-            @warn("Could not find $(system[:node].id) in id_to_icon_map \
-                  nor the type $(typeof(system[:node])). Using default setup instead")
+            @warn("Could not find $(get_parent(system).id) in id_to_icon_map \
+                  nor the type $(typeof(get_parent(system))). Using default setup instead")
         end
     end
     return icon
@@ -206,7 +199,7 @@ function save_design(design::EnergySystemDesign)
         # Extract x,y-coordinates
         x, y = component.xy[]
 
-        design_dict[string(component.system[:node])] = Dict(
+        design_dict[string(get_parent(get_system(component)))] = Dict(
             :x => round(x; digits = 5), :y => round(y; digits = 5),
         )
 
@@ -231,44 +224,52 @@ function save_design(design_dict::Dict, file::String)
 end
 
 """
-    get_linked_nodes!(node::EMB.Node,
-        system::Dict{Symbol, Any},
+    get_linked_nodes!(
+        node::EMB.Node,
         links::Vector{Link},
-        nodes::Vector{EMB.Node},
-        indices::Vector{Int})
+        area_links::Vector{Link},
+        area_nodes::Vector{EMB.Node},
+        indices::Vector{Int
+    )
 
-Recursively find all nodes connected (directly or indirectly) to `node` in a system `system`
-and store the found links in `links` and nodes in `nodes`.
+Recursively find all nodes connected (directly or indirectly) to `node` in a system of `links`
+and store the found links in `area_links` and nodes in `area_nodes`.
 
 Here, `indices` contains the indices where the next link and node is to be stored,
 respectively.
 """
 function get_linked_nodes!(
     node::EMB.Node,
-    system::Dict{Symbol,Any},
     links::Vector{Link},
-    nodes::Vector{EMB.Node},
+    area_links::Vector{Link},
+    area_nodes::Vector{EMB.Node},
     indices::Vector{Int},
 )
-    for link ∈ system[:links]
+    for link ∈ links
         if node ∈ [link.from, link.to] &&
-           (indices[1] == 1 || !(link ∈ links[1:(indices[1]-1)]))
-            links[indices[1]] = link
+           (indices[1] == 1 || !(link ∈ area_links[1:(indices[1]-1)]))
+            area_links[indices[1]] = link
             indices[1] += 1
 
             new_node_added::Bool = false
-            if node == link.from && !(link.to ∈ nodes[1:(indices[2]-1)])
-                nodes[indices[2]] = link.to
+            if node == link.from && !(link.to ∈ area_nodes[1:(indices[2]-1)])
+                area_nodes[indices[2]] = link.to
                 new_node_added = true
-            elseif node == link.to && !(link.from ∈ nodes[1:(indices[2]-1)])
-                nodes[indices[2]] = link.from
+            elseif node == link.to && !(link.from ∈ area_nodes[1:(indices[2]-1)])
+                area_nodes[indices[2]] = link.from
                 new_node_added = true
             end
 
             # Recursively add other nodes
             if new_node_added
                 indices[2] += 1
-                get_linked_nodes!(nodes[indices[2]-1], system, links, nodes, indices)
+                get_linked_nodes!(
+                    area_nodes[indices[2]-1],
+                    links,
+                    area_links,
+                    area_nodes,
+                    indices,
+                )
             end
         end
     end

@@ -364,7 +364,7 @@ Based on `element` update the results in `get_axes(gui)[:results]`.
 """
 function update_plot!(gui::GUI, element::Plotable)
     # Get global time structure
-    T = get_root_design(gui).system[:T]
+    T = get_time_struct(gui)
 
     # Extract menu objects from gui
     time_menu = get_menu(gui, :time)

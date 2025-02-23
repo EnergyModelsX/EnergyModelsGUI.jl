@@ -169,10 +169,12 @@ function connect!(gui::GUI, design::EnergySystemDesign)
     components = get_components(design)
     for component ∈ components
         linked_to_component::Vector{Connection} = filter(
-            x -> component.system[:node].id == get_element(x).to.id, connections,
+            x -> get_parent(get_system(component)).id == get_element(x).to.id,
+            connections,
         )
         linked_from_component::Vector{Connection} = filter(
-            x -> component.system[:node].id == get_element(x).from.id, connections,
+            x -> get_parent(get_system(component)).id == get_element(x).from.id,
+            connections,
         )
         on(component.xy; priority = 4) do _
             angles::Vector{Float64} = vcat(
@@ -380,12 +382,10 @@ end
 Get the line style for an EnergySystemDesign `design` based on its properties.
 """
 get_linestyle(gui::GUI, design::EnergySystemDesign) = get_linestyle(gui, design.system)
-function get_linestyle(gui::GUI, system::Dict)
-    if haskey(system, :node)
-        node = system[:node]
-        if !isa(node, Area) && EMI.has_investment(node)
-            return get_var(gui, :investment_lineStyle)
-        end
+function get_linestyle(gui::GUI, system::AbstractSystem)
+    node = get_parent(system)
+    if isa(node, EMB.Node) && EMI.has_investment(node)
+        return get_var(gui, :investment_lineStyle)
     end
     return :solid
 end
@@ -536,11 +536,7 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
     end
 
     if isempty(design.icon) # No path to an icon has been found
-        node::EMB.Node = if typeof(get_element(design)) <: EMB.Node
-            get_element(design)
-        else
-            get_element(design).node
-        end
+        node::EMB.Node = get_ref_element(design)
 
         colors_input::Vector{RGB} = get_resource_colors(
             inputs(node), design.id_to_color_map,
@@ -637,55 +633,53 @@ end
 Add a label to an `EnergySystemDesign` component.
 """
 function draw_label!(gui::GUI, component::EnergySystemDesign)
-    if haskey(component.system, :node)
-        xo = Observable(0.0)
-        yo = Observable(0.0)
-        alignment = Observable((:left, :top))
+    xo = Observable(0.0)
+    yo = Observable(0.0)
+    alignment = Observable((:left, :top))
 
-        scale = 0.7
+    scale = 0.7
 
-        on(component.xy; priority = 3) do val
-            x = val[1]
-            y = val[2]
+    on(component.xy; priority = 3) do val
+        x = val[1]
+        y = val[2]
 
-            if component.wall[] == :E
-                xo[] = x + get_var(gui, :Δh) * scale
-                yo[] = y
-            elseif component.wall[] == :S
-                xo[] = x
-                yo[] = y - get_var(gui, :Δh) * scale
-            elseif component.wall[] == :W
-                xo[] = x - get_var(gui, :Δh) * scale
-                yo[] = y
-            elseif component.wall[] == :N
-                xo[] = x
-                yo[] = y + get_var(gui, :Δh) * scale
-            end
-            alignment[] = get_text_alignment(component.wall[])
+        if component.wall[] == :E
+            xo[] = x + get_var(gui, :Δh) * scale
+            yo[] = y
+        elseif component.wall[] == :S
+            xo[] = x
+            yo[] = y - get_var(gui, :Δh) * scale
+        elseif component.wall[] == :W
+            xo[] = x - get_var(gui, :Δh) * scale
+            yo[] = y
+        elseif component.wall[] == :N
+            xo[] = x
+            yo[] = y + get_var(gui, :Δh) * scale
         end
-
-        node = get_element(component)
-
-        if has_invested(component)
-            font_color = :red
-        else
-            font_color = :black
-        end
-        label_text = text!(
-            get_axes(gui)[:topo],
-            xo,
-            yo;
-            text = get_element_label(node),
-            align = alignment,
-            fontsize = get_var(gui, :fontsize),
-            inspectable = false,
-            color = font_color,
-        )
-        Makie.translate!(label_text, 0, 0, get_var(gui, :z_translate_components))
-        get_vars(gui)[:z_translate_components] += 1
-        label_text.kw[:EMGUI_obj] = component
-        push!(get_plots(component), label_text)
+        alignment[] = get_text_alignment(component.wall[])
     end
+
+    node = get_element(component)
+
+    if has_invested(component)
+        font_color = :red
+    else
+        font_color = :black
+    end
+    label_text = text!(
+        get_axes(gui)[:topo],
+        xo,
+        yo;
+        text = get_element_label(node),
+        align = alignment,
+        fontsize = get_var(gui, :fontsize),
+        inspectable = false,
+        color = font_color,
+    )
+    Makie.translate!(label_text, 0, 0, get_var(gui, :z_translate_components))
+    get_vars(gui)[:z_translate_components] += 1
+    label_text.kw[:EMGUI_obj] = component
+    push!(get_plots(component), label_text)
 end
 
 """
@@ -754,12 +748,12 @@ Update the title of `get_axes(gui)[:topo]` based on `get_design(gui)`.
 """
 function update_title!(gui::GUI)
     design = get_design(gui)
-    parent = get_parent(design)
-    get_var(gui, :title)[] = if isnothing(parent)
+    system = get_system(design)
+    parent = get_parent(system)
+    get_var(gui, :title)[] = if isa(parent, NothingElement)
         "top_level"
     else
-        system = get_system(design)
-        "$(parent).$(system[:node])"
+        "top_level.$(parent)"
     end
 end
 
