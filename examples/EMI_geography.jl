@@ -41,7 +41,7 @@ function generate_example_data_geo()
     an = Dict()
     nodes = EMB.Node[]
     links = Link[]
-    for a_id in area_ids
+    for a_id ∈ area_ids
         n, l = get_sub_system_data_inv(
             a_id,
             products;
@@ -159,7 +159,6 @@ function generate_example_data_geo()
     em_cost = Dict(NG => FixedProfile(0), CO2 => FixedProfile(0))
     modeltype = InvestmentModel(em_limits, em_cost, CO2, 0.07)
 
-
     # Input data structure
     case = Case(
         T,
@@ -169,7 +168,6 @@ function generate_example_data_geo()
     )
     return case, modeltype
 end
-
 
 function get_resources_inv()
 
@@ -183,7 +181,6 @@ function get_resources_inv()
     return products
 end
 
-
 function get_sub_system_data_inv(
     i,
     products;
@@ -192,7 +189,6 @@ function get_sub_system_data_inv(
     d_scale::Float64 = 1.0,
     demand = false,
 )
-
     NG, Coal, Power, CO2 = products
 
     if demand == false
@@ -472,7 +468,6 @@ function get_sub_system_data_inv(
     ]
     return nodes, links
 end
-
 
 # Generate case data
 case, model = generate_example_data_geo()

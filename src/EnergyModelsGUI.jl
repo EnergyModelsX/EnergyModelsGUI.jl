@@ -18,6 +18,9 @@ using TimeStruct
 using EnergyModelsBase
 import EnergyModelsBase: get_elements_vec, get_nodes
 
+# Use Colors to visualize using the colors in the colors.yml file
+using Colors
+
 # To format numbers with @sprintf
 using Printf
 
@@ -33,10 +36,9 @@ using JuMP
 # SparseVariables.IndexedVarArray types
 using SparseVariables
 
-using EnergyModelsGeography
 using EnergyModelsInvestments
 
-# Needed for plottig geographical map (note that GeoMakie reexports Colors)
+# Needed for plottig geographical map
 using GeoMakie, GeoJSON
 
 # Needed to download the .json file for geographical coastlines
@@ -56,7 +58,6 @@ using XLSX
 
 const TS = TimeStruct
 const EMB = EnergyModelsBase
-const EMG = EnergyModelsGeography
 const EMI = EnergyModelsInvestments
 
 include("datastructures.jl")

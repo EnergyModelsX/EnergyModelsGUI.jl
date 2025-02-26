@@ -256,7 +256,66 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
     vars[:ax_aspect_ratio] =
         vars[:plot_widths][1] / (vars[:plot_widths][2] - vars[:taskbar_height]) / 2
 
-    ax = create_topo_axis(get_system(design), vars, gridlayout_topology_ax)
+    # Check whether or not to use lat-lon coordinates to construct the axis used for visualizing the topology
+    if isa(get_system(design), SystemGeo)
+        # Set the source mapping for projection
+        source::String = "+proj=merc +lon_0=0 +x_0=0 +y_0=0 +a=6378137 +b=6378137 +units=m +no_defs"
+        # Set the destination mapping for projection
+        dest::String = "+proj=merc +lon_0=0 +x_0=0 +y_0=0 +a=6378137 +b=6378137 +units=m +no_defs"
+        # Construct the axis from the GeoMakie package
+        ax = GeoMakie.GeoAxis(
+            gridlayout_topology_ax[1, 1];
+            source,
+            dest,
+            alignmode = Outside(),
+        )
+
+        if vars[:coarse_coast_lines] # Use low resolution coast lines
+            countries = GeoMakie.land()
+        else # Use high resolution coast lines
+            # Define the URL and the local file path
+            resolution::String = "10m" # "10m", "50m", "110m"
+            url::String = "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_$(resolution)_land.geojson"
+            temp_dir::String = tempdir()  # Get the system's temporary directory
+            filename_countries::String = "EnergyModelsGUI_countries.geojson"
+            local_file_path::String = joinpath(temp_dir, filename_countries)
+
+            # Download the file if it doesn't exist in the temporary directory
+            if !isfile(local_file_path)
+                @debug "Trying to download file $url to $local_file_path"
+                HTTP.download(url, local_file_path)
+            end
+
+            # Now read the data from the file
+            countries_geo_json = GeoJSON.read(read(local_file_path, String))
+
+            # Create GeoMakie plotable object
+            countries = GeoMakie.to_multipoly(countries_geo_json.geometry)
+        end
+        poly!(
+            ax,
+            countries;
+            color = :honeydew,
+            colormap = :dense,
+            strokecolor = :gray50,
+            strokewidth = 0.5,
+            inspectable = false,
+        )
+        ocean_coords = [(180, -90), (-180, -90), (-180, 90), (180, 90)]
+        ocean = poly!(
+            ax, ocean_coords, color = :lightblue1, strokewidth = 0.5,
+            strokecolor = :gray50,
+        )
+        Makie.translate!(ocean, 0, 0, -1)
+    else # The design does not use the EnergyModelsGeography package: Create a simple Makie axis
+        ax = Axis(
+            gridlayout_topology_ax[1, 1];
+            autolimitaspect = true,
+            alignmode = Outside(),
+            tellheight = true,
+            tellwidth = true,
+        )
+    end
     if vars[:hide_topo_ax_decorations]
         hidedecorations!(ax)
     end
@@ -562,66 +621,4 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
     Makie.translate!(vars[:topo_title_obj], 0, 0, vars[:z_translate_components] + 999)
 
     return fig, buttons, menus, toggles, axes, legends
-end
-
-function create_topo_axis(::System, vars, gridlayout_topology_ax)
-    return Axis(
-        gridlayout_topology_ax[1, 1];
-        autolimitaspect = true,
-        alignmode = Outside(),
-        tellheight = true,
-        tellwidth = true,
-    )
-end
-# Check whether or not to use lat-lon coordinates to construct the axis used for visualizing the topology
-# The design uses the EnergyModelsGeography package: Thus use GeoMakie
-function create_topo_axis(::SystemGeo, vars, gridlayout_topology_ax)
-    # Set the source mapping for projection
-    source::String = "+proj=merc +lon_0=0 +x_0=0 +y_0=0 +a=6378137 +b=6378137 +units=m +no_defs"
-    # Set the destination mapping for projection
-    dest::String = "+proj=merc +lon_0=0 +x_0=0 +y_0=0 +a=6378137 +b=6378137 +units=m +no_defs"
-    # Construct the axis from the GeoMakie package
-    ax = GeoMakie.GeoAxis(
-        gridlayout_topology_ax[1, 1]; source = source, dest = dest,
-        alignmode = Outside(),
-    )
-
-    if vars[:coarse_coast_lines] # Use low resolution coast lines
-        countries = GeoMakie.land()
-    else # Use high resolution coast lines
-        # Define the URL and the local file path
-        resolution = "10m" # "10m", "50m", "110m"
-        url::String = "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_$(resolution)_land.geojson"
-        temp_dir::String = tempdir()  # Get the system's temporary directory
-        filename_countries::String = "EnergyModelsGUI_countries.geojson"
-        local_file_path::String = joinpath(temp_dir, filename_countries)
-
-        # Download the file if it doesn't exist in the temporary directory
-        if !isfile(local_file_path)
-            @debug "Trying to download file $url to $local_file_path"
-            HTTP.download(url, local_file_path)
-        end
-
-        # Now read the data from the file
-        countries_geo_json = GeoJSON.read(read(local_file_path, String))
-
-        # Create GeoMakie plotable object
-        countries = GeoMakie.to_multipoly(countries_geo_json.geometry)
-    end
-    poly!(
-        ax,
-        countries;
-        color = :honeydew,
-        colormap = :dense,
-        strokecolor = :gray50,
-        strokewidth = 0.5,
-        inspectable = false,
-    )
-    ocean_coords = [(180, -90), (-180, -90), (-180, 90), (180, 90)]
-    ocean = poly!(
-        ax, ocean_coords, color = :lightblue1, strokewidth = 0.5,
-        strokecolor = :gray50,
-    )
-    Makie.translate!(ocean, 0, 0, -1)
-    return ax
 end

@@ -1,110 +1,87 @@
 # Import the required packages
 using EnergyModelsBase
 using EnergyModelsInvestments
-using HiGHS
 using JuMP
+using HiGHS
 using PrettyTables
 using TimeStruct
 
-const EMB = EnergyModelsBase
-const EMI = EnergyModelsInvestments
-
 """
-    generate_example_data()
+    generate_example_network_investment()
 
 Generate the data for an example consisting of a simple electricity network.
 The more stringent CO₂ emission in latter investment periods force the investment into both
 the natural gas power plant with CCS and the CO₂ storage node.
-
-The example is partly based on the provided example `network.jl` in `EnergyModelsBase`.
 """
-function generate_example_data()
-    @info "Generate case data - Simple network example"
+function generate_example_network_investment()
+    @info "Generate case data - Simple network example with investments"
 
     # Define the different resources and their emission intensity in tCO2/MWh
-    NG = ResourceCarrier("NG", 0.2)
+    NG = ResourceEmit("NG", 0.2)
     Coal = ResourceCarrier("Coal", 0.35)
     Power = ResourceCarrier("Power", 0.0)
     CO2 = ResourceEmit("CO2", 1.0)
     products = [NG, Coal, Power, CO2]
 
     # Variables for the individual entries of the time structure
-    op_duration = 1 # Each operational period has a duration of 1
-    op_number = 24  # There are in total 4 operational periods
+    op_duration = 2 # Each operational period has a duration of 2
+    op_number = 4   # There are in total 4 operational periods
     operational_periods = SimpleTimes(op_number, op_duration)
 
-    # The duration of operational periods per duration of 1 of a strategic period of 8760
-    # implies that a duration of 1 of an operational period corresponds to an hour, while
-    # a duration of 1 of a strategic period corresponds to a year
+    # Each operational period should correspond to a duration of 2 h while a duration if 1
+    # of a strategic period should correspond to a year.
+    # This implies, that a strategic period is 8760 times longer than an operational period,
+    # resulting in the values below as "/year".
     op_per_strat = 8760
 
-    sp_duration = 5 # The duration of a strategic period is given as 5 years
+    # Creation of the time structure and global data
+    T = TwoLevel(4, 1, operational_periods; op_per_strat)
+    model = InvestmentModel(
+        Dict(   # Emission cap for CO₂ in t/year and for NG in MWh/year
+            CO2 => StrategicProfile([170, 150, 130, 110]) * 1000,
+            NG => FixedProfile(1e6),
+        ),
+        Dict(   # Emission price for CO₂ in EUR/t and for NG in EUR/MWh
+            CO2 => FixedProfile(0),
+            NG => FixedProfile(0),
+        ),
+        CO2,    # CO2 instance
+        0.07,   # Discount rate in absolute value
+    )
 
-    # Create the time structure It corresponds to simulating one day in a year over
-    # 4 strategic periods
-    T = TwoLevel(4, sp_duration, operational_periods; op_per_strat)
-
-    # Create the global data
-    em_limits = Dict(CO2 => StrategicProfile([450, 400, 350, 300] * 365))   # Emission cap for CO2 in t/year
-    em_cost = Dict(CO2 => FixedProfile(0))  # Emission price for CO2 in EUR/t
-    discount_rate = 0.07                    # Discount rate in absolute value
-    model = InvestmentModel(em_limits, em_cost, CO2, discount_rate)
+    # Creation of the emission data for the individual nodes.
+    capture_data = CaptureEnergyEmissions(0.9)
+    emission_data = EmissionsEnergy()
 
     # Create the individual test nodes, corresponding to a system with an electricity demand/sink,
-    # coal and nautral gas sources, coal and natural gas (with CCS) power plants and CO2 storage.
-    # Only the natural gas power plant and the CO2 storage nodes have ivnestment options
-    op_profile = OperationalProfile([
-        20,
-        20,
-        20,
-        20,
-        25,
-        30,
-        35,
-        35,
-        40,
-        40,
-        40,
-        40,
-        40,
-        35,
-        35,
-        30,
-        25,
-        30,
-        35,
-        30,
-        25,
-        20,
-        20,
-        20,
-    ])
+    # coal and nautral gas sources, coal and natural gas (with CCS) power plants and CO₂ storage.
     nodes = [
-        GenAvailability(1, products),   # Routing Node
-        RefSource(                      # Natural gas source
+        GenAvailability("Availability", products),
+        RefSource(
             "NG source",                # Node id
-            FixedProfile(80),           # Capacity in MW
+            FixedProfile(100),          # Capacity in MW
             FixedProfile(30),           # Variable OPEX in EUR/MWh
-            FixedProfile(100),          # Fixed OPEX in EUR/year
-            Dict(NG => 1),              # Output from the Node, in this gase, NG
+            FixedProfile(0),            # Fixed OPEX in EUR/MW/year
+            Dict(NG => 1),              # Output from the Node, in this case, NG
         ),
-        RefSource(                      # Coal source
+        RefSource(
             "coal source",              # Node id
             FixedProfile(100),          # Capacity in MW
             FixedProfile(9),            # Variable OPEX in EUR/MWh
-            FixedProfile(100),          # Fixed OPEX in EUR/year
-            Dict(Coal => 1),            # Output from the Node, in this gase, coal
+            FixedProfile(0),            # Fixed OPEX in EUR/MW/year
+            Dict(Coal => 1),            # Output from the Node, in this case, coal
         ),
-        RefNetworkNode(                 # Natural gas power plant with CCS
+        RefNetworkNode(
             "NG+CCS power plant",       # Node id
-            FixedProfile(0),            # Capacity in MW, no initial capacity
+            FixedProfile(0),            # Capacity in MW
             FixedProfile(5.5),          # Variable OPEX in EUR/MWh
-            FixedProfile(1e5),          # Fixed OPEX in EUR/year
+            FixedProfile(0),            # Fixed OPEX in EUR/MW/year
             Dict(NG => 2),              # Input to the node with input ratio
             Dict(Power => 1, CO2 => 0), # Output from the node with output ratio
             # Line above: CO2 is required as output for variable definition, but the
             # value does not matter
             [
+                capture_data,           # Additonal data for emissions and CO₂ capture
                 SingleInvData(
                     FixedProfile(600 * 1e3),  # Capex in EUR/MW
                     FixedProfile(40),       # Max installed capacity [MW]
@@ -113,33 +90,32 @@ function generate_example_data()
                     # 1. argument: min added capactity per sp [MW]
                     # 2. argument: max added capactity per sp [MW]
                 ),
-                CaptureEnergyEmissions(0.9),        # CO2 capture included for the node
             ],
         ),
-        RefNetworkNode(                 # Coal power plant
+        RefNetworkNode(
             "coal power plant",         # Node id
             FixedProfile(40),           # Capacity in MW
             FixedProfile(6),            # Variable OPEX in EUR/MWh
-            FixedProfile(0),            # Fixed OPEX in EUR/8h
+            FixedProfile(0),            # Fixed OPEX in EUR/MW/year
             Dict(Coal => 2.5),          # Input to the node with input ratio
             Dict(Power => 1),           # Output from the node with output ratio
-            [EmissionsEnergy()],        # Additonal data for emissions
+            [emission_data],            # Additonal data for emissions
         ),
         RefStorage{AccumulatingEmissions}(
             "CO2 storage",              # Node id
             StorCapOpex(
-                FixedProfile(0),        # Charge capacity in t/h
+                FixedProfile(0),       # Charge capacity in t/h
                 FixedProfile(9.1),      # Storage variable OPEX for the charging in EUR/t
-                FixedProfile(15 * 1e3)   # Storage fixed OPEX for the charging in EUR/(t/h 8h)
+                FixedProfile(0)         # Storage fixed OPEX for the charging in EUR/(t/h year)
             ),
             StorCap(FixedProfile(1e8)), # Storage capacity in t
             CO2,                        # Stored resource
             Dict(CO2 => 1, Power => 0.02), # Input resource with input ratio
-            # Line above: This implies that storing CO2 requires Power
+            # Line above: This implies that storing CO₂ requires Power
             Dict(CO2 => 1),             # Output from the node with output ratio
-            # In practice, for CO2 storage, this is never used.
+            # In practice, for CO₂ storage, this is never used.
             [
-                StorageInvData(;
+                StorageInvData(
                     charge = NoStartInvData(
                         FixedProfile(200 * 1e3),  # CAPEX [EUR/(t/h)]
                         FixedProfile(60),       # Max installed capacity [EUR/(t/h)]
@@ -152,12 +128,12 @@ function generate_example_data()
                 ),
             ],
         ),
-        RefSink(                        # Demand Node
+        RefSink(
             "electricity demand",       # Node id
-            op_profile,                 # Used demand profile
+            OperationalProfile([20, 30, 40, 30]), # Demand in MW
             Dict(:surplus => FixedProfile(0), :deficit => FixedProfile(1e6)),
             # Line above: Surplus and deficit penalty for the node in EUR/MWh
-            Dict(Power => 1),           # Power demand and corresponding ratio
+            Dict(Power => 1),           # Energy demand and corresponding ratio
         ),
     ]
 
@@ -174,15 +150,15 @@ function generate_example_data()
         Direct("CO2_stor-av", nodes[6], nodes[1], Linear())
     ]
 
-    # WIP case structure
-    case = Case(T, products, [nodes, links])
+    # Input data structure
+    case = Case(T, products, [nodes, links], [[get_nodes, get_links]])
     return case, model
 end
 
 # Generate the case and model data and run the model
-case, model = generate_example_data()
+case, model = generate_example_network_investment()
 optimizer = optimizer_with_attributes(HiGHS.Optimizer, MOI.Silent() => true)
-m = EMB.run_model(case, model, optimizer)
+m = run_model(case, model, optimizer)
 
 # Display some results
 ng_ccs_pp, CO2_stor, = get_nodes(case)[[4, 6]]
@@ -190,14 +166,17 @@ ng_ccs_pp, CO2_stor, = get_nodes(case)[[4, 6]]
 individual strategic periods"
 pretty_table(
     JuMP.Containers.rowtable(
-        value, m[:cap_add][ng_ccs_pp, :]; header = [:StrategicPeriod, :InvestCapacity],
+        value,
+        m[:cap_add][ng_ccs_pp, :];
+        header = [:StrategicPeriod, :InvestCapacity],
     ),
 )
 @info "Invested capacity for the CO2 storage in the beginning of the
 individual strategic periods"
 pretty_table(
     JuMP.Containers.rowtable(
-        value, m[:stor_charge_add][CO2_stor, :];
+        value,
+        m[:stor_charge_add][CO2_stor, :];
         header = [:StrategicPeriod, :InvestCapacity],
     ),
 )

@@ -169,12 +169,12 @@ function update!(gui::GUI)
 end
 
 """
-    update!(gui::GUI, element::Plotable; updateplot::Bool=true)
+    update!(gui::GUI, element; updateplot::Bool=true)
 
 Based on `element`, update the text in `get_axes(gui)[:info]` and update plot in
 `get_axes(gui)[:results]` if `updateplot = true`.
 """
-function update!(gui::GUI, element::Plotable; updateplot::Bool = true)
+function update!(gui::GUI, element; updateplot::Bool = true)
     update_info_box!(gui, element)
     update_available_data_menu!(gui, element)
     if updateplot
@@ -202,18 +202,13 @@ function update!(gui::GUI, design::EnergySystemDesign; updateplot::Bool = true)
     return update!(gui, get_element(design); updateplot)
 end
 
+"""
+    get_mode_to_transmission_map(::System)
+
+Dispatchable function to get the mapping between modes and transmissions for a `GeoSystem`.
+"""
 function get_mode_to_transmission_map(::System)
     return Dict()
-end
-
-function get_mode_to_transmission_map(system::SystemGeo)
-    mode_to_transmission = Dict()
-    for t ∈ get_transmissions(system)
-        for m ∈ modes(t)
-            mode_to_transmission[m] = t
-        end
-    end
-    return mode_to_transmission
 end
 
 """
@@ -225,8 +220,8 @@ function initialize_available_data!(gui)
     design = get_root_design(gui)
     system = get_system(design)
     model = get_model(gui)
-    plotables = [nothing; vcat(get_elements_vec(system))...] # nothing here represents no selection
-    gui.vars[:available_data] = Dict{Plotable,Vector{Dict{Symbol,Any}}}(
+    plotables = [nothing; vcat(get_elements_vec(system))...] # `nothing` here represents no selection
+    gui.vars[:available_data] = Dict{Any,Vector{Dict{Symbol,Any}}}(
         element => Vector{Dict{Symbol,Any}}() for element ∈ plotables
     )
 
@@ -248,7 +243,7 @@ function initialize_available_data!(gui)
             for combination ∈ get_combinations(var, i_T)
                 selection = collect(combination)
                 field_data = extract_data_selection(var, selection, i_T, periods)
-                element::Plotable = getfirst(x -> isa(x, Plotable), selection)
+                element = getfirst(x -> !isa(x, Resource), selection)
                 if !isa(element, AbstractElement) && !isnothing(element) # it must be a transmission
                     element = mode_to_transmission[element]
                 end
@@ -505,11 +500,11 @@ function get_combinations(var::JuMP.Containers.DenseAxisArray, i_T::Int)
 end
 
 """
-    update_available_data_menu!(gui::GUI, element::Plotable)
+    update_available_data_menu!(gui::GUI, element)
 
 Update the `get_menus(gui)[:available_data]` with the available data of `element`.
 """
-function update_available_data_menu!(gui::GUI, element::Plotable)
+function update_available_data_menu!(gui::GUI, element)
     available_data = get_available_data(gui)
     container = available_data[element]
     container_strings = create_label.(container)

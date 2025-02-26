@@ -27,7 +27,7 @@ end
         name::String,
         key_str::String,
         pre_desc::String,
-        element::Plotable,
+        element,
         available_data::Vector{Dict},
         gui::GUI,
     )
@@ -39,7 +39,7 @@ function add_description!(
     name::String,
     key_str::String,
     pre_desc::String,
-    element::Plotable,
+    element,
     available_data::Vector{Dict},
     gui::GUI,
 )
@@ -59,7 +59,7 @@ end
         name::String,
         key_str::String,
         pre_desc::String,
-        element::Plotable,
+        element,
         available_data::Vector{Dict},
         gui::GUI,
     )
@@ -72,7 +72,7 @@ function add_description!(
     name::String,
     key_str::String,
     pre_desc::String,
-    element::Plotable,
+    element,
     available_data::Vector{Dict},
     gui::GUI,
 )
@@ -91,7 +91,7 @@ end
         name::String,
         key_str::String,
         pre_desc::String,
-        element::Plotable,
+        element,
         available_data::Vector{Dict},
         gui::GUI,
     )
@@ -104,7 +104,7 @@ function add_description!(
     name::String,
     key_str::String,
     pre_desc::String,
-    element::Plotable,
+    element,
     available_data::Vector{Dict},
     gui::GUI,
 )
@@ -124,7 +124,7 @@ end
         name::String,
         ::String,
         pre_desc::String,
-        element::Plotable,
+        element,
         available_data::Vector{Dict},
         gui::GUI,
     )
@@ -137,7 +137,7 @@ function add_description!(
     name::String,
     key_str::String,
     pre_desc::String,
-    element::Plotable,
+    element,
     available_data::Vector{Dict},
     gui::GUI,
 )
@@ -307,7 +307,7 @@ function create_label(selection::Dict{Symbol,Any})
     otherRes::Bool = false
     if length(selection) > 1
         for select ∈ selection[:selection]
-            if !isa(select, Plotable)
+            if isa(select, Resource)
                 if !otherRes
                     label *= " ("
                     otherRes = true
@@ -362,7 +362,7 @@ end
 
 Based on `element` update the results in `get_axes(gui)[:results]`.
 """
-function update_plot!(gui::GUI, element::Plotable)
+function update_plot!(gui::GUI, element)
     # Get global time structure
     T = get_time_struct(gui)
 

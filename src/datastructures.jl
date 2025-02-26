@@ -84,19 +84,6 @@ struct SystemGeo <: AbstractSystem
     parent::AbstractElement
     ref_element::AbstractElement
 end
-function SystemGeo(case::Case)
-    areas = EMG.get_areas(case)
-    ref_element = areas[1]
-    return SystemGeo(
-        EMB.get_time_struct(case),
-        EMB.get_products(case),
-        EMB.get_elements_vec(case),
-        areas,
-        EMG.get_transmissions(case),
-        NothingElement(),
-        ref_element,
-    )
-end
 
 """
     ProcInvData
@@ -729,11 +716,3 @@ get_time_struct(gui::GUI) = get_time_struct(get_design(gui))
 Returns the `parent` field of a `GUI` `gui`.
 """
 get_parent(gui::GUI) = get_parent(get_design(gui))
-
-"""
-    get_transmissions(system::System)
-
-Returns the `Transmission`s of a `System` `system`.
-"""
-get_transmissions(system::SystemGeo) =
-    filter(el -> isa(el, Vector{<:Transmission}), get_elements_vec(system))[1]

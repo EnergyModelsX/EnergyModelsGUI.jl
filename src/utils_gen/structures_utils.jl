@@ -296,17 +296,6 @@ function get_resource_colors(l::Link, id_to_color_map::Dict{Any,Any})
 end
 
 """
-    get_resource_colors(l::Vector{Transmission}, id_to_color_map::Dict{Any,Any})
-
-Get the colors linked to the resources in the transmission `l` (from modes(Transmission))
-based on the mapping `id_to_color_map`.
-"""
-function get_resource_colors(l::Transmission, id_to_color_map::Dict{Any,Any})
-    resources::Vector{Resource} = [map_trans_resource(mode) for mode ∈ l.modes]
-    return get_resource_colors(resources, id_to_color_map)
-end
-
-"""
     get_resource_colors(::Vector{Any}, ::Dict{Any,Any})
 
 Return empty RGB vector for empty input.

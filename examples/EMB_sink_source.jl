@@ -6,12 +6,12 @@ using PrettyTables
 using TimeStruct
 
 """
-    generate_example_data()
+    generate_example_ss()
 
 Generate the data for an example consisting of an electricity source and sink. It shows how
 the source adjusts to the demand.
 """
-function generate_example_data()
+function generate_example_ss()
     @info "Generate case data - Simple sink-source example"
 
     # Define the different resources and their emission intensity in tCO2/MWh
@@ -43,10 +43,10 @@ function generate_example_data()
     nodes = [
         RefSource(
             "electricity source",       # Node id
-            FixedProfile(1e12),         # Capacity in MW
+            FixedProfile(50),           # Capacity in MW
             FixedProfile(30),           # Variable OPEX in EUR/MW
-            FixedProfile(0),            # Fixed OPEX in EUR/8h
-            Dict(Power => 1),           # Output from the Node, in this gase, Power
+            FixedProfile(0),            # Fixed OPEX in EUR/MW/8h
+            Dict(Power => 1),           # Output from the Node, in this case, Power
         ),
         RefSink(
             "electricity demand",       # Node id
@@ -58,22 +58,30 @@ function generate_example_data()
     ]
 
     # Connect all nodes with the availability node for the overall energy/mass balance
-    links = [Direct("source-demand", nodes[1], nodes[2], Linear())]
+    links = [
+        Direct("source-demand", nodes[1], nodes[2], Linear()),
+    ]
 
-    # WIP data structure
-    case = Case(T, products, [nodes, links])
+    # Input data structure
+    case = Case(T, products, [nodes, links], [[get_nodes, get_links]])
     return case, model
 end
 
 # Generate the case and model data and run the model
-case, model = generate_example_data()
+case, model = generate_example_ss()
 optimizer = optimizer_with_attributes(HiGHS.Optimizer, MOI.Silent() => true)
 m = run_model(case, model, optimizer)
 
 # Display some results
 source, sink = get_nodes(case)
 @info "Capacity usage of the power source"
-pretty_table(JuMP.Containers.rowtable(value, m[:cap_use][source, :]; header = [:t, :Value]))
+pretty_table(
+    JuMP.Containers.rowtable(
+        value,
+        m[:cap_use][source, :];
+        header = [:t, :Value],
+    ),
+)
 
 ## Code above identical to the example EnergyModelsBase.jl/examples/sink_source.jl
 ############################################################################################

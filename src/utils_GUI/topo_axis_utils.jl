@@ -397,12 +397,9 @@ Get the line style for an Connection `connection` based on its properties.
 """
 function get_linestyle(gui::GUI, connection::Connection)
     # Check of connection is a transmission
-    t = get_element(connection)
-    if isa(t, Transmission)
-        return [
-            EMI.has_investment(m) ? get_var(gui, :investment_lineStyle) : :solid for
-            m ∈ modes(t)
-        ]
+    linestyles = get_linestyle(gui, get_element(connection))
+    if !isempty(linestyles)
+        return linestyles
     end
 
     # For Links, simply use dashed style if from or to node has investments
@@ -416,6 +413,15 @@ function get_linestyle(gui::GUI, connection::Connection)
         return fill(linestyle, no_lines)
     end
     return fill(:solid, no_lines)
+end
+
+"""
+    get_linestyle(::GUI, ::AbstractElement)
+
+Dispatchable function for the EnergyModelsGeography extension.
+"""
+function get_linestyle(::GUI, ::AbstractElement)
+    return []
 end
 
 """
@@ -691,10 +697,10 @@ built in Base.display() functionality of node, otherwise, the `id` field is conv
 function get_element_label(element::AbstractGUIObj)
     return get_element_label(get_element(element))
 end
-function get_element_label(element::Union{Area,EMB.Node,TransmissionMode})
+function get_element_label(element::EMB.Node)
     return isa(element.id, Number) ? string(element) : string(element.id)
 end
-function get_element_label(element::Union{Transmission,EMB.Link})
+function get_element_label(element::EMB.Link)
     return get_element_label(element.from) * "-" * get_element_label(element.to)
 end
 

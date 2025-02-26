@@ -1,9 +1,6 @@
 # Define a type for sparse variables to simplify code
 const SparseVars = Union{JuMP.Containers.SparseAxisArray,SparseVariables.IndexedVarArray}
 
-# Create a type for all Clickable objects in the get_axes(gui)[:topo]
-const Plotable = Union{Nothing,AbstractElement,TransmissionMode} # Types that can trigger an update in the get_axes(gui)[:results] plot
-
 """
     get_representative_period_indices(T::TS.TimeStructure, sp::Int64)
 
@@ -179,17 +176,6 @@ function get_max_installed(n::Storage, t::Vector{<:TS.TimeStructure})
     else
         return 0.0
     end
-end
-function get_max_installed(n::EMG.TransmissionMode, t::Vector{<:TS.TimeStructure})
-    if EMI.has_investment(n)
-        time_profile = EMI.max_installed(EMI.investment_data(n, :cap))
-        return maximum(time_profile[t])
-    else
-        return 0.0
-    end
-end
-function get_max_installed(trans::EMG.Transmission, t::Vector{<:TS.TimeStructure})
-    return maximum([get_max_installed(m, t) for m ∈ modes(trans)])
 end
 function get_max_installed(::Any, ::Vector{<:TS.TimeStructure})
     return 0.0

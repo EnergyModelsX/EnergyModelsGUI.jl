@@ -75,7 +75,7 @@ function EnergySystemDesign(
             if haskey(system_info, "x") && haskey(system_info, "y")
                 x = system_info["x"]
                 y = system_info["y"]
-            elseif isa(element, Area)
+            elseif isa(system, SystemGeo)
                 if hasproperty(element, :lon) && hasproperty(element, :lat)
                     # assigning longitude and latitude
                     x = element.lon
@@ -97,44 +97,7 @@ function EnergySystemDesign(
             end
 
             # Construct the system dict for the current system
-            this_sys = if isa(system, SystemGeo)
-                area_an::EMB.Node = availability_node(element)
-
-                # Allocate redundantly large vector (for efficiency) to collect all links and nodes
-                links::Vector{Link} = get_links(system)
-                area_links::Vector{Link} = Vector{Link}(undef, length(links))
-                area_nodes::Vector{EMB.Node} = Vector{EMB.Node}(
-                    undef, length(get_nodes(system)),
-                )
-
-                area_nodes[1] = area_an
-
-                # Create counting indices for area_links and area_nodes respectively
-                indices::Vector{Int} = [1, 2]
-
-                get_linked_nodes!(area_an, links, area_links, area_nodes, indices)
-                resize!(area_links, indices[1] - 1)
-                resize!(area_nodes, indices[2] - 1)
-                System(
-                    get_time_struct(system),
-                    get_products(system),
-                    get_elements_vec(system),
-                    area_nodes,
-                    area_links,
-                    element,
-                    area_an,
-                )
-            else
-                System(
-                    get_time_struct(system),
-                    get_products(system),
-                    get_elements_vec(system),
-                    EMB.Node[],
-                    Link[],
-                    element,
-                    element,
-                )
-            end
+            this_sys = sub_system(system, element)
 
             # Add child to `components`
             push!(
@@ -187,17 +150,36 @@ function EnergySystemDesign(case::Case; kwargs...)
 end
 
 """
+    sub_system(system::SystemGeo, element::AbstractElement)
+
+Create a sub-system of `system` with the `element` as the reference node.
+"""
+function sub_system(system::System, element::AbstractElement)
+    return System(
+        get_time_struct(system),
+        get_products(system),
+        get_elements_vec(system),
+        EMB.Node[],
+        Link[],
+        element,
+        element,
+    )
+end
+
+"""
     includes_area(case::Case)
 
 Check if the case includes elements from the EnergyModelsGeography package.
 """
 function includes_area(case::Case)
-    return if @isdefined(Area)
-        area = filter(el -> isa(el, Vector{<:Area}), get_elements_vec(case))
-        !isempty(area)
-    else
-        false
+    for elements ∈ reverse(get_elements_vec(case))
+        for element ∈ elements
+            if issubset((:lon, :lat, :node), propertynames(element))
+                return true
+            end
+        end
     end
+    return false
 end
 
 """

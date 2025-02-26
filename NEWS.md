@@ -9,7 +9,7 @@
 
 ### Adjustment
 
-* Remove dependency of `Colors` as this package is reexported by `GeoMakie`.
+* Create the EMGExt extension such that functionality connected to the EnergyModelsGeography package is only loaded if EnergyModelsGeography is loaded.
 
 ## Version 0.5.11 (2025-02-01)
 
