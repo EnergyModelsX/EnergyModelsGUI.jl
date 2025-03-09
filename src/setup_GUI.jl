@@ -303,8 +303,12 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
         )
         ocean_coords = [(180, -90), (-180, -90), (-180, 90), (180, 90)]
         ocean = poly!(
-            ax, ocean_coords, color = :lightblue1, strokewidth = 0.5,
+            ax,
+            ocean_coords,
+            color = :lightblue1,
+            strokewidth = 0.5,
             strokecolor = :gray50,
+            inspectable = false,
         )
         Makie.translate!(ocean, 0, 0, -1)
     else # The design does not use the EnergyModelsGeography package: Create a simple Makie axis

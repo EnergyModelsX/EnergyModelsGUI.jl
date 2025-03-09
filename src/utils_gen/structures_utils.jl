@@ -65,6 +65,19 @@ function set_colors(products::Vector{<:Resource}, id_to_color_map::Dict)
         parse(Colorant, hex_color) for hex_color ∈ values(complete_id_to_color_map)
     ]
 
+    # Add non-desired colors to the seed
+    foul_colors = [
+        "#FFFF00", # Yellow
+        "#FF00FF", # Magenta
+        "#00FFFF", # Cyan
+        "#00FF00", # Green
+        "#000000", # Black
+        "#FFFFFF", # White
+    ]
+    for color ∈ values(foul_colors)
+        push!(seed, parse(Colorant, color))
+    end
+
     # Create new colors for the missing resources
     products_colors::Vector{RGB} = distinguishable_colors(
         length(missing_product_colors), seed; dropseed = true,

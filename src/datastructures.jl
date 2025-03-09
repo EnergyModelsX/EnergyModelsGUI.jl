@@ -267,7 +267,7 @@ Base.show(io::IO, obj::AbstractGUIObj) = dump(io, obj; maxdepth = 1)
 Base.show(io::IO, obj::ProcInvData) = dump(io, obj; maxdepth = 1)
 Base.show(io::IO, system::AbstractSystem) = dump(io, system; maxdepth = 1)
 Base.show(io::IO, gui::GUI) = dump(io, gui; maxdepth = 1)
-Base.show(io::IO, ::NothingElement) = "top_level"
+Base.show(io::IO, ::NothingElement) = print(io, "top_level")
 
 function EnergySystemIterator(design::EnergySystemDesign)
     vector = AbstractGUIObj[]
