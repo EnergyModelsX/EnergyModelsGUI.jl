@@ -1,6 +1,7 @@
 # Matplotlib colors collected from https://matplotlib.org/stable/gallery/color/named_colors.html#tableau-palette 
 # The values have to be provided as hex triplet https://en.wikipedia.org/wiki/Web_colors#Hex_triplets 
 Power:           "#045993" # blue
+power:           "#045993" # blue
 Hydrogen:        "#009DAD" # cyan
 H2:              "#009DAD" # cyan
 Cooling:         "#00DBDB" # aqua
@@ -16,3 +17,4 @@ ResourceEmit:    "#606060" # gray
 CO2:             "#606060" # gray
 CO₂:             "#606060" # gray
 Coal:            "#6D392E" # brown
+Water:           "#bfefff" # sky blue

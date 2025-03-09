@@ -63,9 +63,6 @@ function generate_example_data()
     # Connect the two nodes with each other
     links = [Direct("source-demand", nodes[1], nodes[2], Linear())]
 
-    # Create the case dictionary
-    case = Dict(:nodes => nodes, :links => links, :products => products, :T => T)
-
     # Create the additonal non-dispatchable power source
     wind = NonDisRES(
         "wind",             # Node ID
@@ -77,9 +74,10 @@ function generate_example_data()
     )
 
     # Update the case data with the non-dispatchable power source and link
-    push!(case[:nodes], wind)
-    link = Direct("wind-demand", case[:nodes][3], case[:nodes][2], Linear())
-    push!(case[:links], link)
+    push!(nodes, wind)
+    link = Direct("wind-demand", nodes[3], nodes[2], Linear())
+    push!(links, link)
+    case = Case(T, products, [nodes, links])
 
     return case, model
 end
@@ -99,7 +97,7 @@ pretty_table(
 @info "Capacity usage of the power source"
 pretty_table(
     JuMP.Containers.rowtable(
-        value, m[:cap_use][case[:nodes][1], :]; header = [:TimePeriod, :Usage],
+        value, m[:cap_use][get_nodes(case)[1], :]; header = [:TimePeriod, :Usage],
     ),
 )
 

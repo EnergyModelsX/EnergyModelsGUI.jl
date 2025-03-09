@@ -1,13 +1,11 @@
 """
-    GUI(case::Dict)
+    GUI(case::Case; kwargs...)
 
 Initialize the EnergyModelsGUI window and visualize the topology of a system `case` \
-(and optionally visualize its results in a JuMP object model).
-
-# Arguments:
-
-- **`case::Dict`** is a dictionary containing system-related data stored as key-value pairs.
-  This dictionary is corresponding to the the EnergyModelsX `case` dictionary.
+(and optionally visualize its results in a JuMP object model). The input argument can either
+be a `Case` object from the EnergyModelsBase package or a dictionary containing system-related
+data stored as key-value pairs. This dictionary is corresponding to the the old EnergyModelsX
+`case` dictionary.
 
 # Keyword arguments:
 
@@ -38,7 +36,7 @@ Initialize the EnergyModelsGUI window and visualize the topology of a system `ca
 - **`tol::Float64=1e-12`** the tolerance for numbers close to machine epsilon precision.
 """
 function GUI(
-    case::Dict;
+    case::Case;
     design_path::String = "",
     id_to_color_map::Dict = Dict(),
     id_to_icon_map::Dict = Dict(),
@@ -206,6 +204,17 @@ function GUI(
 
     return gui
 end
+function GUI(case::Dict; kwargs...)
+    elements = [case[:nodes], case[:links]]
+    if haskey(case, :areas)
+        push!(elements, case[:areas])
+    end
+    if haskey(case, :transmission)
+        push!(elements, case[:transmission])
+    end
+    case_new = Case(case[:T], case[:products], elements)
+    GUI(case_new; kwargs...)
+end
 
 """
     create_makie_objects(vars::Dict, design::EnergySystemDesign)
@@ -248,14 +257,16 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
         vars[:plot_widths][1] / (vars[:plot_widths][2] - vars[:taskbar_height]) / 2
 
     # Check whether or not to use lat-lon coordinates to construct the axis used for visualizing the topology
-    if haskey(get_system(design), :areas) # The design uses the EnergyModelsGeography package: Thus use GeoMakie
+    if isa(get_system(design), SystemGeo)
         # Set the source mapping for projection
         source::String = "+proj=merc +lon_0=0 +x_0=0 +y_0=0 +a=6378137 +b=6378137 +units=m +no_defs"
         # Set the destination mapping for projection
         dest::String = "+proj=merc +lon_0=0 +x_0=0 +y_0=0 +a=6378137 +b=6378137 +units=m +no_defs"
         # Construct the axis from the GeoMakie package
         ax = GeoMakie.GeoAxis(
-            gridlayout_topology_ax[1, 1]; source = source, dest = dest,
+            gridlayout_topology_ax[1, 1];
+            source,
+            dest,
             alignmode = Outside(),
         )
 
@@ -263,7 +274,7 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
             countries = GeoMakie.land()
         else # Use high resolution coast lines
             # Define the URL and the local file path
-            resolution = "10m" # "10m", "50m", "110m"
+            resolution::String = "10m" # "10m", "50m", "110m"
             url::String = "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_$(resolution)_land.geojson"
             temp_dir::String = tempdir()  # Get the system's temporary directory
             filename_countries::String = "EnergyModelsGUI_countries.geojson"
@@ -292,8 +303,12 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
         )
         ocean_coords = [(180, -90), (-180, -90), (-180, 90), (180, 90)]
         ocean = poly!(
-            ax, ocean_coords, color = :lightblue1, strokewidth = 0.5,
+            ax,
+            ocean_coords,
+            color = :lightblue1,
+            strokewidth = 0.5,
             strokecolor = :gray50,
+            inspectable = false,
         )
         Makie.translate!(ocean, 0, 0, -1)
     else # The design does not use the EnergyModelsGeography package: Create a simple Makie axis
@@ -319,7 +334,7 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
     )
 
     # Collect all strategic periods
-    T = design.system[:T]
+    T = get_time_struct(design)
     periods::Vector{Int64} = 1:(T.len)
 
     # Initialize representative_periods to be the representative_period of the first strategic period

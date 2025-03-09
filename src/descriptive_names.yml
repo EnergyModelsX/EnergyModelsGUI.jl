@@ -154,38 +154,97 @@ structures:
 
   ## EnergyModelsRenewableProducers
   NonDisRES:
-    id:                     "Name/identifier of the node"
-    cap:                    "Installed capacity"
-    profile:                "Power production in each operational period as a ratio of the installed capacity at that time"
-    opex_var:               "Relative variable operating expense per energy unit produced"
-    opex_fixed:             "Relative fixed operating expense per installed capacity"
-    output:                 "Output resources, normally Power"
-    data:                   "Additional data"
+    id: "Name/identifier of the node"
+    cap: "Installed capacity"
+    profile: "Power production profile as a ratio of installed capacity"
+    opex_var: "Relative variable operating expense per energy unit produced"
+    opex_fixed: "Relative fixed operating expense per installed capacity"
+    output: "Generated resources, normally Power"
+    data: "Additional data"
 
   HydroStor:
-    id:                     "Name/identifier of the node"
-    level:                  "Level parameters of the HydroStor node"
-    discharge:              "Discharging parameters of the HydroStor node"
-    level_init:             "Initial stored energy in the dam"
-    level_inflow:           "Inflow of power per operational period"
-    level_min:              "Minimum fraction of the reservoir capacity that has to remain in the HydroStorage node"
-    stor_res:               "Stored Resource"
-    input:                  "Input Resources"
-    output:                 "Output Resources (can only contain one entry, the stored resource)"
-    data:                   "Additional data"
+    id: "Name/identifier of the node"
+    level: "Level parameters of the HydroStor node"
+    discharge: "Discharging parameters of the HydroStor node"
+    level_init: "Initial stored energy in the dam"
+    level_inflow: "Inflow of power per operational period"
+    level_min: "Minimum fraction of the reservoir capacity required"
+    stor_res: "Stored resource"
+    input: "Input resources"
+    output: "Output resources"
+    data: "Additional data"
 
   PumpedHydroStor:
-    id:                     "Name/identifier of the node"
-    charge:                 "Charging parameters of the PumpedHydroStor node"
-    level:                  "Level parameters of the HydroStor node"
-    discharge:              "Discharging parameters of the HydroStor node"
-    level_init:             "Initial stored energy in the dam"
-    level_inflow:           "Inflow of power per operational period"
-    level_min:              "Minimum fraction of the reservoir capacity that has to remain in the HydroStorage node"
-    stor_res:               "Stored Resource"
-    input:                  "Input Resources"
-    output:                 "Output Resources (can only contain one entry, the stored resource)"
-    data:                   "Additional data"
+    id: "Name/identifier of the node"
+    charge: "Charging parameters of the PumpedHydroStor node"
+    level: "Level parameters of the PumpedHydroStor node"
+    discharge: "Discharging parameters of the PumpedHydroStor node"
+    level_init: "Initial stored energy in the dam"
+    level_inflow: "Inflow of power per operational period"
+    level_min: "Minimum fraction of the reservoir capacity required"
+    stor_res: "Stored resource"
+    input: "Input resources"
+    output: "Output resources"
+    data: "Additional data"
+
+  HydroReservoir:
+    id: "Name/identifier of the node"
+    vol: "Storage volume parameters of the HydroReservoir node"
+    vol_inflow: "Water inflow to the reservoir"
+    stor_res: "Stored resource"
+    data: "Additional data"
+
+  HydroGate:
+    id: "Name/identifier of the node"
+    cap: "Installed discharge capacity"
+    opex_var: "Variable operational costs per water flow"
+    opex_fixed: "Fixed operational costs"
+    resource: "Water resource type"
+    data: "Additional data"
+
+  HydroGenerator:
+    id: "Name/identifier of the node"
+    cap: "Installed discharge or power capacity"
+    pq_curve: "Relationship between power and discharge"
+    opex_var: "Variable operational costs per energy unit produced"
+    opex_fixed: "Fixed operational costs"
+    electricity_resource: "Electricity resource generated as output"
+    water_resource: "Water resource taken as input and discharged as output"
+    data: "Additional data"
+
+  HydroPump:
+    id: "Name/identifier of the node"
+    cap: "Installed pumping capacity"
+    pq_curve: "Relationship between power and water pumping"
+    opex_var: "Variable operational costs per energy unit produced"
+    opex_fixed: "Fixed operational costs"
+    electricity_resource: "Electricity resource taken as input (consumed)"
+    water_resource: "Water resource taken as input and discharged as output"
+    data: "Additional data"
+
+  Battery:
+    id: "Name/identifier of the node"
+    charge: "Charging parameters of the Battery node"
+    level: "Level parameters of the Battery node"
+    discharge: "Discharging parameters of the Battery node"
+    stor_res: "Stored resource"
+    input: "Input resources with efficiency values"
+    output: "Output resources with efficiency values"
+    battery_life: "Battery lifetime model"
+    data: "Additional data"
+
+  ReserveBattery:
+    id: "Name/identifier of the node"
+    charge: "Charging parameters of the ReserveBattery node"
+    level: "Level parameters of the ReserveBattery node"
+    discharge: "Discharging parameters of the ReserveBattery node"
+    stor_res: "Stored resource"
+    input: "Input resources with efficiency values"
+    output: "Output resources with efficiency values"
+    battery_life: "Battery lifetime model"
+    reserve_up: "Resources used as reserve for adding capacity"
+    reserve_down: "Resources used as reserve for removing capacity"
+    data: "Additional data"
 
 variables:
   ## EnergyModelsBase
@@ -210,6 +269,7 @@ variables:
   opex_fixed:                     "Absolute fixed operating expenses"
   sink_surplus:                   "Surplus delivered to a sink, i.e., oversatisfied demand"
   sink_deficit:                   "Deficit in a sink, i.e., not satisfied demand"
+  link_cap_inst:                  "Installed capacity"
 
   ## EnergyModelsGeography
   area_exchange:                  "Area exchange"
@@ -258,6 +318,20 @@ variables:
   ## EnergyModelsRenewableProducers
   curtailment:                    "Curtailment of a non-dispatchable energy source"
   hydro_spill:                    "Spilled water (not producing energy)"
+  gate_penalty_up:                "Penalty variable for exceeding hydro gate constraints"
+  gate_penalty_down:              "Penalty variable for not meeting hydro gate constraints"
+  rsv_penalty_up:                 "Penalty variable for exceeding hydro reservoir constraints"
+  rsv_penalty_down:               "Penalty variable for not meeting hydro reservoir constraints"
+  gen_penalty_up:                 "Penalty variable for exceeding hydro unit generation constraints"
+  gen_penalty_down:               "Penalty variable for not meeting hydro unit generation constraints"
+  discharge_segment:              "Discharge segment variable for hydro unit discharge capacity"
+  bat_prev_use:                   "Accumulated charge effect of a battery up to an operational period"
+  bat_prev_use_sp:                "Accumulated charge effect of a battery up to an investment period"
+  bat_use_sp:                     "Accumulated charge effect of a battery in an investment period"
+  bat_use_rp:                     "Accumulated charge effect of a battery in a representative period"
+  bat_stack_replace_b:            "Binary variable for identifying battery stack replacement"
+  bat_res_up:                     "Upwards reserve of battery storage"
+  bat_res_down:                   "Downwards reserve of battery storage"
 
 # Overview of total quantities and their components
 total:

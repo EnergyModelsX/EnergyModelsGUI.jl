@@ -169,12 +169,12 @@ function update!(gui::GUI)
 end
 
 """
-    update!(gui::GUI, element::Plotable; updateplot::Bool=true)
+    update!(gui::GUI, element; updateplot::Bool=true)
 
 Based on `element`, update the text in `get_axes(gui)[:info]` and update plot in
 `get_axes(gui)[:results]` if `updateplot = true`.
 """
-function update!(gui::GUI, element::Plotable; updateplot::Bool = true)
+function update!(gui::GUI, element; updateplot::Bool = true)
     update_info_box!(gui, element)
     update_available_data_menu!(gui, element)
     if updateplot
@@ -203,6 +203,15 @@ function update!(gui::GUI, design::EnergySystemDesign; updateplot::Bool = true)
 end
 
 """
+    get_mode_to_transmission_map(::System)
+
+Dispatchable function to get the mapping between modes and transmissions for a `GeoSystem`.
+"""
+function get_mode_to_transmission_map(::System)
+    return Dict()
+end
+
+"""
     initialize_available_data!(gui)
 
 For all plotable objects, initialize the available data menu with items.
@@ -211,29 +220,15 @@ function initialize_available_data!(gui)
     design = get_root_design(gui)
     system = get_system(design)
     model = get_model(gui)
-    plotables = []
-    append!(plotables, [nothing]) # nothing here represents no selection
-    append!(plotables, system[:nodes])
-    if haskey(system, :areas)
-        append!(plotables, system[:areas])
-    end
-    append!(plotables, system[:links])
-    if haskey(system, :transmission)
-        append!(plotables, system[:transmission])
-        mode_to_transmission = Dict()
-        for t ∈ system[:transmission]
-            for m ∈ modes(t)
-                mode_to_transmission[m] = t
-            end
-        end
-    end
-    gui.vars[:available_data] = Dict{Plotable,Vector{Dict{Symbol,Any}}}(
+    plotables = [nothing; vcat(get_elements_vec(system))...] # `nothing` here represents no selection
+    gui.vars[:available_data] = Dict{Any,Vector{Dict{Symbol,Any}}}(
         element => Vector{Dict{Symbol,Any}}() for element ∈ plotables
     )
 
     # Find appearances of node/area/link/transmission in the model
     if termination_status(model) == MOI.OPTIMAL # Plot results if available
-        T = gui.design.system[:T]
+        T = get_time_struct(gui)
+        mode_to_transmission = get_mode_to_transmission_map(system)
         for sym ∈ get_JuMP_names(gui)
             var = model[sym]
             if isempty(var)
@@ -248,10 +243,8 @@ function initialize_available_data!(gui)
             for combination ∈ get_combinations(var, i_T)
                 selection = collect(combination)
                 field_data = extract_data_selection(var, selection, i_T, periods)
-                element::Plotable = getfirst(
-                    x -> isa(x, Union{EMB.Node,Link,Area,TransmissionMode}), selection,
-                )
-                if isa(element, TransmissionMode)
+                element = getfirst(x -> !isa(x, Resource), selection)
+                if !isa(element, AbstractElement) && !isnothing(element) # it must be a transmission
                     element = mode_to_transmission[element]
                 end
 
@@ -454,7 +447,7 @@ assumed to have taken place if any `investment_indicators` are larger than get_v
 relative to `max_inst`.
 """
 function get_investment_times(gui::GUI, max_inst::Float64)
-    T = gui.design.system[:T]
+    T = get_time_struct(gui)
     𝒯ᴵⁿᵛ = strategic_periods(T)
     investment_indicators = get_var(gui, :descriptive_names)[:investment_indicators]
     capex_fields = get_var(gui, :descriptive_names)[:total][:capex_fields]
@@ -507,11 +500,11 @@ function get_combinations(var::JuMP.Containers.DenseAxisArray, i_T::Int)
 end
 
 """
-    update_available_data_menu!(gui::GUI, element::Plotable)
+    update_available_data_menu!(gui::GUI, element)
 
 Update the `get_menus(gui)[:available_data]` with the available data of `element`.
 """
-function update_available_data_menu!(gui::GUI, element::Plotable)
+function update_available_data_menu!(gui::GUI, element)
     available_data = get_available_data(gui)
     container = available_data[element]
     container_strings = create_label.(container)

@@ -35,7 +35,7 @@ import EnergyModelsGUI:
     op_cost = [3371970.00359, 5382390.00598, 2010420.00219]
     inv_cost = [0.0, 0.0, 29536224.881975]
     @testset "Compare with Integrate results" begin
-        T = get_design(gui).system[:T]
+        T = EMGUI.get_time_struct(gui)
         for (i, t) ∈ enumerate(strategic_periods(T))
             if haskey(m, :cap_capex)
                 tot_capex_sp = sum(value.(m[:cap_capex][:, t])) / duration_strat(t)
@@ -355,14 +355,14 @@ import EnergyModelsGUI:
     @testset "Test icon not found" begin
         id_to_icon_map = Dict("Battery" => "Battery icon") # Use a non-existing icon
         id_to_icon_map = set_icons(id_to_icon_map)
-        products = case[:products]
+        products = get_products(case)
         test_sink = RefSink(
             "Test multiple sink products",
             FixedProfile(0),
             Dict(:surplus => FixedProfile(0), :deficit => FixedProfile(1e5)),
             Dict(products[1] => 1, products[2] => 1),
         )
-        push!(case[:nodes], test_sink)
+        push!(get_nodes(case), test_sink)
         test_source = RefSource(
             "Test multiple source products",
             FixedProfile(0),
@@ -370,10 +370,10 @@ import EnergyModelsGUI:
             FixedProfile(0),
             Dict(products[1] => 1, products[2] => 1),
         )
-        av = case[:nodes][1]
-        push!(case[:nodes], test_source)
-        push!(case[:links], Direct("Link to test source", test_source, av, Linear()))
-        push!(case[:links], Direct("Link to test sink", av, test_sink, Linear()))
+        av = get_nodes(case)[1]
+        push!(get_nodes(case), test_source)
+        push!(get_links(case), Direct("Link to test source", test_source, av, Linear()))
+        push!(get_links(case), Direct("Link to test sink", av, test_sink, Linear()))
         gui = GUI(case; id_to_icon_map = id_to_icon_map, scenarios_labels = ["Scenario 1"])
         components = get_components(get_root_design(gui))
         @test isempty(get_components(components[4])[3].id_to_icon_map["Battery"])

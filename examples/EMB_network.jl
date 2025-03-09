@@ -6,13 +6,13 @@ using PrettyTables
 using TimeStruct
 
 """
-    generate_example_data()
+    generate_example_network()
 
 Generate the data for an example consisting of a simple electricity network.
 The more stringent CO₂ emission in latter investment periods force the utilization of the
 more expensive natural gas power plant with CCS to reduce emissions.
 """
-function generate_example_data()
+function generate_example_network()
     @info "Generate case data - Simple network example"
 
     # Define the different resources and their emission intensity in tCO2/MWh
@@ -57,23 +57,23 @@ function generate_example_data()
         GenAvailability("Availability", products),
         RefSource(
             "NG source",                # Node id
-            FixedProfile(1e12),         # Capacity in MW
+            FixedProfile(100),          # Capacity in MW
             FixedProfile(30),           # Variable OPEX in EUR/MW
-            FixedProfile(0),            # Fixed OPEX in EUR/8h
-            Dict(NG => 1),              # Output from the Node, in this gase, NG
+            FixedProfile(0),            # Fixed OPEX in EUR/MW/8h
+            Dict(NG => 1),              # Output from the Node, in this case, NG
         ),
         RefSource(
             "coal source",              # Node id
-            FixedProfile(1e12),         # Capacity in MW
+            FixedProfile(100),          # Capacity in MW
             FixedProfile(9),            # Variable OPEX in EUR/MWh
-            FixedProfile(0),            # Fixed OPEX in EUR/8h
-            Dict(Coal => 1),            # Output from the Node, in this gase, coal
+            FixedProfile(0),            # Fixed OPEX in EUR/MW/8h
+            Dict(Coal => 1),            # Output from the Node, in this case, coal
         ),
         RefNetworkNode(
             "NG+CCS power plant",       # Node id
             FixedProfile(25),           # Capacity in MW
             FixedProfile(5.5),          # Variable OPEX in EUR/MWh
-            FixedProfile(0),            # Fixed OPEX in EUR/8h
+            FixedProfile(0),            # Fixed OPEX in EUR/MW/8h
             Dict(NG => 2),              # Input to the node with input ratio
             Dict(Power => 1, CO2 => 1), # Output from the node with output ratio
             # Line above: CO2 is required as output for variable definition, but the
@@ -84,7 +84,7 @@ function generate_example_data()
             "coal power plant",         # Node id
             FixedProfile(25),           # Capacity in MW
             FixedProfile(6),            # Variable OPEX in EUR/MWh
-            FixedProfile(0),            # Fixed OPEX in EUR/8h
+            FixedProfile(0),            # Fixed OPEX in EUR/MW/8h
             Dict(Coal => 2.5),          # Input to the node with input ratio
             Dict(Power => 1),           # Output from the node with output ratio
             [emission_data],            # Additonal data for emissions
@@ -94,7 +94,7 @@ function generate_example_data()
             StorCapOpex(
                 FixedProfile(60),       # Charge capacity in t/h
                 FixedProfile(9.1),      # Storage variable OPEX for the charging in EUR/t
-                FixedProfile(0)        # Storage fixed OPEX for the charging in EUR/(t/h 8h)
+                FixedProfile(0)         # Storage fixed OPEX for the charging in EUR/(t/h 8h)
             ),
             StorCap(FixedProfile(600)), # Storage capacity in t
             CO2,                        # Stored resource
@@ -125,25 +125,33 @@ function generate_example_data()
         Direct("CO2_stor-av", nodes[6], nodes[1], Linear())
     ]
 
-    # WIP data structure
-    case = Dict(:nodes => nodes, :links => links, :products => products, :T => T)
+    # Input data structure
+    case = Case(T, products, [nodes, links], [[get_nodes, get_links]])
     return case, model
 end
 
 # Generate the case and model data and run the model
-case, model = generate_example_data()
+case, model = generate_example_network()
 optimizer = optimizer_with_attributes(HiGHS.Optimizer, MOI.Silent() => true)
 m = run_model(case, model, optimizer)
 
 # Display some results
-ng_ccs_pp, coal_pp, = case[:nodes][[4, 5]]
+ng_ccs_pp, coal_pp, = get_nodes(case)[[4, 5]]
 @info "Capacity usage of the coal power plant"
 pretty_table(
-    JuMP.Containers.rowtable(value, m[:cap_use][coal_pp, :]; header = [:t, :Value]),
+    JuMP.Containers.rowtable(
+        value,
+        m[:cap_use][coal_pp, :];
+        header = [:t, :Value],
+    ),
 )
 @info "Capacity usage of the natural gas + CCS power plant"
 pretty_table(
-    JuMP.Containers.rowtable(value, m[:cap_use][ng_ccs_pp, :]; header = [:t, :Value]),
+    JuMP.Containers.rowtable(
+        value,
+        m[:cap_use][ng_ccs_pp, :];
+        header = [:t, :Value],
+    ),
 )
 
 ## Code above identical to the example EnergyModelsBase.jl/examples/network.jl

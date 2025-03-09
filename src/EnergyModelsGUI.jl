@@ -16,6 +16,7 @@ using YAML
 using FileIO
 using TimeStruct
 using EnergyModelsBase
+import EnergyModelsBase: get_elements_vec, get_nodes
 
 # Use Colors to visualize using the colors in the colors.yml file
 using Colors
@@ -35,7 +36,6 @@ using JuMP
 # SparseVariables.IndexedVarArray types
 using SparseVariables
 
-using EnergyModelsGeography
 using EnergyModelsInvestments
 
 # Needed for plottig geographical map
@@ -58,7 +58,6 @@ using XLSX
 
 const TS = TimeStruct
 const EMB = EnergyModelsBase
-const EMG = EnergyModelsGeography
 const EMI = EnergyModelsInvestments
 
 include("datastructures.jl")

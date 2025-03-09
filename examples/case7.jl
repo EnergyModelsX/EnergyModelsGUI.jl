@@ -55,8 +55,8 @@ function read_data()
 
     # Create identical areas with index accoriding to input array
     an = Vector(undef, noAreas)
-    nodes = []
-    links = []
+    nodes = EMB.Node[]
+    links = Link[]
     for (i, a_id) ∈ enumerate(area_ids)
         n, l = get_sub_system_data(a_id, products, T)
         append!(nodes, n)
@@ -97,21 +97,18 @@ function read_data()
         [],
     )
 
-    # Construct the transmission object
-    transmission = [
+    # Construct the transmissions vector
+    transmissions = [
         Transmission(areas[2], areas[1], [Power_line])
         Transmission(areas[2], areas[3], [Power_line2])
         Transmission(areas[4], areas[1], [Power_line3])
     ]
 
-    # WIP data structure
-    case = Dict(
-        :areas => Array{Area}(areas),
-        :transmission => Array{Transmission}(transmission),
-        :nodes => Array{EMB.Node}(nodes),
-        :links => Array{Link}(links),
-        :products => products,
-        :T => T,
+    case = Case(
+        T,
+        products,
+        [nodes, links, areas, transmissions],
+        [[get_nodes, get_links], [get_areas, get_transmissions]],
     )
     return case, model
 end
@@ -394,7 +391,7 @@ function run_case()
     case, model = read_data()
 
     # Construct JuMP model for optimization
-    m = EMG.create_model(case, model)
+    m = create_model(case, model)
 
     # Set optimizer for JuMP
     set_optimizer(m, HiGHS.Optimizer)

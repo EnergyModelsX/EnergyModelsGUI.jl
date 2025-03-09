@@ -6,6 +6,86 @@ Supertype for EnergyModelsGUI objects representing `Node`s/`Link`s/`Area`s/`Tran
 abstract type AbstractGUIObj end
 
 """
+    AbstractSystem
+
+Supertype for EnergyModelsGUI objects representing a sub system of a Case.
+"""
+abstract type AbstractSystem <: AbstractCase end
+
+"""
+    NothingElement <: AbstractElement
+
+Type for representing an empty Element (the "nothing" element).
+"""
+struct NothingElement <: AbstractElement end
+
+"""
+    System
+
+Type for storing processed system data from EnergyModelsBase.
+
+# Fields
+- **`T::TimeStructure`** is the time structure of the model.
+- **`products::Vector{<:Resource}`** are the resources that should be incorporated into the
+  model.
+- **`elements::Vector{Vector}`** are the vectors of `AbstractElement`
+  that should be included in the analysis.
+- **`children::Vector{<:EMB.Node}`** are the children of the system.
+- **`connections::Vector{<:Link}`** are the connections between system parts.
+- **`parent::AbstractElement`** is the parent of the system (e.g., the `Area` node of the reference `GeoAvailability` node).
+- **`ref_element::AbstractElement`** is the reference element of the system (first `Availability` node).
+"""
+struct System <: AbstractSystem
+    T::TimeStructure
+    products::Vector{<:Resource}
+    elements::Vector{Vector}
+    children::Vector{<:EMB.Node}
+    connections::Vector{<:Link}
+    parent::AbstractElement
+    ref_element::AbstractElement
+end
+function System(case::Case)
+    # Find the first availability node and set it as the parent if present
+    first_av = getfirst(x -> isa(x, Availability), get_nodes(case))
+    ref_element = isnothing(first_av) ? NothingElement() : first_av
+    return System(
+        EMB.get_time_struct(case),
+        EMB.get_products(case),
+        EMB.get_elements_vec(case),
+        EMB.get_nodes(case),
+        EMB.get_links(case),
+        NothingElement(),
+        ref_element,
+    )
+end
+
+"""
+    SystemGeo
+
+Type for storing processed system data from EnergyModelsGeography.
+
+# Fields
+- **`T::TimeStructure`** is the time structure of the model.
+- **`products::Vector{<:Resource}`** are the resources that should be incorporated into the
+  model.
+- **`elements::Vector{Vector}`** are the vectors of `AbstractElement`
+  that should be included in the analysis.
+- **`children::Vector{<:EMB.Node}`** are the children of the system.
+- **`connections::Vector{<:Link}`** are the connections between system parts.
+- **`parent::AbstractElement`** is the parent of the system.
+- **`ref_element::AbstractElement`** is the reference element of the system.
+"""
+struct SystemGeo <: AbstractSystem
+    T::TimeStructure
+    products::Vector{<:Resource}
+    elements::Vector{Vector}
+    children::Vector{<:AbstractElement}
+    connections::Vector{<:AbstractElement}
+    parent::AbstractElement
+    ref_element::AbstractElement
+end
+
+"""
     ProcInvData
 
 Type for storing processed investment data.
@@ -33,8 +113,7 @@ energy system designs in Julia.
 
 # Fields
 
-- **`parent::Union{Symbol, Nothing}`** is the parent reference or indicator.
-- **`system::Dict`** is the data related to the system, stored as key-value pairs.
+- **`system::AbstractSystem`** is the data related to the system.
 - **`id_to_color_map::Dict`** is a dictionary of resources and their assigned colors.
 - **`id_to_icon_map::Dict`** is a dictionary of nodes and their assigned icons.
 - **`components::Vector{EnergySystemDesign}`** is the components of the system, stored
@@ -54,8 +133,7 @@ energy system designs in Julia.
 - **`invest_data::ProcInvData`** stores processed investment data.
 """
 mutable struct EnergySystemDesign <: AbstractGUIObj
-    parent::Union{Symbol,Nothing}
-    system::Dict
+    system::AbstractSystem
     id_to_color_map::Dict
     id_to_icon_map::Dict
     components::Vector{EnergySystemDesign}
@@ -69,8 +147,7 @@ mutable struct EnergySystemDesign <: AbstractGUIObj
     plots::Vector{Any}
 end
 function EnergySystemDesign(
-    parent::Union{Symbol,Nothing},
-    system::Dict,
+    system::AbstractSystem,
     id_to_color_map::Dict,
     id_to_icon_map::Dict,
     components::Vector{EnergySystemDesign},
@@ -82,7 +159,6 @@ function EnergySystemDesign(
     file::String,
 )
     return EnergySystemDesign(
-        parent,
         system,
         id_to_color_map,
         id_to_icon_map,
@@ -110,7 +186,7 @@ Mutable type for providing a flexible data structure for connections between
   originates.
 - **`to::EnergySystemDesign`** is the `EnergySystemDesign` to which the connection is
   linked to.
-- **`connection::Union{Link,Transmission}`** is the EMX connection structure.
+- **`connection::AbstractElement`** is the EMX connection structure.
 - **`colors::Vector{RGB}`** is the associated colors of the connection.
 - **`plots::Vector{Any}`** is a vector with all Makie object associated with this object.
 - **`invest_data::ProcInvData`** stores processed investment data.
@@ -118,7 +194,7 @@ Mutable type for providing a flexible data structure for connections between
 mutable struct Connection <: AbstractGUIObj
     from::EnergySystemDesign
     to::EnergySystemDesign
-    connection::Union{Link,Transmission}
+    connection::AbstractElement
     colors::Vector{RGB}
     inv_data::ProcInvData
     plots::Vector{Any}
@@ -126,7 +202,7 @@ end
 function Connection(
     from::EnergySystemDesign,
     to::EnergySystemDesign,
-    connection::Union{Link,Transmission},
+    connection::AbstractElement,
     id_to_color_map::Dict{Any,Any},
 )
     colors::Vector{RGB} = get_resource_colors(connection, id_to_color_map)
@@ -187,17 +263,11 @@ mutable struct GUI
     vars::Dict{Symbol,Any}
 end
 
-function Base.show(io::IO, obj::AbstractGUIObj)
-    return dump(io, obj; maxdepth = 1)
-end
-
-function Base.show(io::IO, obj::ProcInvData)
-    return dump(io, obj; maxdepth = 1)
-end
-
-function Base.show(io::IO, gui::GUI)
-    return dump(io, gui; maxdepth = 1)
-end
+Base.show(io::IO, obj::AbstractGUIObj) = dump(io, obj; maxdepth = 1)
+Base.show(io::IO, obj::ProcInvData) = dump(io, obj; maxdepth = 1)
+Base.show(io::IO, system::AbstractSystem) = dump(io, system; maxdepth = 1)
+Base.show(io::IO, gui::GUI) = dump(io, gui; maxdepth = 1)
+Base.show(io::IO, ::NothingElement) = print(io, "top_level")
 
 function EnergySystemIterator(design::EnergySystemDesign)
     vector = AbstractGUIObj[]
@@ -239,11 +309,83 @@ function Base.iterate(design::EnergySystemDesign, state = (nothing, nothing))
 end
 
 """
-    get_parent(design::EnergySystemDesign)
+    get_time_struct(system::AbstractSystem)
 
-Returns the `parent` field of a `EnergySystemDesign` `design`.
+Returns the time structure of the AbstractSystem `system`.
 """
-get_parent(design::EnergySystemDesign) = design.parent
+get_time_struct(system::AbstractSystem) = system.T
+
+"""
+    get_products(system::AbstractSystem)
+
+Returns the vector of products of the AbstractSystem `system`.
+"""
+get_products(system::AbstractSystem) = system.products
+
+"""
+    get_elements_vec(system::AbstractSystem)
+
+Returns the vector of element-vectors of the AbstractSystem `system`.
+"""
+get_elements_vec(system::AbstractSystem) = system.elements
+
+"""
+    get_children(system::AbstractSystem)
+
+Returns the `parent` field of a `AbstractSystem` `system`.
+"""
+get_children(system::AbstractSystem) = system.children
+
+"""
+    get_connections(system::AbstractSystem)
+
+Returns the `connections` field of a `AbstractSystem` `system`.
+"""
+get_connections(system::AbstractSystem) = system.connections
+
+"""
+    get_parent(system::AbstractSystem)
+
+Returns the `parent` field of a `AbstractSystem` `system`.
+"""
+get_parent(system::AbstractSystem) = system.parent
+
+"""
+    get_ref_element(system::AbstractSystem)
+
+Returns the `ref_element` field of a `AbstractSystem` `system`.
+"""
+get_ref_element(system::AbstractSystem) = system.ref_element
+
+"""
+    get_links(system::AbstractSystem)
+
+Returns the `ref_element` field of a `AbstractSystem` `system`.
+"""
+get_links(system::AbstractSystem) =
+    filter(el -> isa(el, Vector{<:Link}), get_elements_vec(system))[1]
+
+"""
+    get_nodes(system::AbstractSystem)
+
+Returns the `ref_element` field of a `AbstractSystem` `system`.
+"""
+get_nodes(system::AbstractSystem) =
+    filter(el -> isa(el, Vector{<:EMB.Node}), get_elements_vec(system))[1]
+
+"""
+    get_transmissions(system::System)
+
+Returns the `Connections`s of a `System` `system`.
+"""
+get_transmissions(system::System) = get_connections(system)
+
+"""
+    get_element(system::System)
+
+Returns the `element` assosiated of a `System` `system`.
+"""
+get_element(system::System) = get_parent(system)
 
 """
     get_system(design::EnergySystemDesign)
@@ -253,15 +395,18 @@ Returns the `system` field of a `EnergySystemDesign` `design`.
 get_system(design::EnergySystemDesign) = design.system
 
 """
+    get_parent(design::EnergySystemDesign)
+
+Returns the `parent` field of a `EnergySystemDesign` `design`.
+"""
+get_parent(design::EnergySystemDesign) = get_parent(get_system(design))
+
+"""
     get_element(design::EnergySystemDesign)
 
 Returns the system node (i.e. availability node for areas) of a `EnergySystemDesign` `design`.
 """
-function get_element(design::EnergySystemDesign)
-    if !isnothing(design.parent)
-        return design.system[:node]
-    end
-end
+get_element(design::EnergySystemDesign) = get_element(get_system(design))
 
 """
     get_components(design::EnergySystemDesign)
@@ -325,6 +470,20 @@ get_inv_data(design::EnergySystemDesign) = design.inv_data
 Returns the `plots` field of a `EnergySystemDesign` `design`.
 """
 get_plots(design::EnergySystemDesign) = design.plots
+
+"""
+    get_time_struct(design::EnergySystemDesign)
+
+Returns the time structure of the EnergySystemDesign `design`.
+"""
+get_time_struct(design::EnergySystemDesign) = get_time_struct(get_system(design))
+
+"""
+    get_ref_element(design::EnergySystemDesign)
+
+Returns the `ref_element` field of a `EnergySystemDesign` `design`.
+"""
+get_ref_element(design::EnergySystemDesign) = get_ref_element(get_system(design))
 
 """
     get_from(conn::Connection)
@@ -543,3 +702,17 @@ get_available_data(gui::GUI) = get_var(gui, :available_data)
 Get the selection color for the `gui`.
 """
 get_selection_color(gui::GUI) = get_var(gui, :selection_color)
+
+"""
+    get_time_struct(gui::GUI)
+
+Returns the time structure of the GUI `gui`.
+"""
+get_time_struct(gui::GUI) = get_time_struct(get_design(gui))
+
+"""
+    get_parent(gui::GUI)
+
+Returns the `parent` field of a `GUI` `gui`.
+"""
+get_parent(gui::GUI) = get_parent(get_design(gui))

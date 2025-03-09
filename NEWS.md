@@ -1,5 +1,19 @@
 # Release notes
 
+## Version 0.5.12 (2025-03-09)
+
+### Enhancement
+
+* Enable initiation of the `GUI` with a `Case`-type instead of a `Dict` as introduced in `EnergyModelsBase` v0.9.
+* Add `link_cap_inst` field in `descriptive_names.yml`.
+* Added more descriptive names for `EnergyModelsRenewableProducers` and add a color for the `Water` resource.
+* For resources without assigned colors, avoid foul colors.
+
+### Adjustment
+
+* Create the `EMGExt` extension such that functionality connected to the `EnergyModelsGeography` package is only loaded if `EnergyModelsGeography` is loaded.
+* Remove inspector overlay for background map using `GeoMakie`.
+
 ## Version 0.5.11 (2025-02-01)
 
 ### Bugfix

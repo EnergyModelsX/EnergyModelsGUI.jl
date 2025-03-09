@@ -43,11 +43,11 @@ function generate_example_data()
     model = OperationalModel(
         Dict(
             CO2 => StrategicProfile([160, 140, 120, 100]),  # CO₂ emission cap in t/24h
-            NG => FixedProfile(1e6)                       # NG cap in MWh/24h
+            NG  => FixedProfile(1e6)                       # NG cap in MWh/24h
         ),
         Dict(
             CO2 => FixedProfile(0),                         # CO₂ emission cost in EUR/t
-            NG => FixedProfile(0)                         # NG emission cost in EUR/t
+            NG  => FixedProfile(0)                         # NG emission cost in EUR/t
         ),
         CO2,
     )
@@ -55,7 +55,7 @@ function generate_example_data()
     # Create input data for the individual areas
     # The input data is based on scaling factors and/or specified demands
     area_ids = [1, 2, 3, 4, 5, 6, 7]
-    d_scale = Dict(1 => 3.0, 2 => 1.5, 3 => 1.0, 4 => 0.5, 5 => 0.5, 6 => 0.0, 7 => 3.0)
+    d_scale  = Dict(1 => 3.0, 2 => 1.5, 3 => 1.0, 4 => 0.5, 5 => 0.5, 6 => 0.0, 7 => 3.0)
     mc_scale = Dict(1 => 2.0, 2 => 2.0, 3 => 1.5, 4 => 0.5, 5 => 0.5, 6 => 0.5, 7 => 3.0)
 
     op_data = OperationalProfile([
@@ -84,10 +84,9 @@ function generate_example_data()
         30,
         30,
     ])
-    tromsø_demand = [
-        op_data
-        op_data
-        op_data
+    tromsø_demand = [op_data;
+        op_data;
+        op_data;
         op_data
     ]
     demand = Dict(
@@ -101,9 +100,9 @@ function generate_example_data()
     )
 
     # Create identical areas with index according to the input array
-    an = Dict()
-    nodes = []
-    links = []
+    an    = Dict()
+    nodes = EMB.Node[]
+    links = Link[]
     for a_id ∈ area_ids
         n, l = get_sub_system_data(
             a_id,
@@ -126,15 +125,13 @@ function generate_example_data()
     #   3. lon  - Longitudinal position of the area
     #   4. lon  - Latitudinal position of the area
     #   5. node - Availability node of the area
-    areas = [
-        RefArea(1, "Oslo", 10.751, 59.921, an[1]),
+    areas = [RefArea(1, "Oslo", 10.751, 59.921, an[1]),
         RefArea(2, "Bergen", 5.334, 60.389, an[2]),
         RefArea(3, "Trondheim", 10.398, 63.4366, an[3]),
         RefArea(4, "Tromsø", 18.953, 69.669, an[4]),
         RefArea(5, "Kristiansand", 7.984, 58.146, an[5]),
         RefArea(6, "Sørlige Nordsjø II", 6.836, 57.151, an[6]),
-        RefArea(7, "Danmark", 8.614, 56.359, an[7]),
-    ]
+        RefArea(7, "Danmark", 8.614, 56.359, an[7])]
 
     # Create the individual transmission modes to transport the energy between the
     # individual areass.
@@ -149,34 +146,18 @@ function generate_example_data()
     opex_var = FixedProfile(0.05)   # Variable OPEX in EUR/MWh
     opex_fix = FixedProfile(0.05)   # Fixed OPEX in EUR/24h
 
-    OB_OverheadLine_50MW = RefStatic(
-        "OB_PowerLine_50", Power, cap_ohl, loss, opex_var, opex_fix, 2,
-    )
-    OT_OverheadLine_50MW = RefStatic(
-        "OT_PowerLine_50", Power, cap_ohl, loss, opex_var, opex_fix, 2,
-    )
-    OK_OverheadLine_50MW = RefStatic(
-        "OK_PowerLine_50", Power, cap_ohl, loss, opex_var, opex_fix, 2,
-    )
-    BT_OverheadLine_50MW = RefStatic(
-        "BT_PowerLine_50", Power, cap_ohl, loss, opex_var, opex_fix, 2,
-    )
-    BTN_LNG_Ship_100MW = RefDynamic("BTN_LNG_100", NG, cap_lng, loss, opex_var, opex_fix, 1)
-    BK_OverheadLine_50MW = RefStatic(
-        "BK_PowerLine_50", Power, cap_ohl, loss, opex_var, opex_fix, 2,
-    )
-    TTN_OverheadLine_50MW = RefStatic(
-        "TTN_PowerLine_50", Power, cap_ohl, loss, opex_var, opex_fix, 2,
-    )
-    KS_OverheadLine_50MW = RefStatic(
-        "KS_PowerLine_50", Power, cap_ohl, loss, opex_var, opex_fix, 2,
-    )
-    SD_OverheadLine_50MW = RefStatic(
-        "SD_PowerLine_50", Power, cap_ohl, loss, opex_var, opex_fix, 2,
-    )
+    OB_OverheadLine_50MW  = RefStatic("OB_PowerLine_50", Power, cap_ohl, loss, opex_var, opex_fix, 2)
+    OT_OverheadLine_50MW  = RefStatic("OT_PowerLine_50", Power, cap_ohl, loss, opex_var, opex_fix, 2)
+    OK_OverheadLine_50MW  = RefStatic("OK_PowerLine_50", Power, cap_ohl, loss, opex_var, opex_fix, 2)
+    BT_OverheadLine_50MW  = RefStatic("BT_PowerLine_50", Power, cap_ohl, loss, opex_var, opex_fix, 2)
+    BTN_LNG_Ship_100MW    = RefDynamic("BTN_LNG_100", NG, cap_lng, loss, opex_var, opex_fix, 1)
+    BK_OverheadLine_50MW  = RefStatic("BK_PowerLine_50", Power, cap_ohl, loss, opex_var, opex_fix, 2)
+    TTN_OverheadLine_50MW = RefStatic("TTN_PowerLine_50", Power, cap_ohl, loss, opex_var, opex_fix, 2)
+    KS_OverheadLine_50MW  = RefStatic("KS_PowerLine_50", Power, cap_ohl, loss, opex_var, opex_fix, 2)
+    SD_OverheadLine_50MW  = RefStatic("SD_PowerLine_50", Power, cap_ohl, loss, opex_var, opex_fix, 2)
 
     # Create the different transmission corridors between the individual areas
-    transmission = [
+    transmissions = [
         Transmission(areas[1], areas[2], [OB_OverheadLine_50MW]),
         Transmission(areas[1], areas[3], [OT_OverheadLine_50MW]),
         Transmission(areas[1], areas[5], [OK_OverheadLine_50MW]),
@@ -188,14 +169,12 @@ function generate_example_data()
         Transmission(areas[6], areas[7], [SD_OverheadLine_50MW]),
     ]
 
-    # WIP data structure
-    case = Dict(
-        :areas => Array{Area}(areas),
-        :transmission => Array{Transmission}(transmission),
-        :nodes => Array{EMB.Node}(nodes),
-        :links => Array{Link}(links),
-        :products => products,
-        :T => T,
+    # Input data structure
+    case = Case(
+        T,
+        products,
+        [nodes, links, areas, transmissions],
+        [[get_nodes, get_links], [get_areas, get_transmissions]],
     )
     return case, model
 end
@@ -203,10 +182,10 @@ end
 function get_resources()
 
     # Define the different resources
-    NG = ResourceEmit("NG", 0.2)
-    Coal = ResourceCarrier("Coal", 0.35)
-    Power = ResourceCarrier("Power", 0.0)
-    CO2 = ResourceEmit("CO2", 1.0)
+    NG       = ResourceEmit("NG", 0.2)
+    Coal     = ResourceCarrier("Coal", 0.35)
+    Power    = ResourceCarrier("Power", 0.0)
+    CO2      = ResourceEmit("CO2", 1.0)
     products = [NG, Coal, Power, CO2]
 
     return products
@@ -216,7 +195,11 @@ end
 # profiles
 # The subsystem is similar to the subsystem in the `network.jl` example of EnergyModelsBase.
 function get_sub_system_data(
-    i, products; mc_scale::Float64 = 1.0, d_scale::Float64 = 1.0, demand = false,
+    i,
+    products;
+    mc_scale::Float64 = 1.0,
+    d_scale::Float64 = 1.0,
+    demand = false,
 )
     NG, Coal, Power, CO2 = products
 
@@ -262,14 +245,14 @@ function get_sub_system_data(
             FixedProfile(1e12),         # Capacity in MW
             FixedProfile(30 * mc_scale),  # Variable OPEX in EUR/MW
             FixedProfile(0),            # Fixed OPEX in EUR/24h
-            Dict(NG => 1),              # Output from the Node, in this gase, NG
+            Dict(NG => 1),              # Output from the Node, in this case, NG
         ),
         RefSource(
             j + 3,                        # Node id
             FixedProfile(1e12),         # Capacity in MW
             FixedProfile(9 * mc_scale),   # Variable OPEX in EUR/MWh
             FixedProfile(0),            # Fixed OPEX in EUR/24h
-            Dict(Coal => 1),            # Output from the Node, in this gase, coal
+            Dict(Coal => 1),            # Output from the Node, in this case, coal
         ),
         RefNetworkNode(
             j + 4,                        # Node id
@@ -333,7 +316,7 @@ end
 # Generate the case and model data and run the model
 case, model = generate_example_data()
 optimizer = optimizer_with_attributes(HiGHS.Optimizer, MOI.Silent() => true)
-m = EMG.create_model(case, model)
+m = create_model(case, model)
 set_optimizer(m, optimizer)
 optimize!(m)
 
@@ -346,8 +329,9 @@ solution_summary(m)
 using EnergyModelsGUI
 
 # Colors can be taylored as in the following example
-NG = case[:products][1] # Extract NG object
-Power = case[:products][3] # Extract Power object
+products = get_products(case)
+NG = products[1] # Extract NG object
+Power = products[3] # Extract Power object
 id_to_color_map = Dict(Power.id => :cyan, NG.id => "#FF9876")
 
 # Set folder where visualization info is saved and retrieved
