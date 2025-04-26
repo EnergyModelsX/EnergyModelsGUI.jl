@@ -43,7 +43,7 @@ function EnergySystemDesign(
 
     # Complete the `id_to_color_map` if some products are lacking (this is done by choosing
     # colors for the lacking `Resource`s that are most distinct to the existing set of colors)
-    if !(length(get_products(system)) == length(id_to_color_map))
+    if !issubset(get_products(system), keys(id_to_color_map))
         id_to_color_map = set_colors(get_products(system), id_to_color_map)
     end
 
