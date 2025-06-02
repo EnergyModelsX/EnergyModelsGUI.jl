@@ -87,7 +87,6 @@ function EnergySystemDesign(
                 if element == get_ref_element(system)
                     x = parent_x
                     y = parent_y
-                    nodes_count -= 1
                 else # place nodes in a circle around the parents availability node
                     x, y = place_nodes_in_circle(
                         nodes_count, current_node, 1, parent_x, parent_y,
