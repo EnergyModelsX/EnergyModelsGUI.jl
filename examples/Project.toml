@@ -1,5 +1,6 @@
 [deps]
 EnergyModelsBase = "5d7e687e-f956-46f3-9045-6f5a5fd49f50"
+EnergyModelsGUI = "737a7361-d3b7-40e9-b1ac-59bee4c5ea2d"
 EnergyModelsGeography = "3f775d88-a4da-46c4-a2cc-aa9f16db6708"
 EnergyModelsInvestments = "fca3f8eb-b383-437d-8e7b-aac76bb2004f"
 EnergyModelsRenewableProducers = "b007c34f-ba52-4995-ba37-fffe79fbde35"
