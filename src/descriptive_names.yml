@@ -23,63 +23,49 @@ structures:
     opex_var:               "Relative variable operating expense per energy unit"
 
   RefSource:
-    id:                     "Name/identifier of the node"
     cap:                    "Installed capacity"
     opex_var:               "Relative variable operating expense per energy unit produced"
     opex_fixed:             "Relative fixed operating expense per installed capacity"
     output:                 "Output resources with conversion value"
-    data:                   "Additional data"
 
   RefNetworkNode:
-    id:                     "Name/identifier of the node"
     cap:                    "Installed capacity"
     opex_var:               "Relative variable operating expense per energy unit produced"
     opex_fixed:             "Relative fixed operating expense per installed capacity"
     input:                  "Input resources with conversion value"
     output:                 "Output resources with conversion value"
-    data:                   "Additional data"
 
   RefStorage:
-    id:                     "Name/identifier of the node"
     charge:                 "Charging parameters of the Storage node"
     level:                  "Level parameters of the Storage node"
     stor_res:               "Stored resource"
     input:                  "Input resources with conversion value"
     output:                 "Output resources with conversion value (relevant for linking and the stored resource)"
-    data:                   "Additional data"
 
   RefSink:
-    id:                     "Name/identifier of the node"
     cap:                    "Demand"
     penalty:
       surplus:              "Penalties for surplus"
       deficit:              "Penalties for deficits"
     input:                  "Input resources with conversion value"
-    data:                   "Additional data"
 
   ## EnergyModelsGeography
   # mode.jl
   RefDynamic:
-    id:                     "Name/identifier of the transmission mode"
     resource:               "Transported resource"
     trans_cap:              "Capacity of the transmission mode"
     trans_loss:             "Relative loss of the transported resource during transmission"
     opex_var:               "Relative variable operating expense per energy unit transported"
     opex_fixed:             "Relative fixed operating expense per installed capacity"
-    directions:             "Number of directions the resource can be transported"
 
   RefStatic:
-    id:                     "Name/identifier of the transmission mode"
     resource:               "Resource that is transported"
     trans_cap:              "Capacity of the transmission mode"
     trans_loss:             "Relative loss of the transported resource during transmission"
     opex_var:               "Relative variable operating expense per energy unit transported"
     opex_fixed:             "Relative fixed operating expense per installed capacity"
-    directions:             "Number of directions the resource can be transported"
-    data:                   "Additional data"
 
   PipeSimple:
-    id:                     "Identifier used in printed output"
     inlet:                  "Resource going into transmission"
     outlet:                 "Resource going out of the outlet of the transmission"
     consuming:              "Resource the transmission consumes by operating"
@@ -88,11 +74,8 @@ structures:
     trans_loss:             "Relative loss of the transported resource during transmission"
     opex_var:               "Relative variable operating expense per energy unit transported"
     opex_fixed:             "Relative fixed operating expense per installed capacity"
-    directions:             "Specifies that the pipeline is unidirectional by default"
-    data:                   "Additional data"
 
   PipeLinepackSimple:
-    id:                     "Identifier used in printed output"
     inlet:                  "Resource going into transmission"
     outlet:                 "Resource going out of the outlet of the transmission"
     consuming:              "Resource the transmission consumes by operating"
@@ -101,8 +84,6 @@ structures:
     trans_loss:             "Relative loss of the transported resource during transmission"
     opex_var:               "Relative variable operating expense per energy unit transported"
     opex_fixed:             "Relative fixed operating expense per installed capacity"
-    energy_share:           "Storage energy capacity relative to pipeline capacity"
-    directions:             "Specifies that the pipeline is unidirectional by default"
 
   ## EnergyModelsInvestment
   # investment_data.jl
@@ -154,16 +135,13 @@ structures:
 
   ## EnergyModelsRenewableProducers
   NonDisRES:
-    id: "Name/identifier of the node"
     cap: "Installed capacity"
     profile: "Power production profile as a ratio of installed capacity"
     opex_var: "Relative variable operating expense per energy unit produced"
     opex_fixed: "Relative fixed operating expense per installed capacity"
     output: "Generated resources, normally Power"
-    data: "Additional data"
 
   HydroStor:
-    id: "Name/identifier of the node"
     level: "Level parameters of the HydroStor node"
     discharge: "Discharging parameters of the HydroStor node"
     level_init: "Initial stored energy in the dam"
@@ -172,10 +150,8 @@ structures:
     stor_res: "Stored resource"
     input: "Input resources"
     output: "Output resources"
-    data: "Additional data"
 
   PumpedHydroStor:
-    id: "Name/identifier of the node"
     charge: "Charging parameters of the PumpedHydroStor node"
     level: "Level parameters of the PumpedHydroStor node"
     discharge: "Discharging parameters of the PumpedHydroStor node"
@@ -185,45 +161,35 @@ structures:
     stor_res: "Stored resource"
     input: "Input resources"
     output: "Output resources"
-    data: "Additional data"
 
   HydroReservoir:
-    id: "Name/identifier of the node"
     vol: "Storage volume parameters of the HydroReservoir node"
     vol_inflow: "Water inflow to the reservoir"
     stor_res: "Stored resource"
-    data: "Additional data"
 
   HydroGate:
-    id: "Name/identifier of the node"
     cap: "Installed discharge capacity"
     opex_var: "Variable operational costs per water flow"
     opex_fixed: "Fixed operational costs"
     resource: "Water resource type"
-    data: "Additional data"
 
   HydroGenerator:
-    id: "Name/identifier of the node"
     cap: "Installed discharge or power capacity"
     pq_curve: "Relationship between power and discharge"
     opex_var: "Variable operational costs per energy unit produced"
     opex_fixed: "Fixed operational costs"
     electricity_resource: "Electricity resource generated as output"
     water_resource: "Water resource taken as input and discharged as output"
-    data: "Additional data"
 
   HydroPump:
-    id: "Name/identifier of the node"
     cap: "Installed pumping capacity"
     pq_curve: "Relationship between power and water pumping"
     opex_var: "Variable operational costs per energy unit produced"
     opex_fixed: "Fixed operational costs"
     electricity_resource: "Electricity resource taken as input (consumed)"
     water_resource: "Water resource taken as input and discharged as output"
-    data: "Additional data"
 
   Battery:
-    id: "Name/identifier of the node"
     charge: "Charging parameters of the Battery node"
     level: "Level parameters of the Battery node"
     discharge: "Discharging parameters of the Battery node"
@@ -231,10 +197,8 @@ structures:
     input: "Input resources with efficiency values"
     output: "Output resources with efficiency values"
     battery_life: "Battery lifetime model"
-    data: "Additional data"
 
   ReserveBattery:
-    id: "Name/identifier of the node"
     charge: "Charging parameters of the ReserveBattery node"
     level: "Level parameters of the ReserveBattery node"
     discharge: "Discharging parameters of the ReserveBattery node"
@@ -244,7 +208,6 @@ structures:
     battery_life: "Battery lifetime model"
     reserve_up: "Resources used as reserve for adding capacity"
     reserve_down: "Resources used as reserve for removing capacity"
-    data: "Additional data"
 
   CycleLife:
     stack_cost: "Relative cost for replacing a battery stack"
@@ -255,6 +218,8 @@ structures:
     t_source:               "Temperature profile of the heat source"
     t_sink:                 "Sink temperature of the condensator"
     eff_carnot:             "Carnot Efficiency"
+    input_heat:             "Resource for the low temperature heat input"
+    driving_force:          "Resource of the driving force"
     opex_var:               "Variable operating expense per energy unit produced"
     opex_fixed:             "Fixed operating expense per installed capacity"
   ResourceHeat:
@@ -263,6 +228,7 @@ structures:
   DHPipe:
     cap:                    "Heat transport capacity of the pipe"
     t_ground:               "Ground temperature in °C"
+    resource_heat:          "Resource used by DHPipe"
   HeatExchanger:
     cap:                    "Installed capacity"
     opex_var:               "Variable operating expense per energy unit produced"
@@ -283,11 +249,8 @@ structures:
     opex_fixed: "Fixed operating expense per installed capacity"
     input: "Input resources with conversion values"
     output: "Produced resources with conversion values"
-    data: "Additional data (e.g., for investments)"
     load_limits: "Limits on utilization load"
-    degradation_rate: "Efficiency degradation rate in % per 1000 operational hours"
     stack_replacement_cost: "Replacement cost of electrolyzer stacks"
-    stack_lifetime: "Total operational stack lifetime in hours"
 
   SimpleElectrolyzer:
     cap: "Installed capacity"
@@ -295,11 +258,8 @@ structures:
     opex_fixed: "Fixed operating expense per installed capacity"
     input: "Input resources with conversion values"
     output: "Produced resources with conversion values"
-    data: "Additional data (e.g., for investments)"
     load_limits: "Limits on utilization load"
-    degradation_rate: "Efficiency degradation rate in % per 1000 operational hours"
     stack_replacement_cost: "Replacement cost of electrolyzer stacks"
-    stack_lifetime: "Total operational stack lifetime in hours"
 
   CommitParameters:
     opex: "Operating cost per installed capacity and operational duration"
@@ -321,8 +281,6 @@ structures:
     opex_fixed: "Fixed operating expense per installed capacity"
     input: "Input resources with conversion values"
     output: "Produced resources with conversion values"
-    data: "Additional data (e.g., for investments)"
-    load_limits: "Limits on utilization load"
     startup: "Parameters for startup state constraints"
     shutdown: "Parameters for shutdown state constraints"
     offline: "Parameters for offline state constraints"
@@ -335,21 +293,12 @@ structures:
     stor_res: "Stored hydrogen resource"
     input: "Input resources with conversion values"
     output: "Generated resources with conversion values"
-    data: "Additional data (e.g., for investments)"
-    discharge_charge: "Maximum discharge rate relative to charge rate"
-    level_charge: "Storage level capacity relative to charge capacity"
 
   HydrogenStorage:
     cap: "Installed storage capacity"
     charge: "Charging parameters including OPEX, fixed cost, and capacity"
     stor_res: "Stored hydrogen resource"
     el_res: "Electricity resource for compression"
-    data: "Additional data (e.g., for investments)"
-    discharge_charge: "Maximum discharge rate relative to charge rate"
-    level_charge: "Storage level capacity relative to charge capacity"
-    p_min: "Minimum pressure in the storage"
-    p_charge: "Charging pressure into the storage"
-    p_max: "Maximum pressure in the storage"
 
   ## EnergyModelsCO2
   CO2Source:
@@ -357,7 +306,6 @@ structures:
     opex_var: "Variable operating expense per energy unit produced"
     opex_fixed: "Fixed operating expense"
     output: "Generated resources with conversion values"
-    data: "Additional data (e.g., for investments)"
 
   CO2Storage:
     cap: "Installed injection rate capacity"
@@ -365,7 +313,6 @@ structures:
     level: "Storage capacity parameters (OPEX, fixed cost)"
     stor_res: "Stored resource type (CO₂)"
     input: "Input resources with conversion values"
-    data: "Additional data (e.g., for investments)"
 
   RefNetworkNodeRetrofit:
     cap: "Installed capacity"
@@ -374,7 +321,6 @@ structures:
     input: "Input resources with conversion values"
     output: "Generated resources with conversion values"
     co2_proxy: "Instance of the CO₂ proxy resource used for capture calculations"
-    data: "Additional data (e.g., for investments)"
 
   CCSRetroFit:
     cap: "Installed capacity"
@@ -383,7 +329,6 @@ structures:
     input: "Input resources with conversion values"
     output: "Generated resources with conversion values"
     co2_proxy: "Instance of the CO₂ proxy resource used for capture calculations"
-    data: "Additional data (e.g., for investments)"
 
 
 variables:
