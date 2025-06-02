@@ -366,7 +366,8 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
     markers::Vector{Makie.Scatter} = Vector{Makie.Scatter}(undef, 0)
 
     # Create an ordered list of colors (based on their id)
-    color_mat = hcat(collect(keys(design.id_to_color_map)), collect(values(design.id_to_color_map)))
+    color_mat =
+        hcat(collect(keys(design.id_to_color_map)), collect(values(design.id_to_color_map)))
     perm = sortperm(lowercase.(color_mat[:, 1]))
     sorted_color_mat = color_mat[perm, :]
 
