@@ -237,6 +237,12 @@ structures:
     cap:                    "Installed capacity"
     opex_var:               "Variable operating expense per energy unit produced"
     opex_fixed:             "Fixed operating expense per installed capacity"
+  ThermalEnergyStorage:
+    charge:                 "Charging parameters of the ThermalEnergyStorage node"
+    level:                  "Level parameters of the ThermalEnergyStorage node"
+    stor_res:               "Stored resource"
+    input:                  "Input resources with conversion values"
+    output:                 "Output resources with conversion values"
 
   ## EnergyModelsHydrogen
   LoadLimits:
