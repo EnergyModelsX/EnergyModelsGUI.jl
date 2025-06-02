@@ -1,5 +1,23 @@
 # Release notes
 
+## Version 0.5.13 (2025-06-02)
+
+### Bugfix
+
+* Fix bug when `length(get_products(system)) == length(id_to_color_map)` but when `get_products(system)` is not a subset of `keys(id_to_color_map)`. This case did not expand `id_to_color_map` correctly.
+* Add missing description of the `case_name` option in the `GUI`-function.
+* Add the `EnergyModelsGUI` package in the `Project.toml` file in the examples folder.
+
+### Enhancement
+
+* Added more descriptive names for `EnergyModelsHeat` and `EnergyModelsHydrogen` and add a colors for the `HeatLT` and `HeatHT` resources.
+
+### Adjustment
+* Order the colors (by id) in the Resources legend.
+* Move boundaries for countries just above the ocean layer.
+* Fix default placements of the nodes in a uniform circle (when coordinates are not provided).
+* Only create the design-folder if needed.
+
 ## Version 0.5.12 (2025-03-09)
 
 ### Enhancement
