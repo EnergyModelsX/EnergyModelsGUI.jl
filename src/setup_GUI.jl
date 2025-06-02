@@ -30,6 +30,7 @@ data stored as key-value pairs. This dictionary is corresponding to the the old 
   main window.
 - **`fontsize::Int64=12`** is the general fontsize.
 - **`plot_widths::Tuple{Int64,Int64}=(1920, 1080)`** is the resolution of the window.
+- **`case_name::String = ""`** provides a tag for the window title.
 - **`scale_tot_opex::Bool=false`** multiplies total OPEX quantities with the duration of the strategic period.
 - **`scale_tot_capex::Bool=false`** divides total CAPEX quantities with the duration of the strategic period.
 - **`colormap::Vector=Makie.wong_colors()`** is the colormap used for plotting results.
