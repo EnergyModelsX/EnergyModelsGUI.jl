@@ -246,6 +246,146 @@ structures:
     reserve_down: "Resources used as reserve for removing capacity"
     data: "Additional data"
 
+  CycleLife:
+    stack_cost: "Relative cost for replacing a battery stack"
+
+  ## EnergyModelsHeat
+  HeatPump:
+    cap:                    "Installed capacity"
+    t_source:               "Temperature profile of the heat source"
+    t_sink:                 "Sink temperature of the condensator"
+    eff_carnot:             "Carnot Efficiency"
+    opex_var:               "Variable operating expense per energy unit produced"
+    opex_fixed:             "Fixed operating expense per installed capacity"
+  ResourceHeat:
+    t_supply:               "Supply temperature in °C"
+    t_return:               "Return temperature in °C"
+  DHPipe:
+    cap:                    "Heat transport capacity of the pipe"
+    t_ground:               "Ground temperature in °C"
+  HeatExchanger:
+    cap:                    "Installed capacity"
+    opex_var:               "Variable operating expense per energy unit produced"
+    opex_fixed:             "Fixed operating expense"
+  DirectHeatUpgrade:
+    cap:                    "Installed capacity"
+    opex_var:               "Variable operating expense per energy unit produced"
+    opex_fixed:             "Fixed operating expense"
+
+  ## EnergyModelsHydrogen
+  LoadLimits:
+    min: "Minimum load as a fraction of installed capacity"
+    max: "Maximum load as a fraction of installed capacity"
+
+  Electrolyzer:
+    cap: "Installed capacity"
+    opex_var: "Variable operating expense per capacity used"
+    opex_fixed: "Fixed operating expense per installed capacity"
+    input: "Input resources with conversion values"
+    output: "Produced resources with conversion values"
+    data: "Additional data (e.g., for investments)"
+    load_limits: "Limits on utilization load"
+    degradation_rate: "Efficiency degradation rate in % per 1000 operational hours"
+    stack_replacement_cost: "Replacement cost of electrolyzer stacks"
+    stack_lifetime: "Total operational stack lifetime in hours"
+
+  SimpleElectrolyzer:
+    cap: "Installed capacity"
+    opex_var: "Variable operating expense per capacity used"
+    opex_fixed: "Fixed operating expense per installed capacity"
+    input: "Input resources with conversion values"
+    output: "Produced resources with conversion values"
+    data: "Additional data (e.g., for investments)"
+    load_limits: "Limits on utilization load"
+    degradation_rate: "Efficiency degradation rate in % per 1000 operational hours"
+    stack_replacement_cost: "Replacement cost of electrolyzer stacks"
+    stack_lifetime: "Total operational stack lifetime in hours"
+
+  CommitParameters:
+    opex: "Operating cost per installed capacity and operational duration"
+    time: "Minimum time node must remain in a state before transitioning"
+
+  RampBi:
+    up: "Maximum positive rate of change of a node"
+    down: "Maximum negative rate of change of a node"
+
+  RampUp:
+    up: "Maximum positive rate of change of a node"
+
+  RampDown:
+    down: "Maximum negative rate of change of a node"
+
+  Reformer:
+    cap: "Installed capacity"
+    opex_var: "Variable operating expense per capacity usage"
+    opex_fixed: "Fixed operating expense per installed capacity"
+    input: "Input resources with conversion values"
+    output: "Produced resources with conversion values"
+    data: "Additional data (e.g., for investments)"
+    load_limits: "Limits on utilization load"
+    startup: "Parameters for startup state constraints"
+    shutdown: "Parameters for shutdown state constraints"
+    offline: "Parameters for offline state constraints"
+    ramp_limit: "Limit on the allowable change in capacity usage"
+
+  SimpleHydrogenStorage:
+    cap: "Installed storage capacity"
+    charge: "Charging parameters including OPEX, fixed cost, and capacity"
+    level: "Storage level parameters including OPEX and fixed cost"
+    stor_res: "Stored hydrogen resource"
+    input: "Input resources with conversion values"
+    output: "Generated resources with conversion values"
+    data: "Additional data (e.g., for investments)"
+    discharge_charge: "Maximum discharge rate relative to charge rate"
+    level_charge: "Storage level capacity relative to charge capacity"
+
+  HydrogenStorage:
+    cap: "Installed storage capacity"
+    charge: "Charging parameters including OPEX, fixed cost, and capacity"
+    stor_res: "Stored hydrogen resource"
+    el_res: "Electricity resource for compression"
+    data: "Additional data (e.g., for investments)"
+    discharge_charge: "Maximum discharge rate relative to charge rate"
+    level_charge: "Storage level capacity relative to charge capacity"
+    p_min: "Minimum pressure in the storage"
+    p_charge: "Charging pressure into the storage"
+    p_max: "Maximum pressure in the storage"
+
+  ## EnergyModelsCO2
+  CO2Source:
+    cap: "Installed capacity"
+    opex_var: "Variable operating expense per energy unit produced"
+    opex_fixed: "Fixed operating expense"
+    output: "Generated resources with conversion values"
+    data: "Additional data (e.g., for investments)"
+
+  CO2Storage:
+    cap: "Installed injection rate capacity"
+    charge: "Charging parameters (OPEX, fixed cost)"
+    level: "Storage capacity parameters (OPEX, fixed cost)"
+    stor_res: "Stored resource type (CO₂)"
+    input: "Input resources with conversion values"
+    data: "Additional data (e.g., for investments)"
+
+  RefNetworkNodeRetrofit:
+    cap: "Installed capacity"
+    opex_var: "Variable operating expense per energy unit produced"
+    opex_fixed: "Fixed operating expense"
+    input: "Input resources with conversion values"
+    output: "Generated resources with conversion values"
+    co2_proxy: "Instance of the CO₂ proxy resource used for capture calculations"
+    data: "Additional data (e.g., for investments)"
+
+  CCSRetroFit:
+    cap: "Installed capacity"
+    opex_var: "Variable operating expense per unit of CO₂ captured"
+    opex_fixed: "Fixed operating expense"
+    input: "Input resources with conversion values"
+    output: "Generated resources with conversion values"
+    co2_proxy: "Instance of the CO₂ proxy resource used for capture calculations"
+    data: "Additional data (e.g., for investments)"
+
+
 variables:
   ## EnergyModelsBase
   cap_use:                        "Absolute capacity utilization"
@@ -332,6 +472,18 @@ variables:
   bat_stack_replace_b:            "Binary variable for identifying battery stack replacement"
   bat_res_up:                     "Upwards reserve of battery storage"
   bat_res_down:                   "Downwards reserve of battery storage"
+
+  ## EnergyModelsHeat
+  dh_pipe_loss:             "Heat losses in DH pipes"
+
+  ## EnergyModelsHydrogen
+  ref_off_b: "Binary variable indicating if the reformer is in the 'off' state in operational period t"
+  ref_start_b: "Binary variable indicating if the reformer is in the 'start-up' state in operational period t"
+  ref_on_b: "Binary variable indicating if the reformer is in the 'on' state in operational period t"
+  ref_shut_b: "Binary variable indicating if the reformer is in the 'shutdown' state in operational period t"
+
+  ## EnergyModelsCO2
+  stor_level_Δ_sp: "Increase in `stor_level` during a strategic period"
 
 # Overview of total quantities and their components
 total:
