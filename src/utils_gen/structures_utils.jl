@@ -166,9 +166,6 @@ function design_file(system::AbstractSystem, path::String)
     if isempty(path)
         return ""
     end
-    if !isdir(path)
-        mkpath(path)
-    end
     return joinpath(path, "$(get_parent(system)).yml")
 end
 
@@ -233,6 +230,10 @@ Save the x,y-coordinates of `design_dict` to a .yml file at location and filenam
 `file`.
 """
 function save_design(design_dict::Dict, file::String)
+    design_dir = dirname(file)
+    if !isdir(design_dir)
+        mkpath(design_dir)
+    end
     return YAML.write_file(file, design_dict)
 end
 
@@ -242,7 +243,7 @@ end
         links::Vector{Link},
         area_links::Vector{Link},
         area_nodes::Vector{EMB.Node},
-        indices::Vector{Int
+        indices::Vector{Int},
     )
 
 Recursively find all nodes connected (directly or indirectly) to `node` in a system of `links`
