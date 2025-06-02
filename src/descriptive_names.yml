@@ -252,8 +252,8 @@ structures:
   ## EnergyModelsHeat
   HeatPump:
     cap:                    "Installed capacity"
-    t_source:               "Temperature profile of the heat source"
-    t_sink:                 "Sink temperature of the condensator"
+    t_source:               "Heat source temperature"
+    t_sink:                 "Heat sink temperature"
     eff_carnot:             "Carnot Efficiency"
     opex_var:               "Variable operating expense per energy unit produced"
     opex_fixed:             "Fixed operating expense per installed capacity"
@@ -266,11 +266,11 @@ structures:
   HeatExchanger:
     cap:                    "Installed capacity"
     opex_var:               "Variable operating expense per energy unit produced"
-    opex_fixed:             "Fixed operating expense"
+    opex_fixed:             "Fixed operating expense per installed capacity"
   DirectHeatUpgrade:
     cap:                    "Installed capacity"
     opex_var:               "Variable operating expense per energy unit produced"
-    opex_fixed:             "Fixed operating expense"
+    opex_fixed:             "Fixed operating expense per installed capacity"
 
   ## EnergyModelsHydrogen
   LoadLimits:
