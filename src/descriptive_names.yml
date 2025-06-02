@@ -425,13 +425,21 @@ variables:
   bat_res_down:                   "Downwards reserve of battery storage"
 
   ## EnergyModelsHeat
-  dh_pipe_loss:             "Heat losses in DH pipes"
+  dh_pipe_loss:                   "Heat losses in DH pipes"
 
   ## EnergyModelsHydrogen
-  ref_off_b: "Binary variable indicating if the reformer is in the 'off' state in operational period t"
-  ref_start_b: "Binary variable indicating if the reformer is in the 'start-up' state in operational period t"
-  ref_on_b: "Binary variable indicating if the reformer is in the 'on' state in operational period t"
-  ref_shut_b: "Binary variable indicating if the reformer is in the 'shutdown' state in operational period t"
+  ref_off_b:                      "Binary variable indicating if the reformer is in the 'off' state"
+  ref_start_b:                    "Binary variable indicating if the reformer is in the 'start-up' state"
+  ref_on_b:                       "Binary variable indicating if the reformer is in the 'on' state"
+  ref_shut_b:                     "Binary variable indicating if the reformer is in the 'shutdown' state"
+
+  elect_on_b:                     "Binary variable, 1 if electrolyzer is operating"
+  elect_prev_use:                 "Cumulative electrolyzer use since last stack replacement"
+  elect_prev_use_sp:              "Cumulative electrolyzer use in investment periods since last stack replacement"
+  elect_use_sp:                   "Electrolyzer use in an investment period"
+  elect_use_rp:                   "Electrolyzer use in a representative period"
+  elect_stack_replace_b:          "Binary variable for electrolyzer stack replacement"
+  elect_efficiency_penalty:       "Efficiency penalty coefficient for electrolyzer"
 
   ## EnergyModelsCO2
   stor_level_Δ_sp: "Increase in `stor_level` during a strategic period"
