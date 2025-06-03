@@ -30,6 +30,7 @@ data stored as key-value pairs. This dictionary is corresponding to the the old 
   main window.
 - **`fontsize::Int64=12`** is the general fontsize.
 - **`plot_widths::Tuple{Int64,Int64}=(1920, 1080)`** is the resolution of the window.
+- **`case_name::String = ""`** provides a tag for the window title.
 - **`scale_tot_opex::Bool=false`** multiplies total OPEX quantities with the duration of the strategic period.
 - **`scale_tot_capex::Bool=false`** divides total CAPEX quantities with the duration of the strategic period.
 - **`colormap::Vector=Makie.wong_colors()`** is the colormap used for plotting results.
@@ -292,7 +293,7 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
             # Create GeoMakie plotable object
             countries = GeoMakie.to_multipoly(countries_geo_json.geometry)
         end
-        poly!(
+        countries_plot = poly!(
             ax,
             countries;
             color = :honeydew,
@@ -301,6 +302,7 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
             strokewidth = 0.5,
             inspectable = false,
         )
+        Makie.translate!(countries_plot, 0, 0, -1)
         ocean_coords = [(180, -90), (-180, -90), (-180, 90), (180, 90)]
         ocean = poly!(
             ax,
@@ -310,7 +312,7 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
             strokecolor = :gray50,
             inspectable = false,
         )
-        Makie.translate!(ocean, 0, 0, -1)
+        Makie.translate!(ocean, 0, 0, -2)
     else # The design does not use the EnergyModelsGeography package: Create a simple Makie axis
         ax = Axis(
             gridlayout_topology_ax[1, 1];
@@ -362,16 +364,26 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
 
     # Create legend to explain the available resources in the design model
     markers::Vector{Makie.Scatter} = Vector{Makie.Scatter}(undef, 0)
-    for color ∈ collect(values(design.id_to_color_map))
+
+    # Create an ordered list of colors (based on their id)
+    color_mat =
+        hcat(collect(keys(design.id_to_color_map)), collect(values(design.id_to_color_map)))
+    perm = sortperm(lowercase.(color_mat[:, 1]))
+    sorted_color_mat = color_mat[perm, :]
+
+    # Create markers for colors in legend
+    for color ∈ sorted_color_mat[:, 2]
         push!(
             markers,
             scatter!(ax, Point2f((0, 0)); marker = :rect, color = color, visible = false),
         ) # add invisible dummy markers to be put in the legend box
     end
+
+    # Add the legend to the axis
     topo_legend = axislegend(
         ax,
         markers,
-        collect(keys(design.id_to_color_map)),
+        sorted_color_mat[:, 1],
         "Resources";
         position = :rt,
         labelsize = vars[:fontsize],

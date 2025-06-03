@@ -18,3 +18,5 @@ CO2:             "#606060" # gray
 CO₂:             "#606060" # gray
 Coal:            "#6D392E" # brown
 Water:           "#bfefff" # sky blue
+HeatLT:          "#fbdfb0" # :navajowhite
+HeatHT:          "#e78582" # :lightcoral

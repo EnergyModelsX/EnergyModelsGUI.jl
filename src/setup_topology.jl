@@ -43,7 +43,7 @@ function EnergySystemDesign(
 
     # Complete the `id_to_color_map` if some products are lacking (this is done by choosing
     # colors for the lacking `Resource`s that are most distinct to the existing set of colors)
-    if !(length(get_products(system)) == length(id_to_color_map))
+    if !issubset(get_products(system), keys(id_to_color_map))
         id_to_color_map = set_colors(get_products(system), id_to_color_map)
     end
 
@@ -87,7 +87,6 @@ function EnergySystemDesign(
                 if element == get_ref_element(system)
                     x = parent_x
                     y = parent_y
-                    nodes_count -= 1
                 else # place nodes in a circle around the parents availability node
                     x, y = place_nodes_in_circle(
                         nodes_count, current_node, 1, parent_x, parent_y,
