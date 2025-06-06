@@ -388,7 +388,9 @@ function initialize_available_data!(gui)
         end
         get_ax(gui, :summary).scene.plots[1][1][] = investment_overview
     else
-        @warn "Total quantities were not computed as model does not contain a feasible solution"
+        if !isempty(model)
+            @warn "Total quantities were not computed as model does not contain a feasible solution"
+        end
     end
 
     # Add case input data
