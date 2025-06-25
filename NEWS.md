@@ -1,5 +1,12 @@
 # Release notes
 
+## Version 0.5.14 (2025-06-25)
+
+### Bugfix
+
+* Fix bug from breaking changes in GeoMakie v0.7.13 on Windows.
+* Don't show warning for unfeasible JuMP solution when the provided model is empty.
+
 ## Version 0.5.13 (2025-06-02)
 
 ### Bugfix
