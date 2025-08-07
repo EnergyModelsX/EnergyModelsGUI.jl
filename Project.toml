@@ -1,7 +1,7 @@
 name = "EnergyModelsGUI"
 uuid = "737a7361-d3b7-40e9-b1ac-59bee4c5ea2d"
 authors = ["Jon Vegard Venås <JonVegard.Venas@sintef.no>", "Magnus Askeland <Magnus.Askeland@sintef.no>", "Shweta Tiwari <Shweta.Tiwari@sintef.no>"]
-version = "0.5.14"
+version = "0.5.15"
 
 [deps]
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
@@ -31,14 +31,14 @@ EnergyModelsGeography = "3f775d88-a4da-46c4-a2cc-aa9f16db6708"
 EMGExt = "EnergyModelsGeography"
 
 [compat]
-CairoMakie = "0.12"
+CairoMakie = "=0.12.18"
 Colors = "0.12"
 Dates = "1.9"
 EnergyModelsBase = "0.9"
 EnergyModelsGeography = "0.11"
 EnergyModelsInvestments = "0.8"
 FileIO = "1.16"
-GLMakie = "0.10.5"
+GLMakie = "=0.10.18"
 GeoJSON = "0.8"
 GeoMakie = "=0.7.12"
 HTTP = "1.10"
