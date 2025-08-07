@@ -10,7 +10,7 @@ function pixel_to_data(gui::GUI, pixel_size::Real)
     y_range::Float64 = vars[:ylimits][2] - vars[:ylimits][1]
 
     # Get the widths of the axis
-    plot_widths::Vec2{Int64} = pixelarea(get_ax(gui, :topo).scene)[].widths
+    plot_widths::Vec2{Int64} = viewport(get_ax(gui, :topo).scene)[].widths
 
     # Calculate the conversion factor
     x_factor::Float64 = x_range / plot_widths[1]
@@ -55,7 +55,7 @@ function new_global_delta_h(gui::GUI)
     vars = get_vars(gui)
     axes = get_axes(gui)
     xyWidths::Vec = axes[:topo].finallimits[].widths
-    plot_widths::Vec2{Int64} = pixelarea(axes[:topo].scene)[].widths
+    plot_widths::Vec2{Int64} = viewport(axes[:topo].scene)[].widths
     vars[:Δh] = maximum([
         maximum(Vector(0.5 * vars[:Δh_px] * xyWidths ./ plot_widths)),
         minimum([
