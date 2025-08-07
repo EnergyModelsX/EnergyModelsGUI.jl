@@ -27,7 +27,7 @@ end
         name::String,
         key_str::String,
         pre_desc::String,
-        element,
+        selection::Vector,
         available_data::Vector{Dict},
         gui::GUI,
     )
@@ -39,14 +39,14 @@ function add_description!(
     name::String,
     key_str::String,
     pre_desc::String,
-    element,
+    selection::Vector,
     available_data::Vector{Dict},
     gui::GUI,
 )
     container = Dict(
         :name => name,
         :is_jump_data => false,
-        :selection => [element],
+        :selection => selection,
         :field_data => field,
         :description => create_description(gui, key_str; pre_desc),
     )
@@ -59,7 +59,7 @@ end
         name::String,
         key_str::String,
         pre_desc::String,
-        element,
+        selection::Vector,
         available_data::Vector{Dict},
         gui::GUI,
     )
@@ -72,15 +72,23 @@ function add_description!(
     name::String,
     key_str::String,
     pre_desc::String,
-    element,
+    selection::Vector,
     available_data::Vector{Dict},
     gui::GUI,
 )
     for (dictname, dictvalue) ∈ field
-        name_field = "$name.$dictname"
-        key_str_field = "$key_str.$dictname"
+        name_field = "$name"
+        key_str_field = "$key_str"
+        ext_selection = deepcopy(selection)
+        if isa(dictname, Resource)
+            push!(ext_selection, dictname)
+        else
+            name_field *= ".$dictname"
+            key_str_field *= ".$dictname"
+        end
         add_description!(
-            dictvalue, name_field, key_str_field, pre_desc, element, available_data, gui,
+            dictvalue, name_field, key_str_field, pre_desc, ext_selection, available_data,
+            gui,
         )
     end
 end
@@ -91,7 +99,7 @@ end
         name::String,
         key_str::String,
         pre_desc::String,
-        element,
+        selection::Vector,
         available_data::Vector{Dict},
         gui::GUI,
     )
@@ -104,7 +112,7 @@ function add_description!(
     name::String,
     key_str::String,
     pre_desc::String,
-    element,
+    selection::Vector,
     available_data::Vector{Dict},
     gui::GUI,
 )
@@ -113,7 +121,7 @@ function add_description!(
         name_field = "$name.$data_type"
         key_str_field = "$key_str.$data_type"
         add_description!(
-            data, name_field, key_str_field, pre_desc, element, available_data, gui,
+            data, name_field, key_str_field, pre_desc, selection, available_data, gui,
         )
     end
 end
@@ -137,7 +145,7 @@ function add_description!(
     name::String,
     key_str::String,
     pre_desc::String,
-    element,
+    selection::Vector,
     available_data::Vector{Dict},
     gui::GUI,
 )
@@ -153,7 +161,7 @@ function add_description!(
         pre_desc_sub = "$pre_desc$name_field_type: "
         key_str = "structures.$name_field_type.$sub_field_name"
         add_description!(
-            sub_field, name_field, key_str, pre_desc_sub, element, available_data, gui,
+            sub_field, name_field, key_str, pre_desc_sub, selection, available_data, gui,
         )
     end
 end
@@ -305,7 +313,7 @@ function create_label(selection::Dict{Symbol,Any})
         label *= selection[:name]
     end
     otherRes::Bool = false
-    if length(selection) > 1
+    if length(selection[:selection]) > 1
         for select ∈ selection[:selection]
             if isa(select, Resource)
                 if !otherRes
