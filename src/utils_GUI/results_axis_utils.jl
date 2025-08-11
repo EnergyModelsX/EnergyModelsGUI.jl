@@ -313,22 +313,20 @@ function create_label(selection::Dict{Symbol,Any})
         label *= selection[:name]
     end
     otherRes::Bool = false
-    if length(selection[:selection]) > 1
-        for select ∈ selection[:selection]
-            if isa(select, Resource)
-                if !otherRes
-                    label *= " ("
-                    otherRes = true
-                end
-                label *= "$(select)"
-                if select != selection[:selection][end]
-                    label *= ", "
-                end
+    for select ∈ selection[:selection]
+        if isa(select, Resource)
+            if !otherRes
+                label *= " ("
+                otherRes = true
+            end
+            label *= "$(select)"
+            if select != selection[:selection][end]
+                label *= ", "
             end
         end
-        if otherRes
-            label *= ")"
-        end
+    end
+    if otherRes
+        label *= ")"
     end
     return label
 end
