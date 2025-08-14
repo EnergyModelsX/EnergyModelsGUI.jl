@@ -168,11 +168,11 @@ end
 
 """
     get_data(
-        model::JuMP.Model,
+        model::Union{JuMP.Model, Dict},
         selection::Dict{Symbol, Any},
         T::TS.TimeStructure,
         sp::Int64,
-        rp::Int64
+        rp::Int64,
         sc::Int64,
     )
 
@@ -180,7 +180,7 @@ Get the values from the JuMP `model`, or the input data, at `selection` for all 
 restricted to strategic period `sp`, representative period `rp`, and scenario `sc`.
 """
 function get_data(
-    model::JuMP.Model, selection::Dict, T::TS.TimeStructure, sp::Int64, rp::Int64, sc::Int64,
+    model::Union{JuMP.Model, Dict}, selection::Dict, T::TS.TimeStructure, sp::Int64, rp::Int64, sc::Int64,
 )
     field_data = selection[:field_data]
     if selection[:is_jump_data]
@@ -190,15 +190,7 @@ function get_data(
         type = nested_eltype(field_data)
     end
     periods, time_axis = get_periods(T, type, sp, rp, sc)
-    if selection[:is_jump_data]
-        if isa(field_data, JuMP.Containers.SparseAxisArray)
-            y_values = [value(field_data[t]) for t ∈ periods]
-        else
-            y_values = Array(value.(field_data[periods]))
-        end
-    else
-        y_values = field_data[periods]
-    end
+    y_values = get_values(field_data, periods)
     return periods, y_values, time_axis
 end
 
@@ -270,6 +262,7 @@ function get_time_axis(
         JuMP.Containers.DenseAxisArray,
         JuMP.Containers.SparseAxisArray,
         SparseVariables.IndexedVarArray,
+        DataFrames.DataFrame,
     },
 )
     types::Vector{Type} = collect(get_jump_axis_types(data))
@@ -285,6 +278,8 @@ end
 
 """
     get_jump_axis_types(data::JuMP.Containers.DenseAxisArray)
+    get_jump_axis_types(data::SparseVars)
+    get_jump_axis_types(data::DataFrame)
 
 Get the types for each axis in the data.
 """
@@ -292,7 +287,11 @@ function get_jump_axis_types(data::JuMP.Containers.DenseAxisArray)
     return eltype.(axes(data))
 end
 function get_jump_axis_types(data::SparseVars)
-    return typeof.(first(keys(data.data)))
+    return collect(Base.unwrap_unionall(typeof(data)).parameters[3].parameters)
+end
+function get_jump_axis_types(data::DataFrame)
+    n = ncol(data)
+    return [eltype(col) for (i, col) ∈ enumerate(eachcol(data)) if i < n]
 end
 
 """

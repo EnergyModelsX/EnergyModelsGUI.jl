@@ -247,7 +247,7 @@ The main type for the realization of the GUI.
   to the gui.axes[:results] object.
 - **`root_design::EnergySystemDesign`** is the data structure used for the root topology.
 - **`design::EnergySystemDesign`** is the data structure used for visualizing the topology.
-- **`model::Model`** contains the optimization results.
+- **`model::Union{Model, Dict}`** contains the optimization results.
 - **`vars::Dict{Symbol,Any}`** is a dictionary of miscellaneous variables and parameters.
 """
 mutable struct GUI
@@ -259,7 +259,7 @@ mutable struct GUI
     toggles::Dict{Symbol,Makie.Toggle}
     root_design::EnergySystemDesign
     design::EnergySystemDesign
-    model::Model
+    model::Union{Model,Dict}
     vars::Dict{Symbol,Any}
 end
 
@@ -386,6 +386,13 @@ get_transmissions(system::System) = get_connections(system)
 Returns the `element` assosiated of a `System` `system`.
 """
 get_element(system::System) = get_parent(system)
+
+"""
+    get_plotables(system::System)
+
+Returns the `Node`s and `Link`s of a `System` `system`.
+"""
+get_plotables(system::System) = vcat(get_nodes(system), get_links(system))
 
 """
     get_system(design::EnergySystemDesign)

@@ -10,6 +10,20 @@
                 include(joinpath(exdir, file))
 
                 @test termination_status(m) == MOI.OPTIMAL
+
+                if file ∈ ["EMB_network.jl", "EMI_geography.jl", "EMR_hydro_power.jl"]
+                    @info "Test reading results from files in the $file case"
+                    # Test reading model results from files
+                    obj_value = objective_value(m)
+                    directory = joinpath(@__DIR__, "exported_files", splitext(file)[1])
+                    if !ispath(directory)
+                        mkpath(directory)
+                    end
+                    EMGUI.save_results(EMGUI.get_model(gui); directory)
+                    gui = GUI(case; model = directory)
+
+                    @test obj_value ≈ EMGUI.get_obj_value(EMGUI.get_model(gui)) atol = 1e-6
+                end
             end
         end
     end

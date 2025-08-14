@@ -16,7 +16,8 @@ using YAML
 using FileIO
 using TimeStruct
 using EnergyModelsBase
-import EnergyModelsBase: get_elements_vec, get_nodes
+import EnergyModelsBase:
+    get_elements_vec, get_nodes, get_links, get_time_struct, get_products
 
 # Use Colors to visualize using the colors in the colors.yml file
 using Colors
@@ -38,7 +39,11 @@ using SparseVariables
 
 using EnergyModelsInvestments
 
-# Needed for plottig geographical map
+# Import CSV and DataFrames to enable reading JuMP results from CSV files
+using CSV
+using DataFrames
+
+# Needed for plotting geographical map
 using GeoMakie, GeoJSON
 
 # Needed to download the .json file for geographical coastlines

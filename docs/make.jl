@@ -25,6 +25,7 @@ makedocs(;
         edit_link = "main",
         assets = String[],
         ansicolor = true,
+        size_threshold = 307200, # Default is 204800 (KiB)
     ),
     modules = [EnergyModelsGUI],
     pages = [

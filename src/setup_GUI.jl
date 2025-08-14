@@ -12,7 +12,8 @@ data stored as key-value pairs. This dictionary is corresponding to the the old 
 - **`design_path::String=""`** is a file path or identifier related to the design.
 - **`id_to_color_map::Dict=Dict()`** is a dict that maps `Resource`s `id` to colors.
 - **`id_to_icon_map::Dict=Dict()`** is a dict that maps `Node/Area` `id` to .png files for icons.
-- **`model::JuMP.Model=JuMP.Model()`** is the solved JuMP model with results for the `case`.
+- **`model::Union{JuMP.Model, String}`** is the solved JuMP model with results for the `case`,
+  but can also be the path (String) to the directory containing the JuMP results written as CSV-files.
 - **`hide_topo_ax_decorations::Bool=true`** is a visibility toggle of ticks, ticklabels and
   grids for the topology axis.
 - **`expand_all::Bool=false`** is the default option for toggling visibility of all nodes
@@ -41,7 +42,7 @@ function GUI(
     design_path::String = "",
     id_to_color_map::Dict = Dict(),
     id_to_icon_map::Dict = Dict(),
-    model::JuMP.Model = JuMP.Model(),
+    model::Union{JuMP.Model,String} = JuMP.Model(),
     hide_topo_ax_decorations::Bool = true,
     expand_all::Bool = false,
     periods_labels::Vector = [],
@@ -167,7 +168,8 @@ function GUI(
 
     ## Create the main structure for the EnergyModelsGUI
     gui::GUI = GUI(
-        fig, axes, legends, buttons, menus, toggles, root_design, design, model, vars,
+        fig, axes, legends, buttons, menus, toggles, root_design, design,
+        transfer_model(model, get_system(root_design)), vars,
     )
 
     # Create complete Dict of descriptive names

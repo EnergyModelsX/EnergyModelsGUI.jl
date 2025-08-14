@@ -10,18 +10,41 @@ using GLMakie
 
 using EnergyModelsGUI
 
+using DataFrames
+
 const TS = TimeStruct
 const EMG = EnergyModelsGeography
 const EMB = EnergyModelsBase
 const EMI = EnergyModelsInvestments
 const EMGUI = EnergyModelsGUI
 
+"""
+    get_areas(system::SystemGeo)
+
+Returns the `Area`s of a `SystemGeo` `system`.
+"""
+get_areas(system::EMGUI.SystemGeo) =
+    filter(el -> isa(el, Vector{<:Area}), EMGUI.get_elements_vec(system))[1]
+
+"""
+    get_modes(system::EMGUI.SystemGeo)
+
+Get all transmission modes of a `SystemGeo` `system`.
+"""
+function get_modes(system::EMGUI.SystemGeo)
+    transmission_modes = Vector{TransmissionMode}()
+    for t ∈ EMGUI.get_transmissions(system)
+        append!(transmission_modes, modes(t))
+    end
+    return transmission_modes
+end
+
 ############################################################################################
 ## From datastructures.jl
 """
-    EMGUI.get_transmissions(system::System)
+    EMGUI.get_transmissions(system::EMGUI.SystemGeo)
 
-Returns the `Transmission`s of a `System` `system`.
+Returns the `Transmission`s of a `SystemGeo` `system`.
 """
 EMGUI.get_transmissions(system::EMGUI.SystemGeo) =
     filter(el -> isa(el, Vector{<:Transmission}), EMGUI.get_elements_vec(system))[1]
@@ -44,6 +67,21 @@ function EMGUI.SystemGeo(case::Case)
         ref_element,
     )
 end
+
+"""
+    EMGUI.get_plotables(system::EMGUI.SystemGeo)
+
+Get all plotable elements of a `SystemGeo` `system`, which includes nodes, links, areas, and modes.
+"""
+function EMGUI.get_plotables(system::EMGUI.SystemGeo)
+    return vcat(
+        EMGUI.get_nodes(system),
+        EMGUI.get_links(system),
+        get_areas(system),
+        get_modes(system),
+    )
+end
+
 ############################################################################################
 ## From structure_utils.jl
 """
