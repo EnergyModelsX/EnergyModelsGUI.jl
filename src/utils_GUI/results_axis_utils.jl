@@ -180,7 +180,8 @@ Get the values from the JuMP `model`, or the input data, at `selection` for all 
 restricted to strategic period `sp`, representative period `rp`, and scenario `sc`.
 """
 function get_data(
-    model::Union{JuMP.Model, Dict}, selection::Dict, T::TS.TimeStructure, sp::Int64, rp::Int64, sc::Int64,
+    model::Union{JuMP.Model,Dict}, selection::Dict, T::TS.TimeStructure, sp::Int64,
+    rp::Int64, sc::Int64,
 )
     field_data = selection[:field_data]
     if selection[:is_jump_data]

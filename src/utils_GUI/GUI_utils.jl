@@ -450,13 +450,13 @@ function extract_data_selection(
     if !isnothing(res_idx) && !isnothing(element_idx)
         res = selection[res_idx]
         element = selection[element_idx]
-        return var[(var.:res .== [res]) .& (var.:element .== [element]), :]
+        return var[(var.:res.==[res]).&(var.:element.==[element]), :]
     elseif !isnothing(res_idx)
         res = selection[res_idx]
-        return var[var.:res .== [res], :]
+        return var[var.:res.==[res], :]
     elseif !isnothing(element_idx)
         element = selection[element_idx]
-        return var[var.:element .== [element], :]
+        return var[var.:element.==[element], :]
     end
 end
 
@@ -688,7 +688,7 @@ function get_total_sum_time(
     return sum(get_values(data), dims = 1)
 end
 function get_total_sum_time(data::DataFrame, periods::Vector{<:TS.TimeStructure})
-    return [sum(data[data.:t .== [t], :val]) for t ∈ periods]
+    return [sum(data[data.:t.==[t], :val]) for t ∈ periods]
 end
 
 """
