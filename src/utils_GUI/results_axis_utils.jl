@@ -633,8 +633,8 @@ function update_limits!(ax::Axis)
         # Do the following for data with machine epsilon precision noice around zero that causes
         # the warning "Warning: No strict ticks found" and the the bug related to issue #4266 in Makie
         if abs(ywidth) < 1e-13
-            ywidth = 2.0
-            yorigin = min_y - 1.0
+            ywidth = 2 * max(1.0, max_y)
+            yorigin = 0.0
         else
             yorigin = min_y - ywidth * 0.04
             ywidth += 2 * ywidth * 0.04
