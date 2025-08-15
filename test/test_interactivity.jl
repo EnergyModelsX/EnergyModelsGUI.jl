@@ -25,17 +25,64 @@ import EnergyModelsGUI:
     get_plotted_data,
     select_data!
 
+# Load case 7 for testing
+case, model, m, gui = run_case()
+
+# Test specific miscellaneous functionalities
+@testset "Test functionality" verbose = true begin
+    # Test print functionalities of GUI structures to the REPL
+    @testset "Test Base.show() functions" begin
+        println(gui)
+        design = EMGUI.get_design(gui)
+        println(design)
+        components = EMGUI.get_components(design)
+        connections = EMGUI.get_connections(design)
+        println(components[1])
+        println(connections[1])
+        @test true
+    end
+
+    @testset "Test customizing descriptive names" begin
+        path_to_descriptive_names = joinpath(@__DIR__, "..", "src", "descriptive_names.yml")
+        str1 = "<a test description 1>"
+        str2 = "<a test description 2>"
+        str3 = "<a test description 3>"
+        str4 = "<a test description 4>"
+        str5 = "<a test description 5>"
+        str6 = "<a test description 6>"
+        descriptive_names_dict = Dict(
+            :structures => Dict( # Input parameter from the case Dict
+                :RefStatic => Dict(:trans_cap => str1, :opex_fixed => str2),
+                :RefDynamic => Dict(:opex_var => str3, :directions => str4),
+            ),
+            :variables => Dict( # variables from the JuMP model
+                :stor_discharge_use => str5,
+                :trans_cap_rem => str6,
+            ),
+        )
+        gui2 = GUI(
+            case;
+            path_to_descriptive_names = path_to_descriptive_names,
+            descriptive_names_dict = descriptive_names_dict,
+        )
+        descriptive_names = EMGUI.get_var(gui2, :descriptive_names)
+        @test descriptive_names[:structures][:RefStatic][:trans_cap] == str1
+        @test descriptive_names[:structures][:RefStatic][:opex_fixed] == str2
+        @test descriptive_names[:structures][:RefDynamic][:opex_var] == str3
+        @test descriptive_names[:structures][:RefDynamic][:directions] == str4
+        @test descriptive_names[:variables][:stor_discharge_use] == str5
+        @test descriptive_names[:variables][:trans_cap_rem] == str6
+        EMGUI.close(gui2)
+    end
+end
+
 # Test specific GUI functionalities
 @testset "Test interactivity" verbose = true begin
-    # Test GUI interactivity with the case7 example
-    include("../examples/case7.jl")
-
-    case, model, m, gui = run_case()
-
     op_cost = [3371970.00359, 5382390.00598, 2010420.00219]
     inv_cost = [0.0, 0.0, 29536224.881975]
     @testset "Compare with Integrate results" begin
         T = EMGUI.get_time_struct(gui)
+        m = EMGUI.get_model(gui)
         for (i, t) ∈ enumerate(strategic_periods(T))
             if haskey(m, :cap_capex)
                 tot_capex_sp = sum(value.(m[:cap_capex][:, t])) / duration_strat(t)
@@ -356,13 +403,17 @@ import EnergyModelsGUI:
         id_to_icon_map = Dict("Battery" => "Battery icon") # Use a non-existing icon
         id_to_icon_map = set_icons(id_to_icon_map)
         products = get_products(case)
+        nodes = get_nodes(case)
+        links = get_links(case)
+        areas = get_areas(case)
+        transmissions = get_transmissions(case)
         test_sink = RefSink(
             "Test multiple sink products",
             FixedProfile(0),
             Dict(:surplus => FixedProfile(0), :deficit => FixedProfile(1e5)),
             Dict(products[1] => 1, products[2] => 1),
         )
-        push!(get_nodes(case), test_sink)
+        push!(nodes, test_sink)
         test_source = RefSource(
             "Test multiple source products",
             FixedProfile(0),
@@ -370,115 +421,126 @@ import EnergyModelsGUI:
             FixedProfile(0),
             Dict(products[1] => 1, products[2] => 1),
         )
-        av = get_nodes(case)[1]
-        push!(get_nodes(case), test_source)
-        push!(get_links(case), Direct("Link to test source", test_source, av, Linear()))
-        push!(get_links(case), Direct("Link to test sink", av, test_sink, Linear()))
-        gui = GUI(case; id_to_icon_map = id_to_icon_map, scenarios_labels = ["Scenario 1"])
-        components = get_components(get_root_design(gui))
+        av = nodes[1]
+        push!(nodes, test_source)
+        push!(links, Direct("Link to test source", test_source, av, Linear()))
+        push!(links, Direct("Link to test sink", av, test_sink, Linear()))
+        case2 = Case(
+            get_time_struct(case),
+            products,
+            [nodes, links, areas, transmissions],
+            [[get_nodes, get_links], [get_areas, get_transmissions]],
+        )
+        gui2 = GUI(case2; id_to_icon_map, scenarios_labels = ["Scenario 1"])
+        components = get_components(get_root_design(gui2))
         @test isempty(get_components(components[4])[3].id_to_icon_map["Battery"])
+        EMGUI.close(gui2)
     end
 
-    # Test GUI interactivity with the example_test for different time structures
-    include("example_test.jl")
-
     ## Run a case with no representative periods nor scenarios
-    case, model, m, gui = run_case(; use_rp = false, use_sc = false)
-    available_data_menu = get_menu(gui, :available_data)
     @testset "Test SP(OP)" begin
+        _, _, _, gui3 = run_test_case(; use_rp = false, use_sc = false)
+        available_data_menu = get_menu(gui3, :available_data)
 
         # Test plotting over operational periods
-        select_data!(gui, "emissions_total")
-        @test get_ax(gui, :results).scene.plots[1][1][][24][2] ≈ 0.655 atol = 1e-5
+        select_data!(gui3, "emissions_total")
+        @test get_ax(gui3, :results).scene.plots[1][1][][24][2] ≈ 0.655 atol = 1e-5
 
         # Test plotting over strategic periods
-        select_data!(gui, "emissions_strategic")
-        @test get_ax(gui, :results).scene.plots[2][1][][3][2] ≈ 20799.525 atol = 1e-5
+        select_data!(gui3, "emissions_strategic")
+        @test get_ax(gui3, :results).scene.plots[2][1][][3][2] ≈ 20799.525 atol = 1e-5
+        EMGUI.close(gui3)
     end
 
     ## Run a case with scenarios but no representative periods
-    case, model, m, gui = run_case(; use_rp = false, use_sc = true)
-    available_data_menu = get_menu(gui, :available_data)
     @testset "Test SP(SC(OP))" begin
+        case, model, m, gui3 = run_test_case(; use_rp = false, use_sc = true)
+        available_data_menu = get_menu(gui3, :available_data)
+
         # Test plotting over operational periods
-        select_data!(gui, "emissions_total")
-        get_menu(gui, :scenario).i_selected = 4
-        @test get_ax(gui, :results).scene.plots[1][1][][24][2] ≈ 0.131 atol = 1e-5
+        select_data!(gui3, "emissions_total")
+        get_menu(gui3, :scenario).i_selected = 4
+        @test get_ax(gui3, :results).scene.plots[1][1][][24][2] ≈ 0.131 atol = 1e-5
 
         # Test plotting over strategic periods
-        select_data!(gui, "emissions_strategic")
-        @test get_ax(gui, :results).scene.plots[2][1][][3][2] ≈ 12937.30455 atol = 1e-5
+        select_data!(gui3, "emissions_strategic")
+        @test get_ax(gui3, :results).scene.plots[2][1][][3][2] ≈ 12937.30455 atol = 1e-5
 
         # Test plotting over scenarios
-        sink = get_components(get_root_design(gui))[2]
-        pick_component!(gui, sink; pick_topo_component = true)
-        update!(gui)
-        select_data!(gui, "penalty.deficit")
-        @test get_ax(gui, :results).scene.plots[3][1][][4][2] ≈ 200000 atol = 1e-5
+        sink = get_components(get_root_design(gui3))[2]
+        pick_component!(gui3, sink; pick_topo_component = true)
+        update!(gui3)
+        select_data!(gui3, "penalty.deficit")
+        @test get_ax(gui3, :results).scene.plots[3][1][][4][2] ≈ 200000 atol = 1e-5
+        EMGUI.close(gui3)
     end
 
     ## Run a case with representative periods but no scenarios
-    case, model, m, gui = run_case(; use_rp = true, use_sc = false)
-    available_data_menu = get_menu(gui, :available_data)
     @testset "Test SP(RP(OP))" begin
+        _, _, _, gui3 = run_test_case(; use_rp = true, use_sc = false)
+        available_data_menu = get_menu(gui3, :available_data)
+
         # Test plotting over operational periods
-        select_data!(gui, "emissions_total")
-        get_menu(gui, :representative_period).i_selected = 2
-        @test get_ax(gui, :results).scene.plots[1][1][][24][2] ≈ 1.048 atol = 1e-5
+        select_data!(gui3, "emissions_total")
+        get_menu(gui3, :representative_period).i_selected = 2
+        @test get_ax(gui3, :results).scene.plots[1][1][][24][2] ≈ 1.048 atol = 1e-5
 
         # Test plotting over strategic periods
-        select_data!(gui, "emissions_strategic")
-        @test get_ax(gui, :results).scene.plots[2][1][][2][2] ≈ 20601.06 atol = 1e-5
+        select_data!(gui3, "emissions_strategic")
+        @test get_ax(gui3, :results).scene.plots[2][1][][2][2] ≈ 20601.06 atol = 1e-5
 
         # Test plotting over representative periods
-        get_menu(gui, :period).i_selected = 3
-        sink = get_components(get_root_design(gui))[2]
-        pick_component!(gui, sink; pick_topo_component = true)
-        update!(gui)
-        select_data!(gui, "penalty.deficit")
-        @test get_ax(gui, :results).scene.plots[3][1][][2][2] ≈ 2.0e6 atol = 1e-5
+        get_menu(gui3, :period).i_selected = 3
+        sink = get_components(get_root_design(gui3))[2]
+        pick_component!(gui3, sink; pick_topo_component = true)
+        update!(gui3)
+        select_data!(gui3, "penalty.deficit")
+        @test get_ax(gui3, :results).scene.plots[3][1][][2][2] ≈ 2.0e6 atol = 1e-5
+        EMGUI.close(gui3)
     end
 
     ## Run a case with representative periods and scenarios
-    case, model, m, gui = run_case(; use_rp = true, use_sc = true)
-    available_data_menu = get_menu(gui, :available_data)
-
     @testset "Test SP(RP(SC(OP)))" begin
+        _, _, _, gui3 = run_test_case(; use_rp = true, use_sc = true)
+        available_data_menu = get_menu(gui3, :available_data)
+
         # Test plotting over operational periods
-        select_data!(gui, "emissions_total")
+        select_data!(gui3, "emissions_total")
 
         # Test updating menu with non-tensorial timestructure
-        get_menu(gui, :period).i_selected = 3
-        @test get_ax(gui, :results).scene.plots[1][1][][24][2] ≈ 1.965 atol = 1e-5
-        get_menu(gui, :representative_period).i_selected = 2
-        @test get_ax(gui, :results).scene.plots[1][1][][24][2] ≈ 1.2576 atol = 1e-5
-        get_menu(gui, :representative_period).i_selected = 1
-        @test get_ax(gui, :results).scene.plots[1][1][][24][2] ≈ 1.965 atol = 1e-5
-        get_menu(gui, :scenario).i_selected = 4
-        @test get_ax(gui, :results).scene.plots[1][1][][24][2] ≈ 0.393 atol = 1e-5
-        get_menu(gui, :period).i_selected = 2
-        @test get_ax(gui, :results).scene.plots[1][1][][24][2] ≈ 0.262 atol = 1e-5
-        get_menu(gui, :representative_period).i_selected = 2
-        @test get_ax(gui, :results).scene.plots[1][1][][24][2] ≈ 1.048 atol = 1e-5
-        get_menu(gui, :scenario).i_selected = 3
-        @test get_ax(gui, :results).scene.plots[1][1][][24][2] ≈ 0.4192 atol = 1e-5
-        get_menu(gui, :period).i_selected = 1
-        @test get_ax(gui, :results).scene.plots[1][1][][24][2] ≈ 0.1965 atol = 1e-5
+        get_menu(gui3, :period).i_selected = 3
+        @test get_ax(gui3, :results).scene.plots[1][1][][24][2] ≈ 1.965 atol = 1e-5
+        get_menu(gui3, :representative_period).i_selected = 2
+        @test get_ax(gui3, :results).scene.plots[1][1][][24][2] ≈ 1.2576 atol = 1e-5
+        get_menu(gui3, :representative_period).i_selected = 1
+        @test get_ax(gui3, :results).scene.plots[1][1][][24][2] ≈ 1.965 atol = 1e-5
+        get_menu(gui3, :scenario).i_selected = 4
+        @test get_ax(gui3, :results).scene.plots[1][1][][24][2] ≈ 0.393 atol = 1e-5
+        get_menu(gui3, :period).i_selected = 2
+        @test get_ax(gui3, :results).scene.plots[1][1][][24][2] ≈ 0.262 atol = 1e-5
+        get_menu(gui3, :representative_period).i_selected = 2
+        @test get_ax(gui3, :results).scene.plots[1][1][][24][2] ≈ 1.048 atol = 1e-5
+        get_menu(gui3, :scenario).i_selected = 3
+        @test get_ax(gui3, :results).scene.plots[1][1][][24][2] ≈ 0.4192 atol = 1e-5
+        get_menu(gui3, :period).i_selected = 1
+        @test get_ax(gui3, :results).scene.plots[1][1][][24][2] ≈ 0.1965 atol = 1e-5
 
-        get_menu(gui, :period).i_selected = 3
-        @test get_ax(gui, :results).scene.plots[1][1][][24][2] ≈ 0.9825 atol = 1e-5
-        get_menu(gui, :representative_period).i_selected = 2
-        @test get_ax(gui, :results).scene.plots[1][1][][24][2] ≈ 3.7728 atol = 1e-5
+        get_menu(gui3, :period).i_selected = 3
+        @test get_ax(gui3, :results).scene.plots[1][1][][24][2] ≈ 0.9825 atol = 1e-5
+        get_menu(gui3, :representative_period).i_selected = 2
+        @test get_ax(gui3, :results).scene.plots[1][1][][24][2] ≈ 3.7728 atol = 1e-5
 
         # Test plotting over strategic periods
-        select_data!(gui, "emissions_strategic")
-        @test get_ax(gui, :results).scene.plots[2][1][][2][2] ≈ 7648.6446 atol = 1e-5
+        select_data!(gui3, "emissions_strategic")
+        @test get_ax(gui3, :results).scene.plots[2][1][][2][2] ≈ 7648.6446 atol = 1e-5
 
         # Test plotting over scenarios
-        sink = get_components(get_root_design(gui))[2]
-        pick_component!(gui, sink; pick_topo_component = true)
-        update!(gui)
-        select_data!(gui, "penalty.deficit")
-        @test get_ax(gui, :results).scene.plots[3][1][][2][2] ≈ 4.0e6 atol = 1e-5
+        sink = get_components(get_root_design(gui3))[2]
+        pick_component!(gui3, sink; pick_topo_component = true)
+        update!(gui3)
+        select_data!(gui3, "penalty.deficit")
+        @test get_ax(gui3, :results).scene.plots[3][1][][2][2] ≈ 4.0e6 atol = 1e-5
+        EMGUI.close(gui3)
     end
 end
+EMGUI.close(gui)

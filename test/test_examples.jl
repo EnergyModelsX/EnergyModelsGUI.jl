@@ -30,6 +30,7 @@ exdir = joinpath(@__DIR__, "..", "examples")
                     # Save results for later testing
                     EMGUI.save_results(EMGUI.get_model(gui); directory)
                 end
+                EMGUI.close(gui)
             end
         end
     end
@@ -43,6 +44,7 @@ function test_reading_results_from_file(file, case, examples_for_results_from_fi
 
         obj_value = examples_for_results_from_file[file]
         @test obj_value ≈ EMGUI.get_obj_value(EMGUI.get_model(gui)) atol = 1e-6
+        EMGUI.close(gui)
     end
 end
 

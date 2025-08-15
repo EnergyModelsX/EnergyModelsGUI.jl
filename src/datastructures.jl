@@ -234,6 +234,7 @@ The main type for the realization of the GUI.
 # Fields
 
 - **`fig::Figure`** is the figure handle to the main figure (window).
+- **`screen::GLMakie.Screen`** is the screen handle for displaying the figure.
 - **`axes::Dict{Symbol,Axis}`** is a collection of axes: :topo (axis for visualizing
   the topology), :results (axis for plotting results), and :info (axis for
   displaying information).
@@ -252,6 +253,7 @@ The main type for the realization of the GUI.
 """
 mutable struct GUI
     fig::Figure
+    screen::GLMakie.Screen
     axes::Dict{Symbol,Makie.Block}
     legends::Dict{Symbol,Union{Makie.Legend,Nothing}}
     buttons::Dict{Symbol,Makie.Button}
@@ -567,6 +569,20 @@ has_invested(design::AbstractGUIObj) = has_invested(get_inv_data(design))
 Returns the `fig` field of a `GUI` `gui`.
 """
 get_fig(gui::GUI) = gui.fig
+
+"""
+    get_screen(gui::GUI)
+
+Returns the `screen` field of a `GUI` `gui`.
+"""
+get_screen(gui::GUI) = gui.screen
+
+"""
+    close(gui::GUI)
+
+Closes the GUI `gui`.
+"""
+close(gui::GUI) = GLMakie.close(get_screen(gui))
 
 """
     get_axes(gui::GUI)

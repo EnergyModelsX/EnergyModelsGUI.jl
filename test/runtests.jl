@@ -12,6 +12,8 @@ include("utils.jl")
 # Include the code that generates example data
 exdir = joinpath(pkgdir(EnergyModelsGUI), "examples")
 include(joinpath(exdir, "generate_examples.jl"))
+include(joinpath(exdir, "case7.jl"))
+include("example_test.jl")
 
 # Add utilities needed for examples
 include("../examples/utils.jl")
@@ -27,11 +29,9 @@ include("../examples/utils.jl")
         # The following tests simply checks if the main examples can be run without errors
         include("test_examples.jl")
 
-        # Test miscellaneous functionalities
-        include("test_functionality.jl")
-
         # Test specific GUI functionalities related to interactivity
         include("test_interactivity.jl")
+
+        EMGUI.close(gui)
     end
 end
-Threads.@spawn GLMakie.closeall()
