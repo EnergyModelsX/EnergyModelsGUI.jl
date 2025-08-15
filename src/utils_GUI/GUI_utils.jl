@@ -450,13 +450,13 @@ function extract_data_selection(
     if !isnothing(res_idx) && !isnothing(element_idx)
         res = selection[res_idx]
         element = selection[element_idx]
-        return var[(var.:res.==[res]).&(var.:element.==[element]), :]
+        return var[(var.:res .== [res]) .& (var.:element .== [element]), :]
     elseif !isnothing(res_idx)
         res = selection[res_idx]
-        return var[var.:res.==[res], :]
+        return var[var.:res .== [res], :]
     elseif !isnothing(element_idx)
         element = selection[element_idx]
-        return var[var.:element.==[element], :]
+        return var[var.:element .== [element], :]
     end
 end
 
@@ -512,7 +512,7 @@ get_values(vals::JuMP.Containers.DenseAxisArray) = Array(value.(vals))
 get_values(vals::DataFrame) = vals[!, end]
 get_values(vals::JuMP.Containers.SparseAxisArray, ts::Vector) = [value(vals[t]) for t ∈ ts]
 get_values(vals::SparseVariables.IndexedVarArray, ts::Vector) = value.(vals[ts])
-get_values(vals::JuMP.Containers.DenseAxisArray, ts::Vector) = value.(vals[ts])
+get_values(vals::JuMP.Containers.DenseAxisArray, ts::Vector) = Array(value.(vals[ts]))
 get_values(vals::DataFrame, ts::Vector) = vals[in.(vals.t, Ref(ts)), :val]
 get_values(vals::TimeProfile, ts::Vector) = vals[ts]
 
@@ -688,7 +688,7 @@ function get_total_sum_time(
     return sum(get_values(data), dims = 1)
 end
 function get_total_sum_time(data::DataFrame, periods::Vector{<:TS.TimeStructure})
-    return [sum(data[data.:t.==[t], :val]) for t ∈ periods]
+    return [sum(data[data.:t .== [t], :val]) for t ∈ periods]
 end
 
 """

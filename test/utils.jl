@@ -9,7 +9,8 @@ function run_through_all(
     sleep_time::Float64 = 0.1,
 )
     @info "Running through all components"
-    return run_through_all(
+
+    run_through_all(
         gui,
         EMGUI.get_root_design(gui),
         break_after_first,
@@ -83,8 +84,6 @@ function run_through_menu(
 )
     for i_selected ∈ 1:length(available_data_menu.options[])
         available_data_menu.i_selected = i_selected
-        @info indent_spacing^(level + 1) *
-              "Selected data: $(available_data_menu.selection[][:name])"
         sleep(sleep_time)
         if break_after_first
             break

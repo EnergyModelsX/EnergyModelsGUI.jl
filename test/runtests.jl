@@ -1,12 +1,17 @@
 using EnergyModelsGUI
 using Test
 using YAML
+using GLMakie
 
 const TEST_ATOL = 1e-6
 const EMGUI = EnergyModelsGUI
 
 # Include function that can loop through all components and plot its data
 include("utils.jl")
+
+# Include the code that generates example data
+exdir = joinpath(pkgdir(EnergyModelsGUI), "examples")
+include(joinpath(exdir, "generate_examples.jl"))
 
 # Add utilities needed for examples
 include("../examples/utils.jl")
@@ -29,3 +34,4 @@ include("../examples/utils.jl")
         include("test_interactivity.jl")
     end
 end
+Threads.@spawn GLMakie.closeall()
