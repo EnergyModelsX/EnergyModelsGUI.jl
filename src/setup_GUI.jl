@@ -166,14 +166,14 @@ function GUI(
     # Construct the makie figure and its objects
     fig, buttons, menus, toggles, axes, legends = create_makie_objects(vars, root_design)
 
-    # display the figure
+    # Construct screen object
     manifest = Pkg.Operations.Context().env.manifest
     version = manifest[findfirst(v -> v.name == "EnergyModelsGUI", manifest)].version
     fig_title = "EnergyModelsGUI v$version"
     if !isempty(case_name)
         fig_title *= ": $case_name"
     end
-    screen = display(GLMakie.Screen(title = fig_title), fig)
+    screen = GLMakie.Screen(title = fig_title)
 
     ## Create the main structure for the EnergyModelsGUI
     gui::GUI = GUI(
@@ -204,6 +204,9 @@ function GUI(
     # Enable inspector (such that hovering objects shows information)
     # Linewidth set to zero as this boundary is slightly laggy on movement
     DataInspector(fig; range = 3, indicator_linewidth = 0)
+
+    # display the figure
+    display(screen, fig)
 
     return gui
 end
