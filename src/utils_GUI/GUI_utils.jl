@@ -507,11 +507,13 @@ get_JuMP_dict(model::JuMP.Model) = object_dictionary(model)
 Get the values of the variables in `vals`. If `ts` is provided, it returns the values for the
 times in `ts`.
 """
-get_values(vals::SparseVars) = value.(vals)
+get_values(vals::SparseVars) = isempty(vals) ? [] : collect(Iterators.flatten(value.(vals)))
+get_values(vals::SparseVariables.IndexedVarArray) = collect(value.(values(vals.data)))
 get_values(vals::JuMP.Containers.DenseAxisArray) = Array(value.(vals))
-get_values(vals::DataFrame) = vals[!, end]
+get_values(vals::DataFrame) = vals[!, :val]
 get_values(vals::JuMP.Containers.SparseAxisArray, ts::Vector) = [value(vals[t]) for t ∈ ts]
-get_values(vals::SparseVariables.IndexedVarArray, ts::Vector) = value.(vals[ts])
+get_values(vals::SparseVariables.IndexedVarArray, ts::Vector) =
+    isempty(vals) ? [] : value.(vals[ts])
 get_values(vals::JuMP.Containers.DenseAxisArray, ts::Vector) = Array(value.(vals[ts]))
 get_values(vals::DataFrame, ts::Vector) = vals[in.(vals.t, Ref(ts)), :val]
 get_values(vals::TimeProfile, ts::Vector) = vals[ts]
@@ -692,46 +694,60 @@ function get_total_sum_time(data::DataFrame, periods::Vector{<:TS.TimeStructure}
 end
 
 """
-    match_id(id::AbstractString, A::Array)
+    get_all_periods!(vec::Vector, ts::TwoLevel)
+    get_all_periods!(vec::Vector, ts::RepresentativePeriods)
+    get_all_periods!(vec::Vector, ts::OperationalScenarios)
+    get_all_periods!(vec::Vector, ts::Any)
 
-Find and return the first instance of a node with `id` in `A`.
+Get all TimeStructures in `ts` and append them to `vec`.
 """
-function match_id(id::AbstractString, A::Array)
-    return A[findfirst(n -> repr(n) == id, A)]
-end
-
-"""
-    match_time_period(str::AbstractString, T::TS.TimeStructure)
-
-Find and return the first instance of a time period with id str in `T`.
-"""
-function match_time_period(str::AbstractString, T::TS.TimeStructure)
-    return if occursin("t", str)
-        first(filter(op -> repr(op) == str, collect(T)))
-    elseif occursin("sc", str)
-        first(filter(sc -> repr(sc) == str, opscenarios(T)))
-    elseif occursin("rp", str)
-        first(filter(rp -> repr(rp) == str, repr_periods(T)))
-    elseif occursin("sp", str)
-        first(filter(sp -> repr(sp) == str, collect(strat_periods(T))))
-    else
-        error(
-            "The time period string `$(str)` does not match any time period in the time structure.",
-        )
+function get_all_periods!(vec::Vector, ts::TwoLevel)
+    append!(vec, collect(ts))
+    append!(vec, strategic_periods(ts))
+    for t ∈ ts.operational
+        get_all_periods!(vec, t)
     end
 end
+function get_all_periods!(vec::Vector, ts::RepresentativePeriods)
+    append!(vec, repr_periods(T))
+    for t ∈ ts.rep_periods
+        get_all_periods!(vec, t)
+    end
+end
+function get_all_periods!(vec::Vector, ts::OperationalScenarios)
+    append!(vec, opscenarios(T))
+    for t ∈ ts.scenarios
+        get_all_periods!(vec, t)
+    end
+end
+function get_all_periods!(::Vector, ::Any)
+    return nothing
+end
 
 """
-    convert_array(v::AbstractArray, f::Function)
+    get_repr_dict(vec::AbstractVector{T}) where T
 
-Returns f(v), but evaluates only for unique entries in v for speed.
+Get a dictionary with the string representation of each element in `vec` as keys.
 """
-function convert_array(v::AbstractArray, f::Function)
+function get_repr_dict(vec::AbstractVector{T}) where {T}
+    return Dict{String,T}(repr(x) => x for x ∈ vec)
+end
+
+"""
+    convert_array(v::AbstractArray, dict::Dict)
+
+Returns [dict[v_i] for v_i ∈ v], but evaluates only for unique entries in v for speed.
+"""
+function convert_array(v::AbstractArray, dict::Dict)
     unique_indices = unique(i -> v[i], 1:length(v))
     unique_entries = v[unique_indices]
     reverse_unique_indices = [findfirst(==(u), unique_entries) for u ∈ v]
-    return f.(unique_entries)[reverse_unique_indices]
+    reverse_unique = [dict[str] for str ∈ unique_entries]
+    return reverse_unique[reverse_unique_indices]
 end
+#function convert_array(v::AbstractArray, dict::Dict)
+#    return map(x -> dict[x], v)
+#end
 
 """
     transfer_model(model::Model, system::AbstractSystem)
@@ -753,17 +769,19 @@ function transfer_model(model::String, system::AbstractSystem)
             df = CSV.read(file, DataFrame)
 
             col_names = names(df)
-            df[!, :t] = convert_array(df[!, :t], t_str -> match_time_period(t_str, 𝒯))
+            all_periods = []
+            get_all_periods!(all_periods, 𝒯)
+            df[!, :t] = convert_array(df[!, :t], get_repr_dict(unique(all_periods)))
             if "res" ∈ col_names
                 df[!, :res] = convert_array(
                     df[!, :res],
-                    p_str -> match_id(p_str, get_products(system)),
+                    get_repr_dict(get_products(system)),
                 )
             end
             if "element" ∈ col_names
                 df[!, :element] = convert_array(
                     df[!, :element],
-                    n_str -> match_id(n_str, get_plotables(system)),
+                    get_repr_dict(get_plotables(system)),
                 )
             end
 
