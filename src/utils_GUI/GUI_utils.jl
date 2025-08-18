@@ -736,18 +736,11 @@ end
 """
     convert_array(v::AbstractArray, dict::Dict)
 
-Returns [dict[v_i] for v_i ∈ v], but evaluates only for unique entries in v for speed.
+Apply the transformation of the `dict` to the array `v`.
 """
 function convert_array(v::AbstractArray, dict::Dict)
-    unique_indices = unique(i -> v[i], 1:length(v))
-    unique_entries = v[unique_indices]
-    reverse_unique_indices = [findfirst(==(u), unique_entries) for u ∈ v]
-    reverse_unique = [dict[str] for str ∈ unique_entries]
-    return reverse_unique[reverse_unique_indices]
+    return map(x -> dict[x], v)
 end
-#function convert_array(v::AbstractArray, dict::Dict)
-#    return map(x -> dict[x], v)
-#end
 
 """
     transfer_model(model::Model, system::AbstractSystem)
