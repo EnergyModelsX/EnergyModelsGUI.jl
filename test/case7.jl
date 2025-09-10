@@ -58,7 +58,7 @@ function read_data()
     nodes = EMB.Node[]
     links = Link[]
     for (i, a_id) ∈ enumerate(area_ids)
-        n, l = get_sub_system_data(a_id, products, T)
+        n, l = get_sub_system_data_case7(a_id, products, T)
         append!(nodes, n)
         append!(links, l)
 
@@ -114,7 +114,7 @@ function read_data()
 end
 
 # Subsystem test data for geography package
-function get_sub_system_data(a_id, products, T)
+function get_sub_system_data_case7(a_id, products, T)
     Power = products[1]
     Heat = products[2]
     WarmWater = products[3]

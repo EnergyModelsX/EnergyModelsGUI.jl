@@ -12,7 +12,7 @@ include("utils.jl")
 # Include the code that generates example data
 exdir = joinpath(pkgdir(EnergyModelsGUI), "examples")
 include(joinpath(exdir, "generate_examples.jl"))
-include(joinpath(exdir, "case7.jl"))
+include("case7.jl")
 include("example_test.jl")
 
 # Add utilities needed for examples
