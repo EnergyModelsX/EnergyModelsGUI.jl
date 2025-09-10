@@ -16,8 +16,6 @@ using YAML
 using FileIO
 using TimeStruct
 using EnergyModelsBase
-import EnergyModelsBase:
-    get_elements_vec, get_nodes, get_links, get_time_struct, get_products
 
 # Use Colors to visualize using the colors in the colors.yml file
 using Colors

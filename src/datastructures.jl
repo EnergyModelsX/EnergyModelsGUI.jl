@@ -49,11 +49,11 @@ function System(case::Case)
     first_av = getfirst(x -> isa(x, Availability), get_nodes(case))
     ref_element = isnothing(first_av) ? NothingElement() : first_av
     return System(
-        EMB.get_time_struct(case),
-        EMB.get_products(case),
-        EMB.get_elements_vec(case),
-        EMB.get_nodes(case),
-        EMB.get_links(case),
+        get_time_struct(case),
+        get_products(case),
+        get_elements_vec(case),
+        get_nodes(case),
+        get_links(case),
         NothingElement(),
         ref_element,
     )
@@ -311,25 +311,25 @@ function Base.iterate(design::EnergySystemDesign, state = (nothing, nothing))
 end
 
 """
-    get_time_struct(system::AbstractSystem)
+    EMB.get_time_struct(system::AbstractSystem)
 
 Returns the time structure of the AbstractSystem `system`.
 """
-get_time_struct(system::AbstractSystem) = system.T
+EMB.get_time_struct(system::AbstractSystem) = system.T
 
 """
-    get_products(system::AbstractSystem)
+    EMB.get_products(system::AbstractSystem)
 
 Returns the vector of products of the AbstractSystem `system`.
 """
-get_products(system::AbstractSystem) = system.products
+EMB.get_products(system::AbstractSystem) = system.products
 
 """
-    get_elements_vec(system::AbstractSystem)
+    EMB.get_elements_vec(system::AbstractSystem)
 
 Returns the vector of element-vectors of the AbstractSystem `system`.
 """
-get_elements_vec(system::AbstractSystem) = system.elements
+EMB.get_elements_vec(system::AbstractSystem) = system.elements
 
 """
     get_children(system::AbstractSystem)
@@ -360,27 +360,18 @@ Returns the `ref_element` field of a `AbstractSystem` `system`.
 get_ref_element(system::AbstractSystem) = system.ref_element
 
 """
-    get_links(system::AbstractSystem)
+    EMB.get_links(system::AbstractSystem)
 
-Returns the `ref_element` field of a `AbstractSystem` `system`.
+Returns the links of a `AbstractSystem` `system`.
 """
-get_links(system::AbstractSystem) =
-    filter(el -> isa(el, Vector{<:Link}), get_elements_vec(system))[1]
-
-"""
-    get_nodes(system::AbstractSystem)
-
-Returns the `ref_element` field of a `AbstractSystem` `system`.
-"""
-get_nodes(system::AbstractSystem) =
-    filter(el -> isa(el, Vector{<:EMB.Node}), get_elements_vec(system))[1]
+EMB.get_links(system::AbstractSystem) = get_connections(system)
 
 """
-    get_transmissions(system::System)
+    EMB.get_nodes(system::AbstractSystem)
 
-Returns the `Connections`s of a `System` `system`.
+Returns the nodes of a `AbstractSystem` `system`.
 """
-get_transmissions(system::System) = get_connections(system)
+EMB.get_nodes(system::AbstractSystem) = get_children(system)
 
 """
     get_element(system::System)
@@ -481,11 +472,11 @@ Returns the `plots` field of a `EnergySystemDesign` `design`.
 get_plots(design::EnergySystemDesign) = design.plots
 
 """
-    get_time_struct(design::EnergySystemDesign)
+    EMB.get_time_struct(design::EnergySystemDesign)
 
 Returns the time structure of the EnergySystemDesign `design`.
 """
-get_time_struct(design::EnergySystemDesign) = get_time_struct(get_system(design))
+EMB.get_time_struct(design::EnergySystemDesign) = EMB.get_time_struct(get_system(design))
 
 """
     get_ref_element(design::EnergySystemDesign)
@@ -727,11 +718,11 @@ Get the selection color for the `gui`.
 get_selection_color(gui::GUI) = get_var(gui, :selection_color)
 
 """
-    get_time_struct(gui::GUI)
+    EMB.get_time_struct(gui::GUI)
 
 Returns the time structure of the GUI `gui`.
 """
-get_time_struct(gui::GUI) = get_time_struct(get_design(gui))
+EMB.get_time_struct(gui::GUI) = EMB.get_time_struct(get_design(gui))
 
 """
     get_parent(gui::GUI)
