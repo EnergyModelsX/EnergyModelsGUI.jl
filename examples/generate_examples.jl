@@ -3,6 +3,9 @@ using EnergyModelsGeography
 using EnergyModelsInvestments
 using EnergyModelsRenewableProducers
 using TimeStruct
+using JuMP
+using HiGHS
+using PrettyTables
 
 const EMB = EnergyModelsBase
 const EMG = EnergyModelsGeography

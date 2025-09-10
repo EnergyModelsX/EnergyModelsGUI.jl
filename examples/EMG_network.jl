@@ -1,6 +1,3 @@
-using HiGHS
-using JuMP
-
 # Generate the case and model data and run the model
 case, model = generate_example_geo()
 optimizer = optimizer_with_attributes(HiGHS.Optimizer, MOI.Silent() => true)

@@ -1,7 +1,3 @@
-using HiGHS
-using JuMP
-using PrettyTables
-
 # Generate the case and model data and run the model
 case, model = generate_example_ss_investment()
 optimizer = optimizer_with_attributes(HiGHS.Optimizer, MOI.Silent() => true)
