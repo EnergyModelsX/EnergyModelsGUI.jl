@@ -426,6 +426,8 @@ end
 
 """
     extract_data_selection(var::SparseVars, selection::Vector, i_T::Int64, periods::Vector)
+    extract_data_selection(var::Jump.Containers.DenseAxisArray, selection::Vector, i_T::Int64, ::Vector)
+    extract_data_selection(var::DataFrame, selection::Vector, ::Int64, ::Vector)
 
 Extract data from `var` having its time dimension at index `i_T` for all time periods in `periods`.
 """
@@ -504,8 +506,8 @@ get_JuMP_dict(model::JuMP.Model) = object_dictionary(model)
     get_values(vals::JuMP.Containers.DenseAxisArray, ts::Vector)
     get_values(vals::DataFrame, ts::Vector)
 
-Get the values of the variables in `vals`. If `ts` is provided, it returns the values for the
-times in `ts`.
+Get the values of the variables in `vals`. If a vector of time periods `ts` is provided, it 
+returns the values for the times in `ts`.
 """
 get_values(vals::SparseVars) = isempty(vals) ? [] : collect(Iterators.flatten(value.(vals)))
 get_values(vals::SparseVariables.IndexedVarArray) = collect(value.(values(vals.data)))
@@ -761,6 +763,14 @@ function transfer_model(model::String, system::AbstractSystem)
 
             df = CSV.read(file, DataFrame)
 
+            # Rename columns :sp, :op, or :osc to :t if present. Note that the type of the
+            # time structure is available through the type of the column.
+            for col ∈ (:sp, :rp, :osc)
+                if string(col) ∈ names(df)
+                    rename!(df, col => :t)
+                end
+            end
+
             col_names = names(df)
             all_periods = []
             get_all_periods!(all_periods, 𝒯)
@@ -780,11 +790,8 @@ function transfer_model(model::String, system::AbstractSystem)
 
             data[varname] = df
         end
-        return data
     else
-        warning(
-            "The model must be a directory containing the results. No results were loaded.",
-        )
+        @warn "The model must be a directory containing the results. No results loaded."
     end
     return data
 end

@@ -209,6 +209,25 @@ function scroll_ylim(ax::Makie.AbstractAxis, val::Float64)
 end
 
 """
+    _type_to_header(::Type{<:TS.AbstractStrategicPeriod})
+    _type_to_header(::Type{<:TS.AbstractRepresentativePeriod})
+    _type_to_header(::Type{<:TS.AbstractOperationalScenario})
+    _type_to_header(::Type{<:TS.TimePeriod})
+    _type_to_header(::Type{<:TS.TimeStructure})
+    _type_to_header(::Type{<:Resource})
+    _type_to_header(::Type{<:AbstractElement})
+
+Map types to header symbols for saving results.
+"""
+_type_to_header(::Type{<:TS.AbstractStrategicPeriod}) = :sp
+_type_to_header(::Type{<:TS.AbstractRepresentativePeriod}) = :rp
+_type_to_header(::Type{<:TS.AbstractOperationalScenario}) = :osc
+_type_to_header(::Type{<:TS.TimePeriod}) = :t
+_type_to_header(::Type{<:TS.TimeStructure}) = :t
+_type_to_header(::Type{<:Resource}) = :res
+_type_to_header(::Type{<:AbstractElement}) = :element
+
+"""
     save_results(model::Model; directory=joinpath(pwd(),"csv_files"))
 
 Saves the model results of all variables as CSV files and metadata as a yml-file.
@@ -223,17 +242,8 @@ function save_results(model::Model; directory = joinpath(pwd(), "csv_files"))
     # Write each variable to a CSV file
     Threads.@threads for v ∈ collect(keys(object_dictionary(model)))
         if !isempty(model[v])
-            datatypes = get_jump_axis_types(model[v])
-            headers = Vector{Symbol}(undef, length(datatypes))
-            for (i, dt) ∈ enumerate(datatypes)
-                if dt <: Union{TS.TimePeriod,TS.TimeStructure}
-                    headers[i] = :t
-                elseif dt <: Resource
-                    headers[i] = :res
-                else
-                    headers[i] = :element
-                end
-            end
+            datatypes::Vector = get_jump_axis_types(model[v])
+            headers::Vector{Symbol} = _type_to_header.(datatypes)
             push!(headers, :val)
             fn = joinpath(directory, string(v) * ".csv")
             CSV.write(
@@ -246,8 +256,14 @@ function save_results(model::Model; directory = joinpath(pwd(), "csv_files"))
 
     # Write metadata to a YAML file
     metadata = Dict(
+        "name" => JuMP.name(model),
+        "solver" => JuMP._try_solver_name(model),
+        "objective_sense" => objective_sense(model),
+        "num_variables" => num_variables(model),
         "objective_value" => objective_value(model),
         "termination_status" => termination_status(model),
+        "date" => string(Dates.now()),
+        "EnergyModelsGUI version" => installed()["EnergyModelsGUI"],
     )
     metadata_file = joinpath(directory, "metadata.yaml")
     open(metadata_file, "w") do io

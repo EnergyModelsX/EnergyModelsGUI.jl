@@ -32,14 +32,17 @@ case, model, m, gui = run_case()
 @testset "Test functionality" verbose = true begin
     # Test print functionalities of GUI structures to the REPL
     @testset "Test Base.show() functions" begin
-        println(gui)
         design = EMGUI.get_design(gui)
-        println(design)
-        components = EMGUI.get_components(design)
-        connections = EMGUI.get_connections(design)
-        println(components[1])
-        println(connections[1])
-        @test true
+        component = EMGUI.get_components(design)[1]
+        connection = EMGUI.get_connections(design)[1]
+        @test repr(gui) ==
+              "GUI\n  fig: Figure\n  screen: GLMakie.Screen{GLFW.Window}\n  axes: Dict{Symbol, Makie.Block}\n  legends: Dict{Symbol, Union{Nothing, Legend}}\n  buttons: Dict{Symbol, Button}\n  menus: Dict{Symbol, Menu}\n  toggles: Dict{Symbol, Toggle}\n  root_design: EnergySystemDesign\n  design: EnergySystemDesign\n  model: Model\n  vars: Dict{Symbol, Any}\n"
+        @test repr(design) ==
+              "EnergySystemDesign\n  system: EnergyModelsGUI.SystemGeo\n  id_to_color_map: Dict{Any, Any}\n  id_to_icon_map: Dict{Any, Any}\n  components: Array{EnergySystemDesign}((4,))\n  connections: Array{EnergyModelsGUI.Connection}((3,))\n  xy: Observable{Tuple{Real, Real}}\n  icon: String \"\"\n  color: Observable{Symbol}\n  wall: Observable{Symbol}\n  file: String \"C:\\\\Users\\\\jonv\\\\kode\\\\EnergyModelsGUI.jl\\\\test\\\\design\\\\case7\\\\top_level.yml\"\n  inv_data: EnergyModelsGUI.ProcInvData{Number}\n  plots: Array{Any}((0,))\n"
+        @test repr(component) ==
+              "EnergySystemDesign\n  system: EnergyModelsGUI.System\n  id_to_color_map: Dict{Any, Any}\n  id_to_icon_map: Dict{Any, Any}\n  components: Array{EnergySystemDesign}((8,))\n  connections: Array{EnergyModelsGUI.Connection}((8,))\n  xy: Observable{Tuple{Real, Real}}\n  icon: String \"\"\n  color: Observable{Symbol}\n  wall: Observable{Symbol}\n  file: String \"C:\\\\Users\\\\jonv\\\\kode\\\\EnergyModelsGUI.jl\\\\test\\\\design\\\\case7\\\\Area 1.yml\"\n  inv_data: EnergyModelsGUI.ProcInvData{Number}\n  plots: Array{Any}((8,))\n"
+        @test repr(connection) ==
+              "EnergyModelsGUI.Connection\n  from: EnergySystemDesign\n  to: EnergySystemDesign\n  connection: Transmission\n  colors: Array{ColorTypes.RGB}((1,))\n  inv_data: EnergyModelsGUI.ProcInvData{Number}\n  plots: Array{Any}((2,))\n"
     end
 
     @testset "Test customizing descriptive names" begin

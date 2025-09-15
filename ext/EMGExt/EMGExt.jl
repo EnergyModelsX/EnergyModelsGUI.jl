@@ -207,4 +207,11 @@ function EMGUI.get_mode_to_transmission_map(system::EMGUI.SystemGeo)
     end
     return mode_to_transmission
 end
+
+"""
+    _type_to_header(::Type{<:TransmissionMode})
+
+Map types to header symbols for saving results.
+"""
+EMGUI._type_to_header(::Type{<:TransmissionMode}) = :element
 end

@@ -11,7 +11,10 @@ include("utils.jl")
 
 # Include the code that generates example data
 exdir = joinpath(pkgdir(EnergyModelsGUI), "examples")
+env = Base.active_project()
+ENV["EMX_TEST"] = true # Set flag for example scripts to check if they are run as part of the tests
 include(joinpath(exdir, "generate_examples.jl"))
+Pkg.activate(env)
 include("case7.jl")
 include("example_test.jl")
 
@@ -29,9 +32,10 @@ include("../examples/utils.jl")
         # The following tests simply checks if the main examples can be run without errors
         include("test_examples.jl")
 
+        # The following tests results input and output functionality (saving and loading results)
+        include("test_results_IO.jl")
+
         # Test specific GUI functionalities related to interactivity
         include("test_interactivity.jl")
-
-        EMGUI.close(gui)
     end
 end

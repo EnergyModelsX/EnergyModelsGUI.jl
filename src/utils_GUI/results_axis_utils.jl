@@ -285,7 +285,7 @@ end
 Get the types for each axis in the data.
 """
 function get_jump_axis_types(data::JuMP.Containers.DenseAxisArray)
-    return eltype.(axes(data))
+    return collect(eltype.(axes(data)))
 end
 function get_jump_axis_types(data::SparseVars)
     return collect(Base.unwrap_unionall(typeof(data)).parameters[3].parameters)
