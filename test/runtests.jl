@@ -1,7 +1,6 @@
 using EnergyModelsGUI
 using Test
 using YAML
-using GLMakie
 
 const TEST_ATOL = 1e-6
 const EMGUI = EnergyModelsGUI
