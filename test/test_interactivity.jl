@@ -32,14 +32,13 @@ case, model, m, gui = run_case()
 @testset "Test functionality" verbose = true begin
     # Test print functionalities of GUI structures to the REPL
     @testset "Test Base.show() functions" begin
-        Base.show(gui)
         design = EMGUI.get_design(gui)
-        Base.show(design)
-        components = EMGUI.get_components(design)
-        connections = EMGUI.get_connections(design)
-        Base.show(components[1])
-        Base.show(connections[1])
-        @test true
+        component = EMGUI.get_components(design)[1]
+        connection = EMGUI.get_connections(design)[1]
+        @test Base.show(gui) == dump(gui; maxdepth = 1)
+        @test Base.show(design) == dump(design; maxdepth = 1)
+        @test Base.show(component) == dump(component; maxdepth = 1)
+        @test Base.show(connection) == dump(connection; maxdepth = 1)
     end
 
     @testset "Test customizing descriptive names" begin
