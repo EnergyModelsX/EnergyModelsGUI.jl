@@ -36,6 +36,10 @@ data stored as key-value pairs. This dictionary is corresponding to the the old 
 - **`scale_tot_capex::Bool=false`** divides total CAPEX quantities with the duration of the strategic period.
 - **`colormap::Vector=Makie.wong_colors()`** is the colormap used for plotting results.
 - **`tol::Float64=1e-12`** the tolerance for numbers close to machine epsilon precision.
+
+!!! warning "Reading model results from csv-files"
+    Reading model results from a directory (i.e., `model::String`) do not support more than
+    three indices for variables (i.e., when results are read from .csv-files).
 """
 function GUI(
     case::Case;

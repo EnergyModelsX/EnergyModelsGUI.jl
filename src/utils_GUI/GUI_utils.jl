@@ -430,6 +430,10 @@ end
     extract_data_selection(var::DataFrame, selection::Vector, ::Int64, ::Vector)
 
 Extract data from `var` having its time dimension at index `i_T` for all time periods in `periods`.
+
+!!! warning "Reading model results from csv-files"
+    This function does not support more than three indices for `var::DataFrame` (i.e., when 
+    model results are read from .csv-files).
 """
 function extract_data_selection(
     var::SparseVars, selection::Vector, i_T::Int64, periods::Vector,

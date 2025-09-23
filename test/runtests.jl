@@ -1,6 +1,7 @@
 using EnergyModelsGUI
 using Test
 using YAML
+using Logging
 
 const TEST_ATOL = 1e-6
 const EMGUI = EnergyModelsGUI
@@ -20,6 +21,10 @@ include("example_test.jl")
 # Add utilities needed for examples
 include("../examples/utils.jl")
 
+logger_org = global_logger()
+logger_new = ConsoleLogger(stderr, Logging.Warn)
+global_logger(logger_new)
+
 @testset "EnergyModelsGUI" verbose = true begin
     redirect_stdio(stdout = devnull) do
         # Run all Aqua tests
@@ -38,3 +43,4 @@ include("../examples/utils.jl")
         include("test_interactivity.jl")
     end
 end
+global_logger(logger_org)

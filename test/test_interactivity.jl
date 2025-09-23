@@ -28,6 +28,19 @@ import EnergyModelsGUI:
 # Load case 7 for testing
 case, model, m, gui = run_case()
 
+root_design = get_root_design(gui)
+components = get_components(root_design)
+connections = get_connections(root_design)
+
+time_menu = get_menu(gui, :time)
+available_data_menu = get_menu(gui, :available_data)
+period_menu = get_menu(gui, :period)
+representative_period_menu = get_menu(gui, :representative_period)
+export_type_menu = get_menu(gui, :export_type)
+axes_menu = get_menu(gui, :axes)
+
+pin_plot_button = get_button(gui, :pin_plot)
+
 # Test specific miscellaneous functionalities
 @testset "Test functionality" verbose = true begin
     # Test print functionalities of GUI structures to the REPL
@@ -42,7 +55,7 @@ case, model, m, gui = run_case()
     end
 
     @testset "Test customizing descriptive names" begin
-        path_to_descriptive_names = joinpath(@__DIR__, "..", "src", "descriptive_names.yml")
+        path_to_descriptive_names = joinpath(pkgdir(EMGUI), "src", "descriptive_names.yml")
         str1 = "<a test description 1>"
         str2 = "<a test description 2>"
         str3 = "<a test description 3>"
@@ -95,18 +108,6 @@ end
             @test op_cost[i] ≈ tot_opex_sp
         end
     end
-    root_design = get_root_design(gui)
-    components = get_components(root_design)
-    connections = get_connections(root_design)
-
-    time_menu = get_menu(gui, :time)
-    available_data_menu = get_menu(gui, :available_data)
-    period_menu = get_menu(gui, :period)
-    representative_period_menu = get_menu(gui, :representative_period)
-    export_type_menu = get_menu(gui, :export_type)
-    axes_menu = get_menu(gui, :axes)
-
-    pin_plot_button = get_button(gui, :pin_plot)
 
     # Test color toggling
     @testset "Toggle colors" begin
@@ -182,7 +183,7 @@ end
 
     # Test the save button functionality
     @testset "get_button(gui,:save).clicks" begin
-        design_folder = joinpath(@__DIR__, "..", "examples", "design", "case7")
+        design_folder = joinpath(pkgdir(EMGUI), "examples", "design", "case7")
         root_design.file = joinpath(design_folder, "test_top_level.yml")
         for (i_area, area_design) ∈ enumerate(components)
             area_design.file = joinpath(design_folder, "test_Area $i_area.yml")
@@ -345,26 +346,46 @@ end
         @test ax_results.finallimits[].origin[1] == origin_x
     end
 
+    global_logger(logger_org)
+    valid_combinations = Dict(
+        "All" => ["jpg", "jpeg", "svg", "xlsx", "png", "lp", "mps"],
+        "Plots" =>
+            ["bmp", "tif", "tiff", "jpg", "jpeg", "svg", "xlsx", "png", "lp", "mps"],
+        "Topo" => ["svg", "lp", "mps"],
+    )
     @testset "get_button(gui,:export).clicks" begin
-        # Loop through all combinations of export options
         path = get_var(gui, :path_to_results)
+
+        # Loop through all combinations of export options
         for i_axes ∈ range(1, length(axes_menu.options[]))
+            println("i_axes = $i_axes")
             axes_menu.i_selected = i_axes
             for i_type ∈ range(1, length(export_type_menu.options[]))
+                println("  i_type = $i_type")
                 export_type_menu.i_selected = i_type
-                notify(get_button(gui, :export).clicks)
+                axes_str = axes_menu.selection[]
+                file_ending = export_type_menu.selection[]
+                filename = joinpath(path, axes_str * "." * file_ending)
+                if file_ending ∈ valid_combinations[axes_str]
+                    msg = "Exported results to $filename"
+                elseif file_ending == "REPL"
+                    notify(get_button(gui, :export).clicks)
+                    continue
+                else
+                    msg = "Exporting $(axes_str) to a $file_ending file is not supported"
+                end
+                @test_logs (:info, msg) EMGUI.export_to_file(gui)
             end
         end
-        for file_ending ∈ ["svg", "xlsx", "png", "lp", "mps"]
-            @test isfile(joinpath(path, "All." * file_ending))
-        end
-        for file_ending ∈ ["bmp", "tif", "tiff", "jpg", "jpeg", "svg", "xlsx", "png"]
-            @test isfile(joinpath(path, "results." * file_ending))
-        end
-        for file_ending ∈ ["svg"]
-            @test isfile(joinpath(path, "topo." * file_ending))
+
+        # Test if all valid files were created
+        for (axes_str, file_endings) ∈ valid_combinations
+            for file_ending ∈ file_endings
+                @test isfile(joinpath(path, "$axes_str.$file_ending"))
+            end
         end
     end
+    global_logger(logger_new)
 
     @testset "get_button(gui,:remove_plot).clicks" begin
         time_axis = time_menu.selection[]

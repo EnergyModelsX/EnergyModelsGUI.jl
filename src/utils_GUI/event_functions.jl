@@ -384,48 +384,7 @@ function define_event_functions(gui::GUI)
     # Export button: Export ax_results to file (format given by export_type_menu.selection[])
     on(get_button(gui, :export).clicks; priority = 10) do _
         if get_menu(gui, :export_type).selection[] == "REPL"
-            axes_str::String = get_menu(gui, :axes).selection[]
-            if axes_str == "Plots"
-                time_axis = time_menu.selection[]
-                vis_plots = get_visible_data(gui, time_axis)
-                if !isempty(vis_plots) # Check if any plots exist
-                    t = vis_plots[1][:t]
-                    data = Matrix{Any}(undef, length(t), length(vis_plots) + 1)
-                    data[:, 1] = t
-                    header = (
-                        Vector{Any}(undef, length(vis_plots) + 1),
-                        Vector{Any}(undef, length(vis_plots) + 1),
-                    )
-                    header[1][1] = "t"
-                    header[2][1] = "(" * string(nameof(eltype(t))) * ")"
-                    for (j, vis_plot) ∈ enumerate(vis_plots)
-                        data[:, j+1]   = vis_plot[:y]
-                        header[1][j+1] = vis_plots[j][:name]
-                        header[2][j+1] = join(
-                        [string(x) for x ∈ vis_plots[j][:selection]], ", "
-)
-                    end
-                    println("\n")  # done in order to avoid the prompt shifting the topspline of the table
-                    pretty_table(data; header = header)
-                end
-            elseif axes_str == "All"
-                model = get_model(gui)
-                for sym ∈ get_JuMP_names(gui)
-                    container = model[sym]
-                    if isempty(container)
-                        continue
-                    end
-                    if typeof(container) <: JuMP.Containers.DenseAxisArray
-                        axis_types = nameof.([eltype(a) for a ∈ JuMP.axes(model[sym])])
-                    elseif typeof(container) <: SparseVars
-                        axis_types = collect(nameof.(typeof.(first(keys(container.data)))))
-                    end
-                    header = vcat(axis_types, [:value])
-                    pretty_table(
-                        JuMP.Containers.rowtable(value, container; header = header),
-                    )
-                end
-            end
+            export_to_repl(gui)
         else
             export_to_file(gui)
         end
