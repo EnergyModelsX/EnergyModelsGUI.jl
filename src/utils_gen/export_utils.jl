@@ -157,7 +157,8 @@ end
 """
     export_to_file(gui::GUI)
 
-Export results based on the state of `gui`.
+Export results based on the state of `gui` to a file located within the folder specified
+through the `path_to_results` keyword of [`GUI`](@ref).
 """
 function export_to_file(gui::GUI)
     path = get_var(gui, :path_to_results)
@@ -171,75 +172,86 @@ function export_to_file(gui::GUI)
     end
     axes_str::String = get_menu(gui, :axes).selection[]
     file_ending = get_menu(gui, :export_type).selection[]
+    filename = joinpath(path, axes_str * "." * file_ending)
     if file_ending ∈ ["svg"]
         CairoMakie.activate!() # Set CairoMakie as backend for proper export quality
         cairo_makie_activated = true
     else
         cairo_makie_activated = false
     end
-    if axes_str == "All"
-        filename = joinpath(path, axes_str * "." * file_ending)
-        if file_ending ∈ ["bmp", "tiff", "tif", "jpg", "jpeg"]
-            @warn "Exporting the entire figure to an $file_ending file is not implemented"
-            flag = 1
-        elseif file_ending == "xlsx"
-            flag = export_xlsx(gui, filename)
-        elseif file_ending == "lp" || file_ending == "mps"
-            try
-                write_to_file(get_model(gui), filename)
-                flag = 0
-            catch
-                flag = 2
-            end
-        else
-            try
-                save(filename, get_fig(gui))
-                flag = 0
-            catch
-                flag = 2
-            end
+    if file_ending == "lp" || file_ending == "mps"
+        if isa(get_model(gui), DataFrame)
+            @info "Writing model to a $file_ending file is not supported when reading results from .csv-files"
+            return 1
+        elseif isempty(get_model(gui))
+            @info "No model to be exported"
+            return 2
+        end
+        try
+            write_to_file(get_model(gui), filename)
+            flag = 0
+        catch
+            flag = 2
         end
     else
-        if axes_str == "Plots"
-            ax_sym = :results
-        elseif axes_str == "Topo"
-            ax_sym = :topo
+        valid_combinations = Dict(
+            "All" => ["jpg", "jpeg", "svg", "xlsx", "png"],
+            "Plots" => ["bmp", "tif", "tiff", "jpg", "jpeg", "svg", "xlsx", "png"],
+            "Topo" => ["svg"],
+        )
+        if !(file_ending ∈ valid_combinations[axes_str])
+            @info "Exporting $axes_str to a $file_ending file is not supported"
+            return 1
         end
-        filename = joinpath(path, "$ax_sym.$file_ending")
-        if file_ending == "svg"
-            if axes_str == "Plots"
-                flag = export_svg(
-                    get_ax(gui, ax_sym), filename; legend = get_results_legend(gui),
-                )
-            elseif axes_str == "Topo"
-                flag = export_svg(
-                    get_ax(gui, ax_sym), filename; legend = get_topo_legend(gui),
-                )
+        if axes_str == "All"
+            if file_ending == "xlsx"
+                flag = export_xlsx(gui, filename)
             else
-                flag = export_svg(get_ax(gui, ax_sym), filename)
-            end
-        elseif file_ending == "xlsx"
-            if ax_sym == :topo
-                @warn "Exporting the topology to an xlsx file is not implemented"
-                flag = 1
-            else
-                time_axis = get_menu(gui, :time).selection[]
-                plots = get_visible_data(gui, time_axis)
-                flag = export_xlsx(plots, filename, ax_sym)
-            end
-        elseif file_ending == "lp" || file_ending == "mps"
-            try
-                write_to_file(get_model(gui), filename)
-                flag = 0
-            catch
-                flag = 2
+                try
+                    save(filename, get_fig(gui))
+                    flag = 0
+                catch
+                    flag = 2
+                end
             end
         else
-            try
-                save(filename, colorbuffer(get_ax(gui, ax_sym)))
-                flag = 0
-            catch
-                flag = 2
+            if axes_str == "Plots"
+                ax_sym = :results
+            elseif axes_str == "Topo"
+                ax_sym = :topo
+            end
+            if file_ending == "svg"
+                if axes_str == "Plots"
+                    flag = export_svg(
+                        get_ax(gui, ax_sym), filename; legend = get_results_legend(gui),
+                    )
+                elseif axes_str == "Topo"
+                    flag = export_svg(
+                        get_ax(gui, ax_sym), filename; legend = get_topo_legend(gui),
+                    )
+                else
+                    flag = export_svg(get_ax(gui, ax_sym), filename)
+                end
+            elseif file_ending == "xlsx"
+                if axes_str == "Plots"
+                    time_axis = get_menu(gui, :time).selection[]
+                    plots = get_visible_data(gui, time_axis)
+                    flag = export_xlsx(plots, filename, ax_sym)
+                end
+            elseif file_ending == "lp" || file_ending == "mps"
+                try
+                    write_to_file(get_model(gui), filename)
+                    flag = 0
+                catch
+                    flag = 2
+                end
+            else
+                try
+                    save(filename, colorbuffer(get_ax(gui, ax_sym)))
+                    flag = 0
+                catch
+                    flag = 2
+                end
             end
         end
     end
@@ -249,7 +261,56 @@ function export_to_file(gui::GUI)
     if flag == 0
         @info "Exported results to $filename"
     elseif flag == 2
-        @info "An error occured, no file exported"
+        @info "An error occurred, no file exported"
     end
     return flag
+end
+
+"""
+    export_to_repl(gui::GUI)
+
+Export results based on the state of `gui` to the REPL.
+"""
+function export_to_repl(gui::GUI)
+    axes_str::String = get_menu(gui, :axes).selection[]
+    if axes_str == "Plots"
+        time_axis = get_menu(gui, :time).selection[]
+        vis_plots = get_visible_data(gui, time_axis)
+        if !isempty(vis_plots) # Check if any plots exist
+            t = vis_plots[1][:t]
+            data = Matrix{Any}(undef, length(t), length(vis_plots) + 1)
+            data[:, 1] = t
+            header = (
+                Vector{Any}(undef, length(vis_plots) + 1),
+                Vector{Any}(undef, length(vis_plots) + 1),
+            )
+            header[1][1] = "t"
+            header[2][1] = "(" * string(nameof(eltype(t))) * ")"
+            for (j, vis_plot) ∈ enumerate(vis_plots)
+                data[:, j+1]   = vis_plot[:y]
+                header[1][j+1] = vis_plots[j][:name]
+                header[2][j+1] = join([string(x) for x ∈ vis_plots[j][:selection]], ", ")
+            end
+            println("\n")  # done in order to avoid the prompt shifting the topspline of the table
+            pretty_table(data; header = header)
+        end
+    else
+        model = get_model(gui)
+        for sym ∈ get_JuMP_names(gui)
+            container = model[sym]
+            if isempty(container)
+                continue
+            end
+            if typeof(container) <: JuMP.Containers.DenseAxisArray
+                axis_types = nameof.([eltype(a) for a ∈ JuMP.axes(model[sym])])
+            elseif typeof(container) <: SparseVars
+                axis_types = collect(nameof.(typeof.(first(keys(container.data)))))
+            end
+            header = vcat(axis_types, [:value])
+            pretty_table(
+                JuMP.Containers.rowtable(value, container; header = header),
+            )
+        end
+    end
+    return 0
 end

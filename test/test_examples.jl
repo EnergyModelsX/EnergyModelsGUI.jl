@@ -1,16 +1,18 @@
 @testset "Run examples" verbose = true begin
-    exdir = joinpath(@__DIR__, "..", "examples")
     files = first(walkdir(exdir))[3]
     for file ∈ files
         if splitext(file)[2] == ".jl" &&
            splitext(file)[1] != "utils" &&
-           !(file == "case7.jl") # Skip case7 as this is tested in test_interactivity.jl
+           splitext(file)[1] != "generate_examples"
             @testset "Example $file" begin
                 @info "Run example $file"
-                include(joinpath(exdir, file))
+                gui = include(joinpath(exdir, file))
 
-                @test termination_status(m) == MOI.OPTIMAL
+                @test termination_status(EMGUI.get_model(gui)) == MOI.OPTIMAL
+
+                EMGUI.close(gui)
             end
         end
     end
+    Pkg.activate(env)
 end

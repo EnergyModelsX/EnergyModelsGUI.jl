@@ -49,11 +49,11 @@ function System(case::Case)
     first_av = getfirst(x -> isa(x, Availability), get_nodes(case))
     ref_element = isnothing(first_av) ? NothingElement() : first_av
     return System(
-        EMB.get_time_struct(case),
-        EMB.get_products(case),
-        EMB.get_elements_vec(case),
-        EMB.get_nodes(case),
-        EMB.get_links(case),
+        get_time_struct(case),
+        get_products(case),
+        get_elements_vec(case),
+        get_nodes(case),
+        get_links(case),
         NothingElement(),
         ref_element,
     )
@@ -234,6 +234,7 @@ The main type for the realization of the GUI.
 # Fields
 
 - **`fig::Figure`** is the figure handle to the main figure (window).
+- **`screen::GLMakie.Screen`** is the screen handle for displaying the figure.
 - **`axes::Dict{Symbol,Axis}`** is a collection of axes: :topo (axis for visualizing
   the topology), :results (axis for plotting results), and :info (axis for
   displaying information).
@@ -247,11 +248,12 @@ The main type for the realization of the GUI.
   to the gui.axes[:results] object.
 - **`root_design::EnergySystemDesign`** is the data structure used for the root topology.
 - **`design::EnergySystemDesign`** is the data structure used for visualizing the topology.
-- **`model::Model`** contains the optimization results.
+- **`model::Union{Model, Dict}`** contains the optimization results.
 - **`vars::Dict{Symbol,Any}`** is a dictionary of miscellaneous variables and parameters.
 """
 mutable struct GUI
     fig::Figure
+    screen::GLMakie.Screen
     axes::Dict{Symbol,Makie.Block}
     legends::Dict{Symbol,Union{Makie.Legend,Nothing}}
     buttons::Dict{Symbol,Makie.Button}
@@ -259,7 +261,7 @@ mutable struct GUI
     toggles::Dict{Symbol,Makie.Toggle}
     root_design::EnergySystemDesign
     design::EnergySystemDesign
-    model::Model
+    model::Union{Model,Dict}
     vars::Dict{Symbol,Any}
 end
 
@@ -309,25 +311,25 @@ function Base.iterate(design::EnergySystemDesign, state = (nothing, nothing))
 end
 
 """
-    get_time_struct(system::AbstractSystem)
+    EMB.get_time_struct(system::AbstractSystem)
 
 Returns the time structure of the AbstractSystem `system`.
 """
-get_time_struct(system::AbstractSystem) = system.T
+EMB.get_time_struct(system::AbstractSystem) = system.T
 
 """
-    get_products(system::AbstractSystem)
+    EMB.get_products(system::AbstractSystem)
 
 Returns the vector of products of the AbstractSystem `system`.
 """
-get_products(system::AbstractSystem) = system.products
+EMB.get_products(system::AbstractSystem) = system.products
 
 """
-    get_elements_vec(system::AbstractSystem)
+    EMB.get_elements_vec(system::AbstractSystem)
 
 Returns the vector of element-vectors of the AbstractSystem `system`.
 """
-get_elements_vec(system::AbstractSystem) = system.elements
+EMB.get_elements_vec(system::AbstractSystem) = system.elements
 
 """
     get_children(system::AbstractSystem)
@@ -358,27 +360,18 @@ Returns the `ref_element` field of a `AbstractSystem` `system`.
 get_ref_element(system::AbstractSystem) = system.ref_element
 
 """
-    get_links(system::AbstractSystem)
+    EMB.get_links(system::AbstractSystem)
 
-Returns the `ref_element` field of a `AbstractSystem` `system`.
+Returns the links of a `AbstractSystem` `system`.
 """
-get_links(system::AbstractSystem) =
-    filter(el -> isa(el, Vector{<:Link}), get_elements_vec(system))[1]
-
-"""
-    get_nodes(system::AbstractSystem)
-
-Returns the `ref_element` field of a `AbstractSystem` `system`.
-"""
-get_nodes(system::AbstractSystem) =
-    filter(el -> isa(el, Vector{<:EMB.Node}), get_elements_vec(system))[1]
+EMB.get_links(system::AbstractSystem) = get_connections(system)
 
 """
-    get_transmissions(system::System)
+    EMB.get_nodes(system::AbstractSystem)
 
-Returns the `Connections`s of a `System` `system`.
+Returns the nodes of a `AbstractSystem` `system`.
 """
-get_transmissions(system::System) = get_connections(system)
+EMB.get_nodes(system::AbstractSystem) = get_children(system)
 
 """
     get_element(system::System)
@@ -386,6 +379,13 @@ get_transmissions(system::System) = get_connections(system)
 Returns the `element` assosiated of a `System` `system`.
 """
 get_element(system::System) = get_parent(system)
+
+"""
+    get_plotables(system::System)
+
+Returns the `Node`s and `Link`s of a `System` `system`.
+"""
+get_plotables(system::System) = vcat(get_nodes(system), get_links(system))
 
 """
     get_system(design::EnergySystemDesign)
@@ -472,11 +472,11 @@ Returns the `plots` field of a `EnergySystemDesign` `design`.
 get_plots(design::EnergySystemDesign) = design.plots
 
 """
-    get_time_struct(design::EnergySystemDesign)
+    EMB.get_time_struct(design::EnergySystemDesign)
 
 Returns the time structure of the EnergySystemDesign `design`.
 """
-get_time_struct(design::EnergySystemDesign) = get_time_struct(get_system(design))
+EMB.get_time_struct(design::EnergySystemDesign) = EMB.get_time_struct(get_system(design))
 
 """
     get_ref_element(design::EnergySystemDesign)
@@ -560,6 +560,20 @@ has_invested(design::AbstractGUIObj) = has_invested(get_inv_data(design))
 Returns the `fig` field of a `GUI` `gui`.
 """
 get_fig(gui::GUI) = gui.fig
+
+"""
+    get_screen(gui::GUI)
+
+Returns the `screen` field of a `GUI` `gui`.
+"""
+get_screen(gui::GUI) = gui.screen
+
+"""
+    close(gui::GUI)
+
+Closes the GUI `gui`.
+"""
+close(gui::GUI) = GLMakie.close(get_screen(gui))
 
 """
     get_axes(gui::GUI)
@@ -704,11 +718,11 @@ Get the selection color for the `gui`.
 get_selection_color(gui::GUI) = get_var(gui, :selection_color)
 
 """
-    get_time_struct(gui::GUI)
+    EMB.get_time_struct(gui::GUI)
 
 Returns the time structure of the GUI `gui`.
 """
-get_time_struct(gui::GUI) = get_time_struct(get_design(gui))
+EMB.get_time_struct(gui::GUI) = EMB.get_time_struct(get_design(gui))
 
 """
     get_parent(gui::GUI)

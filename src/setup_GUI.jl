@@ -1,18 +1,21 @@
 """
     GUI(case::Case; kwargs...)
+    GUI(case::Dict; kwargs...)
 
-Initialize the EnergyModelsGUI window and visualize the topology of a system `case` \
+Initialize the `EnergyModelsGUI` window and visualize the topology of a system `case`
 (and optionally visualize its results in a JuMP object model). The input argument can either
-be a `Case` object from the EnergyModelsBase package or a dictionary containing system-related
-data stored as key-value pairs. This dictionary is corresponding to the the old EnergyModelsX
-`case` dictionary.
+be a [`Case`](@extref EnergyModelsBase.Case) instance from the `EnergyModelsBase` package or
+a dictionary containing system-related data stored as key-value pairs. The latter corresponds
+to the old EnergyModelsX `case` dictionary.
 
 # Keyword arguments:
 
 - **`design_path::String=""`** is a file path or identifier related to the design.
 - **`id_to_color_map::Dict=Dict()`** is a dict that maps `Resource`s `id` to colors.
 - **`id_to_icon_map::Dict=Dict()`** is a dict that maps `Node/Area` `id` to .png files for icons.
-- **`model::JuMP.Model=JuMP.Model()`** is the solved JuMP model with results for the `case`.
+- **`model::Union{JuMP.Model, String}`** is the solved JuMP model with results for the `case`,
+  but can also be the path (`String`) to the directory containing the JuMP results written as
+  CSV-files.
 - **`hide_topo_ax_decorations::Bool=true`** is a visibility toggle of ticks, ticklabels and
   grids for the topology axis.
 - **`expand_all::Bool=false`** is the default option for toggling visibility of all nodes
@@ -35,13 +38,17 @@ data stored as key-value pairs. This dictionary is corresponding to the the old 
 - **`scale_tot_capex::Bool=false`** divides total CAPEX quantities with the duration of the strategic period.
 - **`colormap::Vector=Makie.wong_colors()`** is the colormap used for plotting results.
 - **`tol::Float64=1e-12`** the tolerance for numbers close to machine epsilon precision.
+
+!!! warning "Reading model results from CSV-files"
+    Reading model results from a directory (*i.e.*, `model::String` implying that the results
+    are stored in CSV-files) does not support more than three indices for variables.
 """
 function GUI(
     case::Case;
     design_path::String = "",
     id_to_color_map::Dict = Dict(),
     id_to_icon_map::Dict = Dict(),
-    model::JuMP.Model = JuMP.Model(),
+    model::Union{JuMP.Model,String} = JuMP.Model(),
     hide_topo_ax_decorations::Bool = true,
     expand_all::Bool = false,
     periods_labels::Vector = [],
@@ -165,9 +172,19 @@ function GUI(
     # Construct the makie figure and its objects
     fig, buttons, menus, toggles, axes, legends = create_makie_objects(vars, root_design)
 
+    # Construct screen object
+    manifest = Pkg.Operations.Context().env.manifest
+    version = manifest[findfirst(v -> v.name == "EnergyModelsGUI", manifest)].version
+    fig_title = "EnergyModelsGUI v$version"
+    if !isempty(case_name)
+        fig_title *= ": $case_name"
+    end
+    screen = GLMakie.Screen(title = fig_title)
+
     ## Create the main structure for the EnergyModelsGUI
     gui::GUI = GUI(
-        fig, axes, legends, buttons, menus, toggles, root_design, design, model, vars,
+        fig, screen, axes, legends, buttons, menus, toggles, root_design, design,
+        transfer_model(model, get_system(root_design)), vars,
     )
 
     # Create complete Dict of descriptive names
@@ -195,13 +212,7 @@ function GUI(
     DataInspector(fig; range = 3, indicator_linewidth = 0)
 
     # display the figure
-    manifest = Pkg.Operations.Context().env.manifest
-    version = manifest[findfirst(v -> v.name == "EnergyModelsGUI", manifest)].version
-    fig_title = "EnergyModelsGUI v$version"
-    if !isempty(case_name)
-        fig_title *= ": $case_name"
-    end
-    display(GLMakie.Screen(title = fig_title), fig)
+    display(screen, fig)
 
     return gui
 end

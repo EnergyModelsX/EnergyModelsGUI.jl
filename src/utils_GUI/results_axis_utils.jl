@@ -168,11 +168,11 @@ end
 
 """
     get_data(
-        model::JuMP.Model,
+        model::Union{JuMP.Model, Dict},
         selection::Dict{Symbol, Any},
         T::TS.TimeStructure,
         sp::Int64,
-        rp::Int64
+        rp::Int64,
         sc::Int64,
     )
 
@@ -180,7 +180,8 @@ Get the values from the JuMP `model`, or the input data, at `selection` for all 
 restricted to strategic period `sp`, representative period `rp`, and scenario `sc`.
 """
 function get_data(
-    model::JuMP.Model, selection::Dict, T::TS.TimeStructure, sp::Int64, rp::Int64, sc::Int64,
+    model::Union{JuMP.Model,Dict}, selection::Dict, T::TS.TimeStructure, sp::Int64,
+    rp::Int64, sc::Int64,
 )
     field_data = selection[:field_data]
     if selection[:is_jump_data]
@@ -190,15 +191,7 @@ function get_data(
         type = nested_eltype(field_data)
     end
     periods, time_axis = get_periods(T, type, sp, rp, sc)
-    if selection[:is_jump_data]
-        if isa(field_data, JuMP.Containers.SparseAxisArray)
-            y_values = [value(field_data[t]) for t ∈ periods]
-        else
-            y_values = Array(value.(field_data[periods]))
-        end
-    else
-        y_values = field_data[periods]
-    end
+    y_values = get_values(field_data, periods)
     return periods, y_values, time_axis
 end
 
@@ -270,6 +263,7 @@ function get_time_axis(
         JuMP.Containers.DenseAxisArray,
         JuMP.Containers.SparseAxisArray,
         SparseVariables.IndexedVarArray,
+        DataFrames.DataFrame,
     },
 )
     types::Vector{Type} = collect(get_jump_axis_types(data))
@@ -285,14 +279,20 @@ end
 
 """
     get_jump_axis_types(data::JuMP.Containers.DenseAxisArray)
+    get_jump_axis_types(data::SparseVars)
+    get_jump_axis_types(data::DataFrame)
 
 Get the types for each axis in the data.
 """
 function get_jump_axis_types(data::JuMP.Containers.DenseAxisArray)
-    return eltype.(axes(data))
+    return collect(eltype.(axes(data)))
 end
 function get_jump_axis_types(data::SparseVars)
-    return typeof.(first(keys(data.data)))
+    return collect(Base.unwrap_unionall(typeof(data)).parameters[3].parameters)
+end
+function get_jump_axis_types(data::DataFrame)
+    n = ncol(data)
+    return [eltype(col) for (i, col) ∈ enumerate(eachcol(data)) if i < n]
 end
 
 """
@@ -634,8 +634,8 @@ function update_limits!(ax::Axis)
         # Do the following for data with machine epsilon precision noice around zero that causes
         # the warning "Warning: No strict ticks found" and the the bug related to issue #4266 in Makie
         if abs(ywidth) < 1e-13
-            ywidth = 2.0
-            yorigin = min_y - 1.0
+            ywidth = 2 * max(1.0, max_y)
+            yorigin = 0.0
         else
             yorigin = min_y - ywidth * 0.04
             ywidth += 2 * ywidth * 0.04

@@ -212,6 +212,19 @@ function get_mode_to_transmission_map(::System)
 end
 
 """
+    results_available(model::Model)
+    results_available(model::String)
+
+Check if the model has a feasible solution.
+"""
+function results_available(model::Model)
+    return termination_status(model) == MOI.OPTIMAL
+end
+function results_available(model::Dict)
+    return !isempty(model) && model[:metadata][:termination_status] == string(MOI.OPTIMAL)
+end
+
+"""
     initialize_available_data!(gui)
 
 For all plotable objects, initialize the available data menu with items.
@@ -226,7 +239,7 @@ function initialize_available_data!(gui)
     )
 
     # Find appearances of node/area/link/transmission in the model
-    if termination_status(model) == MOI.OPTIMAL # Plot results if available
+    if results_available(model)
         T = get_time_struct(gui)
         mode_to_transmission = get_mode_to_transmission_map(system)
         for sym ∈ get_JuMP_names(gui)
@@ -272,7 +285,7 @@ function initialize_available_data!(gui)
             opex_key = Symbol(opex_field[1])
             description = opex_field[2]
             if haskey(model, opex_key)
-                opex = vec(sum(Array(value.(model[opex_key])), dims = 1))
+                opex = vec(get_total_sum_time(model[opex_key], collect(𝒯ᴵⁿᵛ)))
                 tot_opex_unscaled .+= opex
                 if scale_tot_opex
                     opex .*= sp_dur
@@ -300,7 +313,7 @@ function initialize_available_data!(gui)
             capex_key = Symbol(capex_field[1])
             description = capex_field[2]
             if haskey(model, capex_key)
-                capex = vec(sum(Array(value.(model[capex_key])), dims = 1))
+                capex = vec(get_total_sum_time(model[capex_key], collect(𝒯ᴵⁿᵛ)))
                 tot_capex_unscaled .+= capex
                 if scale_tot_capex
                     capex ./= sp_dur
@@ -366,7 +379,7 @@ function initialize_available_data!(gui)
         total_opex = sum(tot_opex_unscaled .* sp_dur)
         total_capex = sum(tot_capex_unscaled)
         investment_overview = "Result summary:\n\n"
-        investment_overview *= "Objective value: $(format_number(objective_value(model)))\n\n"
+        investment_overview *= "Objective value: $(format_number(get_obj_value(model)))\n\n"
         investment_overview *= "Investment summary (no values discounted):\n\n"
         investment_overview *= "Total operational cost: $(format_number(total_opex))\n"
         investment_overview *= "Total investment cost: $(format_number(total_capex))\n\n"
@@ -413,8 +426,15 @@ end
 
 """
     extract_data_selection(var::SparseVars, selection::Vector, i_T::Int64, periods::Vector)
+    extract_data_selection(var::Jump.Containers.DenseAxisArray, selection::Vector, i_T::Int64, ::Vector)
+    extract_data_selection(var::DataFrame, selection::Vector, ::Int64, ::Vector)
 
 Extract data from `var` having its time dimension at index `i_T` for all time periods in `periods`.
+
+!!! warning "Reading model results from CSV-files"
+    This function does not support more than three indices for `var::DataFrame` (*i.e.*,
+    when model results are read from CSV-files). This implies it is incompatible with
+    potential extensions that introduce more than three indices for variables.
 """
 function extract_data_selection(
     var::SparseVars, selection::Vector, i_T::Int64, periods::Vector,
@@ -429,6 +449,23 @@ function extract_data_selection(
 )
     return var[vcat(selection[1:(i_T-1)], :, selection[i_T:end])...]
 end
+function extract_data_selection(
+    var::DataFrame, selection::Vector, ::Int64, ::Vector,
+)
+    res_idx = findfirst(x -> isa(x, Resource), selection)
+    element_idx = findfirst(x -> !isa(x, Resource), selection)
+    if !isnothing(res_idx) && !isnothing(element_idx)
+        res = selection[res_idx]
+        element = selection[element_idx]
+        return var[(var.:res .== [res]) .& (var.:element .== [element]), :]
+    elseif !isnothing(res_idx)
+        res = selection[res_idx]
+        return var[var.:res .== [res], :]
+    elseif !isnothing(element_idx)
+        element = selection[element_idx]
+        return var[var.:element .== [element], :]
+    end
+end
 
 """
     get_JuMP_names(gui::GUI)
@@ -438,9 +475,55 @@ Get all names registered in the model as a vector except the names to be ignored
 function get_JuMP_names(gui::GUI)
     model = get_model(gui)
     ignore_names = Symbol.(get_var(gui, :descriptive_names)[:ignore])
-    names = collect(keys(object_dictionary(model)))
+    names = collect(keys(get_JuMP_dict(model)))
     return [name for name ∈ names if !(name ∈ ignore_names)]
 end
+
+"""
+    get_obj_value(model::Model)
+    get_obj_value(model::Dict)
+
+Get the objective value of the model.
+"""
+function get_obj_value(model::Model)
+    return objective_value(model)
+end
+function get_obj_value(model::Dict)
+    return model[:metadata][:objective_value]
+end
+
+"""
+    get_JuMP_dict(model::Model)
+    get_JuMP_dict(model::Dict)
+
+Get the dictionary of the model results. If the model is a JuMP.Model, it returns the object
+dictionary.
+"""
+get_JuMP_dict(model::Dict) = Dict(k => v for (k, v) ∈ model if k != :metadata)
+get_JuMP_dict(model::JuMP.Model) = object_dictionary(model)
+
+"""
+    get_values(vals::SparseVars)
+    get_values(vals::JuMP.Containers.DenseAxisArray)
+    get_values(vals::DataFrame)
+    get_values(vals::JuMP.Containers.SparseAxisArray, ts::Vector)
+    get_values(vals::SparseVariables.IndexedVarArray, ts::Vector)
+    get_values(vals::JuMP.Containers.DenseAxisArray, ts::Vector)
+    get_values(vals::DataFrame, ts::Vector)
+
+Get the values of the variables in `vals`. If a vector of time periods `ts` is provided, it
+returns the values for the times in `ts`.
+"""
+get_values(vals::SparseVars) = isempty(vals) ? [] : collect(Iterators.flatten(value.(vals)))
+get_values(vals::SparseVariables.IndexedVarArray) = collect(value.(values(vals.data)))
+get_values(vals::JuMP.Containers.DenseAxisArray) = Array(value.(vals))
+get_values(vals::DataFrame) = vals[!, :val]
+get_values(vals::JuMP.Containers.SparseAxisArray, ts::Vector) = [value(vals[t]) for t ∈ ts]
+get_values(vals::SparseVariables.IndexedVarArray, ts::Vector) =
+    isempty(vals) ? [] : value.(vals[ts])
+get_values(vals::JuMP.Containers.DenseAxisArray, ts::Vector) = Array(value.(vals[ts]))
+get_values(vals::DataFrame, ts::Vector) = vals[in.(vals.t, Ref(ts)), :val]
+get_values(vals::TimeProfile, ts::Vector) = vals[ts]
 
 """
     get_investment_times(gui::GUI, max_inst::Float64)
@@ -491,7 +574,9 @@ function get_investment_times(gui::GUI, max_inst::Float64)
 end
 
 """
-    get_combinations(var, i_T::Int)
+    get_combinations(var::SparseVars, i_T::Int)
+    get_combinations(var::JuMP.Containers.DenseAxisArray, i_T::Int)
+    get_combinations(var::DataFrame, ::Int)
 
 Get an iterator of combinations of unique indices excluding the time index located at index `i_T`.
 """
@@ -500,6 +585,13 @@ function get_combinations(var::SparseVars, i_T::Int)
 end
 function get_combinations(var::JuMP.Containers.DenseAxisArray, i_T::Int)
     return Iterators.product(axes(var)[vcat(1:(i_T-1), (i_T+1):end)]...)
+end
+function get_combinations(var::DataFrame, ::Int)
+    # Exclude the time and value columns (assumed to be :t and :vals)
+    cols = names(var)
+    non_time_val_cols = filter(c -> c != "t" && c != "val", cols)
+    # Get unique tuples of the non-time/value columns
+    return unique(Tuple(row[c] for c ∈ non_time_val_cols) for row ∈ eachrow(var))
 end
 
 """
@@ -590,4 +682,121 @@ function select_data!(gui::GUI, name::String)
 
     # Select data
     menu.i_selected = i_selected
+end
+
+"""
+    get_total_sum_time(data::JuMP.Containers.DenseAxisArray, ::Vector{<:TS.TimeStructure})
+    get_total_sum_time(data::DataFrame, periods::Vector{<:TS.TimeStructure})
+
+Get the total sum of the data for each time period in `data`.
+"""
+function get_total_sum_time(
+    data::JuMP.Containers.DenseAxisArray,
+    ::Vector{<:TS.TimeStructure},
+)
+    return sum(get_values(data), dims = 1)
+end
+function get_total_sum_time(data::DataFrame, periods::Vector{<:TS.TimeStructure})
+    return [sum(data[data.:t .== [t], :val]) for t ∈ periods]
+end
+
+"""
+    get_all_periods!(vec::Vector, ts::TwoLevel)
+    get_all_periods!(vec::Vector, ts::RepresentativePeriods)
+    get_all_periods!(vec::Vector, ts::OperationalScenarios)
+    get_all_periods!(vec::Vector, ts::Any)
+
+Get all TimeStructures in `ts` and append them to `vec`.
+"""
+function get_all_periods!(vec::Vector, ts::TwoLevel)
+    append!(vec, collect(ts))
+    append!(vec, strategic_periods(ts))
+    for t ∈ ts.operational
+        get_all_periods!(vec, t)
+    end
+end
+function get_all_periods!(vec::Vector, ts::RepresentativePeriods)
+    append!(vec, repr_periods(T))
+    for t ∈ ts.rep_periods
+        get_all_periods!(vec, t)
+    end
+end
+function get_all_periods!(vec::Vector, ts::OperationalScenarios)
+    append!(vec, opscenarios(T))
+    for t ∈ ts.scenarios
+        get_all_periods!(vec, t)
+    end
+end
+function get_all_periods!(::Vector, ::Any)
+    return nothing
+end
+
+"""
+    get_repr_dict(vec::AbstractVector{T}) where T
+
+Get a dictionary with the string representation of each element in `vec` as keys.
+"""
+function get_repr_dict(vec::AbstractVector{T}) where {T}
+    return Dict{String,T}(repr(x) => x for x ∈ vec)
+end
+
+"""
+    convert_array(v::AbstractArray, dict::Dict)
+
+Apply the transformation of the `dict` to the array `v`.
+"""
+function convert_array(v::AbstractArray, dict::Dict)
+    return map(x -> dict[x], v)
+end
+
+"""
+    transfer_model(model::Model, system::AbstractSystem)
+    transfer_model(model::String, system::AbstractSystem)
+
+Convert the model to a DataFrame if it is provided as a path to a directory.
+"""
+transfer_model(model::Model, ::AbstractSystem) = model
+function transfer_model(model::String, system::AbstractSystem)
+    data = Dict{Symbol,Any}()
+    if isdir(model)
+        files = filter(f -> endswith(f, ".csv"), readdir(model, join = true))
+        metadata_path = joinpath(model, "metadata.yaml")
+        data[:metadata] = YAML.load_file(metadata_path; dicttype = Dict{Symbol,Any})
+        𝒯 = get_time_struct(system)
+        Threads.@threads for file ∈ files
+            varname = Symbol(basename(file)[1:(end-4)])
+
+            df = CSV.read(file, DataFrame)
+
+            # Rename columns :sp, :op, or :osc to :t if present. Note that the type of the
+            # time structure is available through the type of the column.
+            for col ∈ (:sp, :rp, :osc)
+                if string(col) ∈ names(df)
+                    rename!(df, col => :t)
+                end
+            end
+
+            col_names = names(df)
+            all_periods = []
+            get_all_periods!(all_periods, 𝒯)
+            df[!, :t] = convert_array(df[!, :t], get_repr_dict(unique(all_periods)))
+            if "res" ∈ col_names
+                df[!, :res] = convert_array(
+                    df[!, :res],
+                    get_repr_dict(get_products(system)),
+                )
+            end
+            if "element" ∈ col_names
+                df[!, :element] = convert_array(
+                    df[!, :element],
+                    get_repr_dict(get_plotables(system)),
+                )
+            end
+
+            data[varname] = df
+        end
+    else
+        @warn "The model must be a directory containing the results. No results loaded."
+    end
+    return data
 end

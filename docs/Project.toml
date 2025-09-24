@@ -1,10 +1,12 @@
 [deps]
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+DocumenterInterLinks = "d12716ef-a0f6-4df4-a9f1-a5a34e75c656"
 EnergyModelsBase = "5d7e687e-f956-46f3-9045-6f5a5fd49f50"
 EnergyModelsGUI = "737a7361-d3b7-40e9-b1ac-59bee4c5ea2d"
 EnergyModelsGeography = "3f775d88-a4da-46c4-a2cc-aa9f16db6708"
 EnergyModelsInvestments = "fca3f8eb-b383-437d-8e7b-aac76bb2004f"
+EnergyModelsRenewableProducers = "b007c34f-ba52-4995-ba37-fffe79fbde35"
 HiGHS = "87dc4568-4c63-4d18-b0c0-bb2238e4078b"
 JuMP = "4076af6c-e467-56ae-b986-b466b2749572"
 TimeStruct = "f9ed5ce0-9f41-4eaa-96da-f38ab8df101c"

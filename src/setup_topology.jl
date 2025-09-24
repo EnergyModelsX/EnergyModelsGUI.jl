@@ -115,7 +115,7 @@ function EnergySystemDesign(
     end
 
     # Add  `Transmission`s and `Link`s to `connections` as a `Connection`
-    elements = get_transmissions(system)
+    elements = get_connections(system)
     if !isnothing(elements)
         for element ∈ elements
             # Find the EnergySystemDesign corresponding to element.from.node

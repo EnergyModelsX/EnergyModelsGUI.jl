@@ -25,11 +25,8 @@ using EnergyModelsGUI
 # Get the path of the examples directory
 exdir = joinpath(pkgdir(EnergyModelsGUI), "examples")
 
-# Activate project for the examples in the EnergyModelsGUI repository
-Pkg.activate(exdir)
-Pkg.instantiate()
-
 # Include the code into the Julia REPL to run the following example
+include(joinpath(exdir, "generate_examples.jl"))
 include(joinpath(exdir, "EMI_geography.jl"))
 ```
 

@@ -58,7 +58,7 @@ function read_data()
     nodes = EMB.Node[]
     links = Link[]
     for (i, a_id) ∈ enumerate(area_ids)
-        n, l = get_sub_system_data(a_id, products, T)
+        n, l = get_sub_system_data_case7(a_id, products, T)
         append!(nodes, n)
         append!(links, l)
 
@@ -86,15 +86,13 @@ function read_data()
 
     # Create a power line between the busbars
     Power_line = RefStatic(
-        "El power line_11126", Power, trans_cap, loss, opex_var, opex_fix, direction, [],
+        "El power line_11126", Power, trans_cap, loss, opex_var, opex_fix, direction,
     )
     Power_line2 = RefStatic(
         "El power line_11139", Power, trans_cap2, loss, opex_var, opex_fix, direction,
-        [],
     )
     Power_line3 = RefStatic(
         "El power line_11139", Power, trans_cap3, loss, opex_var, opex_fix, direction,
-        [],
     )
 
     # Construct the transmissions vector
@@ -114,12 +112,12 @@ function read_data()
 end
 
 # Subsystem test data for geography package
-function get_sub_system_data(a_id, products, T)
+function get_sub_system_data_case7(a_id, products, T)
     Power = products[1]
     Heat = products[2]
     WarmWater = products[3]
     El_change_factor = [1, 2, 4] # Alter the electricity change factor. This scales the demand for electricity by a factor 2 for 2030--2039 and a factor 4 for 2040--2049
-    inputFolder = joinpath(@__DIR__, "Inputfiles")
+    inputFolder = joinpath(@__DIR__, "inputfiles")
     if a_id == "Area 1"
         # Load the demand profile from file
         El_1_demand_file = readlines(inputFolder * raw"/el load.dat")
