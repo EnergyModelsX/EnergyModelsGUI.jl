@@ -1,11 +1,12 @@
 """
     GUI(case::Case; kwargs...)
+    GUI(case::Dict; kwargs...)
 
-Initialize the EnergyModelsGUI window and visualize the topology of a system `case` \
+Initialize the `EnergyModelsGUI` window and visualize the topology of a system `case`
 (and optionally visualize its results in a JuMP object model). The input argument can either
-be a `Case` object from the EnergyModelsBase package or a dictionary containing system-related
-data stored as key-value pairs. This dictionary is corresponding to the the old EnergyModelsX
-`case` dictionary.
+be a [`Case`](@extref EnergyModelsBase.Case) instance from the `EnergyModelsBase` package or
+a dictionary containing system-related data stored as key-value pairs. The latter corresponds
+to the old EnergyModelsX `case` dictionary.
 
 # Keyword arguments:
 
@@ -13,7 +14,8 @@ data stored as key-value pairs. This dictionary is corresponding to the the old 
 - **`id_to_color_map::Dict=Dict()`** is a dict that maps `Resource`s `id` to colors.
 - **`id_to_icon_map::Dict=Dict()`** is a dict that maps `Node/Area` `id` to .png files for icons.
 - **`model::Union{JuMP.Model, String}`** is the solved JuMP model with results for the `case`,
-  but can also be the path (String) to the directory containing the JuMP results written as CSV-files.
+  but can also be the path (`String`) to the directory containing the JuMP results written as
+  CSV-files.
 - **`hide_topo_ax_decorations::Bool=true`** is a visibility toggle of ticks, ticklabels and
   grids for the topology axis.
 - **`expand_all::Bool=false`** is the default option for toggling visibility of all nodes
@@ -37,9 +39,9 @@ data stored as key-value pairs. This dictionary is corresponding to the the old 
 - **`colormap::Vector=Makie.wong_colors()`** is the colormap used for plotting results.
 - **`tol::Float64=1e-12`** the tolerance for numbers close to machine epsilon precision.
 
-!!! warning "Reading model results from csv-files"
-    Reading model results from a directory (i.e., `model::String`) do not support more than
-    three indices for variables (i.e., when results are read from .csv-files).
+!!! warning "Reading model results from CSV-files"
+    Reading model results from a directory (*i.e.*, `model::String` implying that the results
+    are stored in CSV-files) does not support more than three indices for variables.
 """
 function GUI(
     case::Case;

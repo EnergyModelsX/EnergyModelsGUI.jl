@@ -431,9 +431,10 @@ end
 
 Extract data from `var` having its time dimension at index `i_T` for all time periods in `periods`.
 
-!!! warning "Reading model results from csv-files"
-    This function does not support more than three indices for `var::DataFrame` (i.e., when 
-    model results are read from .csv-files).
+!!! warning "Reading model results from CSV-files"
+    This function does not support more than three indices for `var::DataFrame` (*i.e.*,
+    when model results are read from CSV-files). This implies it is incompatible with
+    potential extensions that introduce more than three indices for variables.
 """
 function extract_data_selection(
     var::SparseVars, selection::Vector, i_T::Int64, periods::Vector,
@@ -510,7 +511,7 @@ get_JuMP_dict(model::JuMP.Model) = object_dictionary(model)
     get_values(vals::JuMP.Containers.DenseAxisArray, ts::Vector)
     get_values(vals::DataFrame, ts::Vector)
 
-Get the values of the variables in `vals`. If a vector of time periods `ts` is provided, it 
+Get the values of the variables in `vals`. If a vector of time periods `ts` is provided, it
 returns the values for the times in `ts`.
 """
 get_values(vals::SparseVars) = isempty(vals) ? [] : collect(Iterators.flatten(value.(vals)))

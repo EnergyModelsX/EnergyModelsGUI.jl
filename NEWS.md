@@ -1,6 +1,6 @@
 # Release notes
 
-## Version 0.5.16 (2025-08-14)
+## Unversioned
 
 ### Enhancement
 
@@ -38,6 +38,7 @@
 * Added more descriptive names for `EnergyModelsHeat` and `EnergyModelsHydrogen` and add a colors for the `HeatLT` and `HeatHT` resources.
 
 ### Adjustment
+
 * Order the colors (by id) in the Resources legend.
 * Move boundaries for countries just above the ocean layer.
 * Fix default placements of the nodes in a uniform circle (when coordinates are not provided).

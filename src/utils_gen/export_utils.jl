@@ -157,7 +157,8 @@ end
 """
     export_to_file(gui::GUI)
 
-Export results based on the state of `gui` to file.
+Export results based on the state of `gui` to a file located within the folder specified
+through the `path_to_results` keyword of [`GUI`](@ref).
 """
 function export_to_file(gui::GUI)
     path = get_var(gui, :path_to_results)

@@ -18,6 +18,10 @@ DocMeta.setdocmeta!(
     EnergyModelsGUI, :DocTestSetup, :(using EnergyModelsGUI); recursive = true,
 )
 
+links = InterLinks(
+    "EnergyModelsBase" => "https://energymodelsx.github.io/EnergyModelsBase.jl/stable/",
+)
+
 makedocs(;
     sitename = "EnergyModelsGUI.jl",
     format = Documenter.HTML(;
@@ -36,7 +40,7 @@ makedocs(;
             "Example"=>"manual/simple-example.md",
             "Release notes"=>"manual/NEWS.md",
         ],
-        "How-to" => Any[
+        "How to" => Any[
             "Save design to file"=>"how-to/save-design.md",
             "Export results"=>"how-to/export-results.md",
             "Customize colors"=>"how-to/customize-colors.md",
@@ -48,6 +52,7 @@ makedocs(;
             "Internals"=>Any["Reference"=>"library/internals/reference.md",],
         ],
     ],
+    plugins=[links],
 )
 
 deploydocs(; repo = "github.com/EnergyModelsX/EnergyModelsGUI.jl.git")
