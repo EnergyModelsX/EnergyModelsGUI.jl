@@ -1,4 +1,5 @@
 using Documenter
+using DocumenterInterLinks
 using EnergyModelsBase
 using EnergyModelsGeography
 using EnergyModelsGUI
@@ -52,7 +53,7 @@ makedocs(;
             "Internals"=>Any["Reference"=>"library/internals/reference.md",],
         ],
     ],
-    plugins=[links],
+    plugins = [links],
 )
 
 deploydocs(; repo = "github.com/EnergyModelsX/EnergyModelsGUI.jl.git")
