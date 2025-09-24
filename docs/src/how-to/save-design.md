@@ -1,4 +1,4 @@
-# [Save design to file](@id save_design)
+# [Save design to file](@id how_to-save_design)
 
 EnergyModelsGUI enables an interactive framework for moving nodes in a topology which can be saved to file.
 To save the coordinates to file the `design_path` argument must be provided as follows

@@ -1,30 +1,22 @@
-# [Public interface](@id sec_lib_public)
+# [Public interface](@id lib-pub)
 
-## GUI constructor
+## [Constructor](@id lib-pub-const)
 
 ```@docs
 EnergyModelsGUI.GUI(case::Case; kwargs...)
-```
-
-## EnergySystemDesign constructor
-
-```@docs
 EnergyModelsGUI.EnergySystemDesign(system::EnergyModelsGUI.AbstractSystem)
 ```
 
-## Structures
+## [Types](@id lib-pub-types)
 
 ```@docs
 EnergyModelsGUI.EnergySystemDesign
 EnergyModelsGUI.GUI
 ```
 
-## Utilities
+## [Utilities](@id lib-pub-utils)
 
 ```@docs
 EnergyModelsGUI.set_colors
-```
-
-```@docs
 EnergyModelsGUI.set_icons
 ```

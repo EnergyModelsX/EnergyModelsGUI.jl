@@ -1,4 +1,4 @@
-# [Customize icons](@id customize_icons)
+# [Customize icons](@id how_to-cust_icons)
 
 EnergyModelsGUI provides default icon generation for `Node`s and `Area`s, but these "icons" can be customized by the users.
 You can define an icon based on a `Node` `id` or by types.

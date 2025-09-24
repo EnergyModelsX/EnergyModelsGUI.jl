@@ -1,18 +1,20 @@
-# [Customize descriptive_names](@id customize_descriptive_names)
+# [Customize descriptive_names](@id how_to-cust_desc_names)
 
 EnergyModelsGUI provides a set of descriptive names for case input structures and assosiated JuMP variables.
-These can be found in `src/descriptive_names.yml`. These descriptions are extended/overwritten with EMX 
+These can be found in `src/descriptive_names.yml`. These descriptions are extended/overwritten with EMX
 packages having a `descriptive_names.yml` file in a `ext/EMGUIExt` folder of its repository. That is,
-if you want to provide descriptive names for your EMX package, add a `.yml` file in this location, with the 
+if you want to provide descriptive names for your EMX package, add a `.yml` file in this location, with the
 same structure as `src/descriptive_names.yml`.
 
-It can be convenient to provide a user defined file in addition. If you have this file located at 
+It can be convenient to provide a user defined file in addition. If you have this file located at
 `path_to_descriptive_names`, simply add it using
+
 ```julia
 gui = GUI(case; path_to_descriptive_names=path_to_descriptive_names)
 ```
 
 If you instead (or in addition) want to provide descriptive names through a `Dict`, this can be done as follows
+
 ```julia
 descriptive_names_dict = Dict(
     :structures => Dict( # Input parameter from the case Dict
@@ -36,9 +38,11 @@ gui = GUI(
     descriptive_names_dict=descriptive_names_dict,
 )
 ```
+
 The variables for `total` quantities (and their descriptions) can be customized in the same manner (see structure in the `src/descriptive_names.yml` file).
 
 It is also possible to ignore certain `JuMP` variables. *E.g.*, ignoring `cap_use` and `flow_in` (in addition to the variable `con_em_tot` which is ignored by default) can be done as follows
+
 ```julia
 gui = GUI(
     case;
@@ -47,7 +51,9 @@ gui = GUI(
     descriptive_names_dict=Dict(:ignore => ["con_em_tot", "cap_use", "flow_in"]),
 )
 ```
+
 You can similarly customize variables that indicates an investment has occured `investment_indicators` the default variables are
+
 ```
   - cap_add
   - trans_cap_add
