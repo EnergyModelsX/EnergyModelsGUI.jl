@@ -3,20 +3,21 @@
 ## [Constructor](@id lib-pub-const)
 
 ```@docs
-EnergyModelsGUI.GUI(case::Case; kwargs...)
-EnergyModelsGUI.EnergySystemDesign(system::EnergyModelsGUI.AbstractSystem)
+GUI(case::Case; kwargs...)
+EnergySystemDesign(system::EnergyModelsGUI.AbstractSystem)
 ```
 
 ## [Types](@id lib-pub-types)
 
 ```@docs
-EnergyModelsGUI.EnergySystemDesign
-EnergyModelsGUI.GUI
+EnergySystemDesign
+GUI
 ```
 
 ## [Utilities](@id lib-pub-utils)
 
 ```@docs
-EnergyModelsGUI.set_colors
-EnergyModelsGUI.set_icons
+save_results
+set_colors
+set_icons
 ```

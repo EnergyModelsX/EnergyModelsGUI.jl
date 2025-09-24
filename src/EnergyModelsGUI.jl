@@ -83,5 +83,6 @@ export EnergySystemDesign
 # Export functions
 export set_colors
 export set_icons
+export save_results
 
 end # module
