@@ -1,4 +1,4 @@
-# [Customize colors](@id customize_colors)
+# [Customize colors](@id how_to-cust_colors)
 
 EnergyModelsGUI provides a set of colors for a set of frequently used `Resource`-`id`s.
 These can be found in `src/colors.yml` and are visualized below

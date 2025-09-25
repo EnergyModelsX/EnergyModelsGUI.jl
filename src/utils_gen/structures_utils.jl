@@ -33,7 +33,7 @@ end
 Returns a dictionary that completes the dictionary `id_to_color_map` with default color values
 for standard names (like Power, NG, Coal, CO2) collected from `src/colors.yml`.
 
-Color can be represented as a hex (_i.e._, #a4220b2) or a symbol (_i.e_. :green), but also a
+Color can be represented as a hex (*i.e.*, #a4220b2) or a symbol (*i.e.*, :green), but also a
 string of the identifier for default colors in the `src/colors.yml` file.
 """
 function set_colors(products::Vector{<:Resource}, id_to_color_map::Dict)

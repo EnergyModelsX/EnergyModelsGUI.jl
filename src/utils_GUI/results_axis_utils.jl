@@ -104,7 +104,7 @@ end
         gui::GUI,
     )
 
-Loop through all elements of `field` of type `Vector` (i.e. for the field `data`)
+Loop through all elements of `field` of type `Vector` (*i.e.*,for the field `data`)
 and update `available_data` with an added description.
 """
 function add_description!(
@@ -137,7 +137,7 @@ end
         gui::GUI,
     )
 
-Loop through all struct fieldnames of `field` (i.e. for the field `level` of type `NoStartInvData`)
+Loop through all struct fieldnames of `field` (*i.e.*,for the field `level` of type `NoStartInvData`)
 and update `available_data` with an added description.
 """
 function add_description!(
@@ -255,7 +255,7 @@ end
         },
     )
 
-Get the index of the axis/column of `data` (i.e. from a JuMP variable) corresponding to
+Get the index of the axis/column of `data` (*i.e.*,from a JuMP variable) corresponding to
 TS.TimePeriod and return this index (`i_T`) alongside its TimeStruct type.
 """
 function get_time_axis(

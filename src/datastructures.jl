@@ -404,7 +404,7 @@ get_parent(design::EnergySystemDesign) = get_parent(get_system(design))
 """
     get_element(design::EnergySystemDesign)
 
-Returns the system node (i.e. availability node for areas) of a `EnergySystemDesign` `design`.
+Returns the system node (*i.e.*, availability node for areas) of a `EnergySystemDesign` `design`.
 """
 get_element(design::EnergySystemDesign) = get_element(get_system(design))
 

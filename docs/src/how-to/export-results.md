@@ -1,7 +1,7 @@
-# [Export results](@id export_results)
+# [Export results](@id how_to-export_res)
 
 The GUI enables simple printing of the results to the REPL, but one can also export to file.
-In order to do this, you needs to provide the path to which the files can be exported.
+In order to do this, you need to provide the path to which the files can be exported.
 This is done with the keyword input argument `path_to_results` as follows
 
 ```julia
