@@ -27,6 +27,7 @@ structures:
     opex_var:               "Relative variable operating expense per energy unit transported"
     opex_fixed:             "Relative fixed operating expense per installed capacity"
     consumption_rate:       "Rate at which the resource is consumed, as a ratio of the volume of the resource going into the inlet"
+    trans_loss:             "Relative loss of the transported resource during transmission"    
 
   # EnergyModelsInvestment
   ## investment_data.jl
