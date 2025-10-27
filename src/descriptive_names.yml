@@ -3,36 +3,17 @@
 structures:
   # EnergyModelsBase
   ## node.jl
-  StorCapOpex:
+  AbstractStorageParameters:
     capacity:               "Installed capacity"
     opex_var:               "Relative variable operating expense per energy unit"
     opex_fixed:             "Relative fixed operating expense per installed capacity"
 
-  StorCap:
-    capacity:               "Installed capacity"
-
-  StorCapOpexVar:
-    capacity:               "Installed capacity"
-    opex_var:               "Relative variable operating expense per energy unit"
-
-  StorCapOpexFixed:
-    capacity:               "Installed capacity"
-    opex_fixed:             "Relative fixed operating expense per installed capacity"
-
-  StorOpexVar:
-    opex_var:               "Relative variable operating expense per energy unit"
-
-  RefSource:
+  Node:
     cap:                    "Installed capacity"
     opex_var:               "Relative variable operating expense per energy unit produced"
     opex_fixed:             "Relative fixed operating expense per installed capacity"
 
-  RefNetworkNode:
-    cap:                    "Installed capacity"
-    opex_var:               "Relative variable operating expense per energy unit produced"
-    opex_fixed:             "Relative fixed operating expense per installed capacity"
-
-  RefSink:
+  Sink:
     cap:                    "Demand"
     penalty:
       surplus:              "Penalties for surplus"
@@ -40,90 +21,43 @@ structures:
 
   # EnergyModelsGeography
   ## mode.jl
-  RefDynamic:
+  TransmissionMode:
     trans_cap:              "Capacity of the transmission mode"
     trans_loss:             "Relative loss of the transported resource during transmission"
     opex_var:               "Relative variable operating expense per energy unit transported"
     opex_fixed:             "Relative fixed operating expense per installed capacity"
-
-  RefStatic:
-    trans_cap:              "Capacity of the transmission mode"
-    trans_loss:             "Relative loss of the transported resource during transmission"
-    opex_var:               "Relative variable operating expense per energy unit transported"
-    opex_fixed:             "Relative fixed operating expense per installed capacity"
-
-  PipeSimple:
     consumption_rate:       "Rate at which the resource is consumed, as a ratio of the volume of the resource going into the inlet"
-    trans_cap:              "Capacity of the transmission mode"
-    trans_loss:             "Relative loss of the transported resource during transmission"
-    opex_var:               "Relative variable operating expense per energy unit transported"
-    opex_fixed:             "Relative fixed operating expense per installed capacity"
-
-  PipeLinepackSimple:
-    consumption_rate:       "Rate at which the resource is consumed, as a ratio of the volume of the resource going into the inlet"
-    trans_cap:              "Capacity of the transmission mode"
-    trans_loss:             "Relative loss of the transported resource during transmission"
-    opex_var:               "Relative variable operating expense per energy unit transported"
-    opex_fixed:             "Relative fixed operating expense per installed capacity"
+    trans_loss:             "Relative loss of the transported resource during transmission"    
 
   # EnergyModelsInvestment
   ## investment_data.jl
-  NoStartInvData:
-    capex:                  "Capital costs for investing in a capacity"
-    max_inst:               "Maximum installed capacity in a strategic period"
-
-  StartInvData:
+  AbstractInvData:
     capex:                  "Capital costs for investing in a capacity"
     max_inst:               "Maximum installed capacity in a strategic period"
     initial:                "Initial capacity in the first strategic period"
 
   ## investment_mode.jl
+  Investment:
+    min_add:                "Minimum added capacity in a strategic period"
+    max_add:                "Maximum added capacity in a strategic period"
+    increment:              "Used increment for discrete investments"
+    capex_offset:           "Offset for the CAPEX in a strategic period"
   FixedInvestment:
     cap:                    "Capacity used for the fixed investments"
 
   BinaryInvestment:
     cap:                    "Capacity used for the binary investments"
 
-  DiscreteInvestment:
-    increment:              "Used increment for discrete investments"
-
-  ContinuousInvestment:
-    min_add:                "Minimum added capacity in a strategic period"
-    max_add:                "Maximum added capacity in a strategic period"
-
-  SemiContinuousInvestment:
-    min_add:                "Minimum added capacity in a strategic period"
-    max_add:                "Maximum added capacity in a strategic period"
-
-  SemiContinuousOffsetInvestment:
-    max_add:                "Maximum added capacity in a strategic period"
-    min_add:                "Minimum added capacity in a strategic period"
-    capex_offset:           "Offset for the CAPEX in a strategic period"
-
   ## lifetime_mode.jl
-  StudyLife:
-    lifetime:               "Chosen lifetime of the technology"
-
-  PeriodLife:
-    lifetime:               "Chosen lifetime of the technology"
-
-  RollingLife:
+  LifetimeMode:
     lifetime:               "Chosen lifetime of the technology"
 
   # EnergyModelsRenewableProducers
   ## datastructures.jl
-  NonDisRES:
-    cap:                    "Installed capacity"
+  AbstractNonDisRES:
     profile:                "Power production profile as a ratio of installed capacity"
-    opex_var:               "Relative variable operating expense per energy unit produced"
-    opex_fixed:             "Relative fixed operating expense per installed capacity"
 
-  HydroStor:
-    level_init:             "Initial stored energy in the dam"
-    level_inflow:           "Inflow of power per operational period"
-    level_min:              "Minimum fraction of the reservoir capacity required"
-
-  PumpedHydroStor:
+  HydroStorage:
     level_init:             "Initial stored energy in the dam"
     level_inflow:           "Inflow of power per operational period"
     level_min:              "Minimum fraction of the reservoir capacity required"
@@ -141,15 +75,15 @@ structures:
     opex_var:               "Variable operational costs per water flow"
     opex_fixed:             "Fixed operational costs"
 
-  HydroGenerator:
-    cap:                    "Installed discharge or power capacity"
+  HydroUnit:
     opex_var:               "Variable operational costs per energy unit produced"
     opex_fixed:             "Fixed operational costs"
 
+  HydroGenerator:
+    cap:                    "Installed discharge or power capacity"
+    
   HydroPump:
     cap:                    "Installed pumping capacity"
-    opex_var:               "Variable operational costs per energy unit produced"
-    opex_fixed:             "Fixed operational costs"
 
   CycleLife:
     stack_cost:             "Relative cost for replacing a battery stack"
@@ -162,22 +96,9 @@ structures:
 
   ## node.jl
   HeatPump:
-    cap:                    "Installed capacity"
     t_source:               "Heat source temperature"
     t_sink:                 "Heat sink temperature"
     eff_carnot:             "Carnot Efficiency"
-    opex_var:               "Variable operating expense per energy unit produced"
-    opex_fixed:             "Fixed operating expense per installed capacity"
-
-  HeatExchanger:
-    cap:                    "Installed capacity"
-    opex_var:               "Variable operating expense per energy unit produced"
-    opex_fixed:             "Fixed operating expense per installed capacity"
-
-  DirectHeatUpgrade:
-    cap:                    "Installed capacity"
-    opex_var:               "Variable operating expense per energy unit produced"
-    opex_fixed:             "Fixed operating expense per installed capacity"
 
   ## resource.jl
   ResourceHeat:
@@ -186,52 +107,31 @@ structures:
 
   # EnergyModelsHydrogen
   ## node.jl
-  Electrolyzer:
-    cap:                    "Installed capacity"
+  AbstractElectrolyzer:
     opex_var:               "Variable operating expense per capacity used"
-    opex_fixed:             "Fixed operating expense per installed capacity"
-    stack_replacement_cost: "Replacement cost of electrolyzer stacks"
-
-  SimpleElectrolyzer:
-    cap:                    "Installed capacity"
-    opex_var:               "Variable operating expense per capacity used"
-    opex_fixed:             "Fixed operating expense per installed capacity"
     stack_replacement_cost: "Replacement cost of electrolyzer stacks"
 
   CommitParameters:
     opex:                   "Operating cost per installed capacity and operational duration"
     time:                   "Minimum time node must remain in a state before transitioning"
 
-  RampBi:
+  AbstractRampParameters:
     up:                     "Maximum positive rate of change of a node"
-    down:                   "Maximum negative rate of change of a node"
-
-  RampUp:
-    up:                     "Maximum positive rate of change of a node"
-
-  RampDown:
     down:                   "Maximum negative rate of change of a node"
 
   Reformer:
-    cap:                    "Installed capacity"
     opex_var:               "Variable operating expense per capacity usage"
     opex_fixed:             "Fixed operating expense per installed capacity"
 
   # EnergyModelsCO2
   CO2Source:
-    cap:                    "Installed capacity"
     opex_var:               "Variable operating expense per energy unit produced"
-    opex_fixed:             "Fixed operating expense"
 
   RefNetworkNodeRetrofit:
-    cap:                    "Installed capacity"
     opex_var:               "Variable operating expense per energy unit produced"
-    opex_fixed:             "Fixed operating expense"
 
   CCSRetroFit:
-    cap:                    "Installed capacity"
     opex_var:               "Variable operating expense per unit of CO₂ captured"
-    opex_fixed:             "Fixed operating expense"
 
 
 variables:
