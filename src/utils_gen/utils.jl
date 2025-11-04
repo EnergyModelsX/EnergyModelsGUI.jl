@@ -308,7 +308,7 @@ get_types(["Base", "Core"])  # returns type names from both packages
 """
 function get_types(modul::Module)
     types = []
-    for name in names(modul)
+    for name ∈ names(modul)
         if isdefined(modul, name) && getfield(modul, name) isa DataType
             push!(types, name)
         end
@@ -318,7 +318,7 @@ end
 
 function get_types(moduls::Vector{Module})
     types=[]
-    for modul in moduls
+    for modul ∈ moduls
         append!(types, get_types(modul))
     end
     return types
@@ -328,9 +328,9 @@ function get_types(pkg::Union{String,Symbol})
     return get_types(getfield(Main, Symbol(pkg)))
 end
 
-function get_types(pkgs::Union{Vector{<:Union{String,Symbol}}, Set{<:Union{String,Symbol}}})
+function get_types(pkgs::Union{Vector{<:Union{String,Symbol}},Set{<:Union{String,Symbol}}})
     types = []
-    for pkg in pkgs
+    for pkg ∈ pkgs
         append!(types, get_types(pkg))
     end
     return types
@@ -367,7 +367,7 @@ This set of functions helps extract the inheritance hierarchy of types defined i
 """
 function get_supertypes(modul::Module)
     types=Dict()
-    for name in names(modul)
+    for name ∈ names(modul)
         if isdefined(modul, name) && getfield(modul, name) isa DataType
             types[name] = supertypes(getfield(modul, name))
         end
@@ -377,7 +377,7 @@ end
 
 function get_supertypes(moduls::Vector{Module})
     types=Dict()
-    for modul in moduls
+    for modul ∈ moduls
         merge!(types, get_supertypes(modul))
     end
     return types
@@ -387,9 +387,11 @@ function get_supertypes(pkg::Union{String,Symbol})
     return get_supertypes(getfield(Main, Symbol(pkg)))
 end
 
-function get_supertypes(pkgs::Union{Vector{<:Union{String,Symbol}}, Set{<:Union{String,Symbol}}})
+function get_supertypes(
+    pkgs::Union{Vector{<:Union{String,Symbol}},Set{<:Union{String,Symbol}}},
+)
     types = Dict()
-    for pkg in pkgs
+    for pkg ∈ pkgs
         merge!(types, get_supertypes(pkg))
     end
     return types
@@ -446,11 +448,10 @@ If `tmp_type` is not already a key in `current_lvl`, it adds it with an empty di
 """
 function update_tree!(current_lvl, tmp_type::Type)
     if !haskey(current_lvl, tmp_type)
-        current_lvl[tmp_type] = Dict{Type, Union{Dict, Nothing}}()
+        current_lvl[tmp_type] = Dict{Type,Union{Dict,Nothing}}()
     end
     return
 end
-
 
 """
     get_types_structure(emx_supertypes_dict::Dict{Any, Vector{Type}}) -> Dict{Type, Union{Dict, Nothing}}
@@ -469,13 +470,13 @@ This function builds a tree-like structure of type dependencies by iterating thr
 """
 function get_types_structure(emx_supertypes_dict)
     # make a visualization of the type dependencies by building a nested dictionary of types
-    emx_type_dependencies = Dict{Type, Union{Dict, Nothing}}()
-    for (emx_type_id, emx_supertypes) in emx_supertypes_dict
+    emx_type_dependencies = Dict{Type,Union{Dict,Nothing}}()
+    for (emx_type_id, emx_supertypes) ∈ emx_supertypes_dict
         i = 0
         current_lvl = emx_type_dependencies
         while i < length(emx_supertypes)
             tmp_type = emx_supertypes[end-i]
-            update_tree!(current_lvl,tmp_type)
+            update_tree!(current_lvl, tmp_type)
             current_lvl = current_lvl[tmp_type]
             i+=1
         end
@@ -504,26 +505,35 @@ If a descriptive name exists for a field in a supertype but not in the subtype,
 - Updates `descriptive_names` in-place by inheriting missing descriptive names from supertypes.
 """
 function inherit_descriptive_names_from_supertypes!(descriptive_names, emx_supertypes_dict)
-    for (emx_type_id, emx_supertypes) in emx_supertypes_dict
+    for (emx_type_id, emx_supertypes) ∈ emx_supertypes_dict
         emx_type = emx_supertypes[1]
         # check if emx_type has field names and if so retrieve them, otherwise continue
         if !has_fields(emx_type)
             continue
         end
         emx_type_fieldnames = fieldnames(emx_type)
-        for fname in emx_type_fieldnames
-            for emx_supertype in emx_supertypes[2:end] # skip first element as it is the type itself
+        for fname ∈ emx_type_fieldnames
+            for emx_supertype ∈ emx_supertypes[2:end] # skip first element as it is the type itself
                 #check if the supertype has an entry in descriptive names for fname
                 if haskey(descriptive_names[:structures], Symbol(emx_supertype)) &&
-                   haskey(descriptive_names[:structures][Symbol(emx_supertype)], Symbol(fname))
+                   haskey(
+                    descriptive_names[:structures][Symbol(emx_supertype)],
+                    Symbol(fname),
+                )
                     # if so, and if the emx_type does not have an entry for fname, copy it
                     if !haskey(descriptive_names[:structures], Symbol(emx_type)) ||
-                       !haskey(descriptive_names[:structures][Symbol(emx_type)], Symbol(fname))
+                       !haskey(
+                        descriptive_names[:structures][Symbol(emx_type)],
+                        Symbol(fname),
+                    )
                         if !haskey(descriptive_names[:structures], Symbol(emx_type))
-                            descriptive_names[:structures][Symbol(emx_type)] = Dict{Symbol,Any}()
+                            descriptive_names[:structures][Symbol(emx_type)] =
+                                Dict{Symbol,Any}()
                         end
                         descriptive_names[:structures][Symbol(emx_type)][Symbol(fname)] =
-                            descriptive_names[:structures][Symbol(emx_supertype)][Symbol(fname)]
+                            descriptive_names[:structures][Symbol(emx_supertype)][Symbol(
+                                fname,
+                            )]
                     end
                 end
             end
