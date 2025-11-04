@@ -5,30 +5,77 @@
     ) where {Tc<:Real, Tx<:Real, Tθ<:Real, TΔ<:Real}
 
 Calculate the intersection point between a line starting at `x` and direction described by
-`θ` and a square with half side lengths `Δ` centered at center `c`.
+`θ`, and a square with half side lengths `Δ` centered at center `c`. If the line does not
+intersect the square, the extension of the two facing sides to `x` will be used instead.
 """
 function square_intersection(
     c::Vector{Tc}, x::Vector{Tx}, θ::Tθ, Δ::TΔ,
 ) where {Tc<:Real,Tx<:Real,Tθ<:Real,TΔ<:Real}
-    # Ensure that -π ≤ θ ≤ π
-    θ = θ > π ? θ - 2π : θ
-    θ = θ < -π ? θ + 2π : θ
+    # Direction vector from θ
+    dx = cos(θ)
+    dy = sin(θ)
 
-    # Calculate angles at the corers of the square with respect to the point x
-    θ_se::Tθ = atan(c[2] - x[2] - Δ, c[1] - x[1] + Δ)
-    θ_ne::Tθ = atan(c[2] - x[2] + Δ, c[1] - x[1] + Δ)
-    θ_nw::Tθ = atan(c[2] - x[2] + Δ, c[1] - x[1] - Δ)
-    θ_sw::Tθ = atan(c[2] - x[2] - Δ, c[1] - x[1] - Δ)
+    # Square bounds
+    xmin, xmax = c[1] - Δ, c[1] + Δ
+    ymin, ymax = c[2] - Δ, c[2] + Δ
 
-    # Return the intersection point
-    if θ_se <= θ && θ < θ_ne # Facing walls are (:E, :W)
-        return [c[1] + Δ, x[2] + (c[1] + Δ - x[1]) * tan(θ)]
-    elseif θ_ne <= θ && θ < θ_nw # Facing walls are (:N, :S)
-        return [x[1] + (c[2] + Δ - x[2]) / tan(θ), c[2] + Δ]
-    elseif θ_sw <= θ && θ < θ_se # Facing walls are (:S, :N)
-        return [x[1] + (c[2] - Δ - x[2]) / tan(θ), c[2] - Δ]
-    else # Facing walls are (:W, :E)
-        return [c[1] - Δ, x[2] + (c[1] - Δ - x[1]) * tan(θ)]
+    # Parametric line: X = x[1] + t*dx, Y = x[2] + t*dy
+    ts = Float64[]
+    # Check intersection with vertical sides (x = xmin and x = xmax)
+    if abs(dx) > eps()
+        t1 = (xmin - x[1]) / dx
+        y1 = x[2] + t1 * dy
+        if ymin <= y1 <= ymax
+            push!(ts, t1)
+        end
+        t2 = (xmax - x[1]) / dx
+        y2 = x[2] + t2 * dy
+        if ymin <= y2 <= ymax
+            push!(ts, t2)
+        end
+    end
+    # Check intersection with horizontal sides (y = ymin and y = ymax)
+    if abs(dy) > eps()
+        t3 = (ymin - x[2]) / dy
+        x3 = x[1] + t3 * dx
+        if xmin <= x3 <= xmax
+            push!(ts, t3)
+        end
+        t4 = (ymax - x[2]) / dy
+        x4 = x[1] + t4 * dx
+        if xmin <= x4 <= xmax
+            push!(ts, t4)
+        end
+    end
+
+    # Only consider intersections in the positive direction (t > 0)
+    ts_pos = filter(t -> t > 0, ts)
+    if !isempty(ts_pos)
+        tmin = minimum(ts_pos)
+        return [x[1] + tmin * dx, x[2] + tmin * dy]
+    else
+        # No intersection: find which two sides are "facing" x
+        # Compute vector from x to center
+        vx, vy = c[1] - x[1], c[2] - x[2]
+        # Determine which vertical side is facing x
+        xside = vx > 0 ? xmin : xmax
+        # Determine which horizontal side is facing x
+        yside = vy > 0 ? ymin : ymax
+
+        # Compute intersection with the extension of the facing vertical side
+        t_v = abs(dx) > eps() ? (xside - x[1]) / dx : Inf
+        # Compute intersection with the extension of the facing horizontal side
+        t_h = abs(dy) > eps() ? (yside - x[2]) / dy : Inf
+
+        # Choose the closest positive intersection
+        t_candidates = filter(t -> t > 0, [t_v, t_h])
+        if !isempty(t_candidates)
+            tmin = minimum(t_candidates)
+            return [x[1] + tmin * dx, x[2] + tmin * dy]
+        else
+            @info "No meaningful intersection found." "c = $c" "x = $x" "θ = $θ" "Δ = $Δ"
+            throw(ArgumentError("No meaningful intersection found."))
+        end
     end
 end
 
