@@ -92,6 +92,26 @@ pin_plot_button = get_button(gui, :pin_plot)
         @test descriptive_names[:variables][:trans_cap_rem] == str6
         EMGUI.close(gui2)
     end
+
+    @testset "Test inheritance of descriptive names" begin
+        path_to_descriptive_names = joinpath(pkgdir(EMGUI), "src", "descriptive_names.yml")
+        descriptive_names_raw =
+            YAML.load_file(path_to_descriptive_names; dicttype = Dict{Symbol,Any})
+        str1 = "Relative fixed operating expense per installed capacity"
+        gui2 = GUI(
+            case;
+            path_to_descriptive_names = path_to_descriptive_names,
+        )
+        @test descriptive_names_raw[:structures][:Node][:opex_fixed] == str1
+        @test :StorCapOpexFixed ∉ keys(descriptive_names_raw[:structures])
+        @test :RefNetworkNode ∉ keys(descriptive_names_raw[:structures])
+
+        descriptive_names = EMGUI.get_var(gui2, :descriptive_names)
+        @test :Node ∉ keys(descriptive_names[:structures])
+        @test descriptive_names[:structures][:StorCapOpexFixed][:opex_fixed] == str1
+        @test descriptive_names[:structures][:RefNetworkNode][:opex_fixed] == str1
+        EMGUI.close(gui2)
+    end
 end
 
 # Test specific GUI functionalities
