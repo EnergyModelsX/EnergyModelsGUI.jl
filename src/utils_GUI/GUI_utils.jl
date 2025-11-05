@@ -634,9 +634,7 @@ function update_descriptive_names!(gui::GUI)
     # apply inheritances for fetching descriptive names
     # create a dictionary were the keys are all the types defined in emx_packages and the values are the types they inherit from
     emx_supertypes_dict = get_supertypes(emx_packages)
-
     inherit_descriptive_names_from_supertypes!(descriptive_names, emx_supertypes_dict)
-
     for package ∈ emx_packages
         package_path::Union{String,Nothing} = dirname(dirname(Base.find_package(package)))
         if !isnothing(package_path)
