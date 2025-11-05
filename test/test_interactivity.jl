@@ -103,6 +103,7 @@ pin_plot_button = get_button(gui, :pin_plot)
             case;
             path_to_descriptive_names = path_to_descriptive_names,
         )
+
         @test descriptive_names_raw[:structures][:Node][:opex_fixed] == str1
         @test :StorCapOpexFixed ∉ keys(descriptive_names_raw[:structures])
         @test :RefNetworkNode ∉ keys(descriptive_names_raw[:structures])
