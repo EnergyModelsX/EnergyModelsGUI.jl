@@ -23,6 +23,9 @@ using Colors
 # To format numbers with @sprintf
 using Printf
 
+# To retrieve supertypes
+using InteractiveUtils
+
 # Use GLMakie front end to visualize the GUI figure
 using GLMakie
 
