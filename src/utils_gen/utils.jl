@@ -515,9 +515,14 @@ function inherit_descriptive_names_from_supertypes!(descriptive_names, emx_super
         for fname ∈ emx_type_fieldnames
             for emx_supertype ∈ emx_supertypes[2:end] # skip first element as it is the type itself
                 #check if the supertype has an entry in descriptive names for fname
-                if haskey(descriptive_names[:structures], Symbol(emx_supertype)) &&
+                # Extract only what is after the dot in emx_supertype, if any
+                supertype_str = string(emx_supertype)
+                supertype_key =
+                    occursin(r"\.", supertype_str) ?
+                    match(r"\.([^.]+)$", supertype_str).captures[1] : supertype_str
+                if haskey(descriptive_names[:structures], Symbol(supertype_key)) &&
                    haskey(
-                    descriptive_names[:structures][Symbol(emx_supertype)],
+                    descriptive_names[:structures][Symbol(supertype_key)],
                     Symbol(fname),
                 )
                     # if so, and if the emx_type does not have an entry for fname, copy it
@@ -531,7 +536,7 @@ function inherit_descriptive_names_from_supertypes!(descriptive_names, emx_super
                                 Dict{Symbol,Any}()
                         end
                         descriptive_names[:structures][Symbol(emx_type)][Symbol(fname)] =
-                            descriptive_names[:structures][Symbol(emx_supertype)][Symbol(
+                            descriptive_names[:structures][Symbol(supertype_key)][Symbol(
                                 fname,
                             )]
                     end
