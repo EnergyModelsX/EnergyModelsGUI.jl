@@ -98,7 +98,8 @@ pin_plot_button = get_button(gui, :pin_plot)
         descriptive_names_raw =
             YAML.load_file(path_to_descriptive_names; dicttype = Dict{Symbol,Any})
         str1 = "Relative fixed operating expense per installed capacity"
-        gui2 = GUI(
+        str2 = "Initial stored energy in the dam"
+        gui3 = GUI(
             case;
             path_to_descriptive_names = path_to_descriptive_names,
         )
@@ -106,10 +107,17 @@ pin_plot_button = get_button(gui, :pin_plot)
         @test :StorCapOpexFixed ∉ keys(descriptive_names_raw[:structures])
         @test :RefNetworkNode ∉ keys(descriptive_names_raw[:structures])
 
-        descriptive_names = EMGUI.get_var(gui2, :descriptive_names)
+        @test descriptive_names_raw[:structures][:HydroStorage][:level_init] == str2
+        @test :HydroStor ∉ keys(descriptive_names_raw[:structures])
+        @test :PumpedHydroStor ∉ keys(descriptive_names_raw[:structures])
+
+        descriptive_names = EMGUI.get_var(gui3, :descriptive_names)
         @test descriptive_names[:structures][:StorCapOpexFixed][:opex_fixed] == str1
         @test descriptive_names[:structures][:RefNetworkNode][:opex_fixed] == str1
-        EMGUI.close(gui2)
+
+        @test descriptive_names[:structures][:HydroStor][:level_init] == str2
+        @test descriptive_names[:structures][:PumpedHydroStor][:level_init] == str2
+        EMGUI.close(gui3)
     end
 end
 
