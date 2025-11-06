@@ -309,7 +309,12 @@ get_types(["Base", "Core"])  # returns type names from both packages
 function get_types(modul::Module)
     types = []
     for name ∈ names(modul)
-        if isdefined(modul, name) && getfield(modul, name) isa DataType
+        if isdefined(modul, name) && (
+            getfield(modul, name) isa DataType || (
+                getfield(modul, name) isa UnionAll &&
+                Base.unwrap_unionall(getfield(modul, name)) isa DataType
+            )
+        )
             push!(types, name)
         end
     end
@@ -368,7 +373,12 @@ This set of functions helps extract the inheritance hierarchy of types defined i
 function get_supertypes(modul::Module)
     types=Dict()
     for name ∈ names(modul)
-        if isdefined(modul, name) && getfield(modul, name) isa DataType
+        if isdefined(modul, name) && (
+            getfield(modul, name) isa DataType || (
+                getfield(modul, name) isa UnionAll &&
+                Base.unwrap_unionall(getfield(modul, name)) isa DataType
+            )
+        )
             types[name] = supertypes(getfield(modul, name))
         end
     end
@@ -410,7 +420,6 @@ Checks whether a given type is a concrete struct with at least one field.
 
 # Description
 This function combines three checks:
-- `isconcretetype(type)`: Ensures the type is concrete (i.e., can be instantiated).
 - `isstructtype(type)`: Ensures the type is a struct.
 - `nfields(type) > 0`: Ensures the struct has at least one field.
 
@@ -427,7 +436,8 @@ has_fields(AbstractType)  # returns false
 ```
 """
 function has_fields(type)
-    return (isconcretetype(type) && isstructtype(type) && nfields(type) > 0)
+    t = type isa UnionAll ? Base.unwrap_unionall(type) : type
+    return (t isa DataType && isstructtype(t) && nfields(t) > 0)
 end
 
 """
