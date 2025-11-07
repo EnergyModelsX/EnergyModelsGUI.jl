@@ -79,18 +79,18 @@ function GUI(
     # Set variables
     vars::Dict{Symbol,Any} = Dict(
         :title => Observable("top_level"),
-        :Δh => 0.05,                # Sidelength of main box
+        :Δh => Observable(0.05f0),  # Sidelength of main box
         :coarse_coast_lines => coarse_coast_lines,
         :Δh_px => 50,               # Pixel size of a box for nodes
         :markersize => 15,          # Marker size for arrows in connections
-        :boundary_add => 0.2,       # Relative to the xlim/ylim-dimensions, expand the axis
+        :boundary_add => 0.2f0,     # Relative to the xlim/ylim-dimensions, expand the axis
         :line_sep_px => 2,          # Separation (in px) between lines for connections
         :connection_linewidth => 2, # line width of connection lines
         :ax_aspect_ratio => 1.0,    # Aspect ratio for the topology plotting area
         :fontsize => fontsize,      # General font size (in px)
         :linewidth => 1.2,          # Width of the line around boxes
         :parent_scaling => 1.1,     # Scale for enlargement of boxes around main boxes for nodes for parent systems
-        :icon_scale => 0.9,         # scale icons w.r.t. the surrounding box in fraction of Δh
+        :icon_scale => 0.9f0,       # scale icons w.r.t. the surrounding box in fraction of Δh
         :two_way_sep_px => 10,      # No pixels between set of lines for nodes having connections both ways
         :selection_color => :green2, # Colors for box boundaries when selection objects
         :investment_lineStyle => Linestyle([1.0, 1.5, 2.0, 2.5] .* 5), # linestyle for investment connections and box boundaries for nodes
@@ -134,16 +134,16 @@ function GUI(
     vars[:hide_topo_ax_decorations] = hide_topo_ax_decorations
     vars[:expand_all] = expand_all
 
-    vars[:xlimits] = Vector{Float64}([0.0, 1.0])
-    vars[:ylimits] = Vector{Float64}([0.0, 1.0])
+    vars[:xlimits] = Vector{Float32}([0.0f0, 1.0f0])
+    vars[:ylimits] = Vector{Float32}([0.0f0, 1.0f0])
 
-    vars[:topo_title_loc_x] = Observable(0.0)
-    vars[:topo_title_loc_y] = Observable(0.0)
+    vars[:topo_title_loc_x] = Observable(0.0f0)
+    vars[:topo_title_loc_y] = Observable(0.0f0)
 
     # Create iterables for plotting objects in layers (z-direction) such that nodes are
     # neatly placed on top of each other and lines are beneath nodes
-    vars[:z_translate_lines] = 1000
-    vars[:z_translate_components] = 5000
+    vars[:z_translate_lines] = 1000.0f0
+    vars[:z_translate_components] = 5000.0f0
 
     vars[:selected_systems] = []
 
@@ -411,7 +411,7 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
     text!(
         ax_info,
         vars[:default_text];
-        position = (0.01, 0.99),
+        position = (0.01f0, 0.99f0),
         align = (:left, :top),
         fontsize = vars[:fontsize],
     )
@@ -429,7 +429,7 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
     text!(
         ax_summary,
         "No model results";
-        position = (0.01, 0.99),
+        position = (0.01f0, 0.99f0),
         align = (:left, :top),
         fontsize = vars[:fontsize],
     )
@@ -626,7 +626,7 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
 
     # Ensure that menus are on top
     for menu ∈ values(menus)
-        translate!(menu.blockscene, 0, 0, vars[:z_translate_components] + 2000)
+        translate!(menu.blockscene, 0.0f0, 0.0f0, vars[:z_translate_components] + 2000.0f0)
     end
 
     # Collect all toggles into a dictionary
@@ -645,7 +645,12 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
         text = vars[:title],
         fontsize = vars[:fontsize],
     )
-    Makie.translate!(vars[:topo_title_obj], 0, 0, vars[:z_translate_components] + 999)
+    Makie.translate!(
+        vars[:topo_title_obj],
+        0.0f0,
+        0.0f0,
+        vars[:z_translate_components] + 999.0f0,
+    )
 
     return fig, buttons, menus, toggles, axes, legends
 end

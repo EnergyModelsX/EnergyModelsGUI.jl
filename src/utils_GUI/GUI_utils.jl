@@ -15,7 +15,7 @@ function toggle_selection_color!(gui::GUI, selection::Connection, selected::Bool
     plots = selection.plots
     if selected
         for plot ∈ plots
-            for plot_sub ∈ plot[]
+            for plot_sub ∈ plot
                 plot_sub.color = get_selection_color(gui)
             end
         end
@@ -23,7 +23,7 @@ function toggle_selection_color!(gui::GUI, selection::Connection, selected::Bool
         colors::Vector{RGB} = selection.colors
         no_colors::Int64 = length(colors)
         for plot ∈ plots
-            for (i, plot_sub) ∈ enumerate(plot[])
+            for (i, plot_sub) ∈ enumerate(plot)
                 plot_sub.color = colors[((i-1)%no_colors)+1]
             end
         end

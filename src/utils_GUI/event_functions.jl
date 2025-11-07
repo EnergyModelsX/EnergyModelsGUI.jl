@@ -4,19 +4,6 @@
 Define event functions (handling button clicks, plot updates, etc.) for the GUI `gui`.
 """
 function define_event_functions(gui::GUI)
-    # Create a function that notifies all components (and thus updates graphics
-    # when the observables are notified)
-    notify_components = () -> begin
-        for component ∈ get_root_design(gui).components
-            notify(component.xy)
-            if !isempty(component.components)
-                for sub_component ∈ component.components
-                    notify(sub_component.xy)
-                end
-            end
-        end
-    end
-
     ax_topo = get_ax(gui, :topo)
     ax_results = get_ax(gui, :results)
     ax_info = get_ax(gui, :info)
@@ -30,7 +17,6 @@ function define_event_functions(gui::GUI)
         get_vars(gui)[:xlimits] = [origin[1], origin[1] + widths[1]]
         get_vars(gui)[:ylimits] = [origin[2], origin[2] + widths[2]]
         update_distances!(gui)
-        notify_components()
         get_var(gui, :topo_title_loc_x)[] = origin[1] + widths[1] / 100
         get_var(gui, :topo_title_loc_y)[] =
             origin[2] + widths[2] - widths[2] / 100 -
@@ -71,20 +57,15 @@ function define_event_functions(gui::GUI)
                 # move a component(s) using the arrow keys
 
                 # get changes
-                change::Tuple{Float64,Float64} = get_change(gui, Val(event.key))
+                change::Point2f = get_change(gui, Val(event.key))
 
                 # check if any changes where made
-                if change != (0.0, 0.0)
+                if change != Point2f(0.0f0, 0.0f0)
                     for sub_design ∈ get_selected_systems(gui)
-                        xc::Real = sub_design.xy[][1]
-                        yc::Real = sub_design.xy[][2]
-
-                        sub_design.xy[] = (xc + change[1], yc + change[2])
+                        sub_design.xy[] += change
 
                         update_sub_system_locations!(sub_design, change)
                     end
-
-                    notify_components()
                 end
             elseif Int(event.key) == 256 # Esc used to move up a level in the topology
                 notify(get_button(gui, :up).clicks)
@@ -123,13 +104,13 @@ function define_event_functions(gui::GUI)
 
     # Alter scrolling functionality in text areas such that it does not zoom but translates in the y-direction
     on(events(ax_info).scroll; priority = 4) do val
-        mouse_pos::Tuple{Float64,Float64} = events(ax_info).mouseposition[]
+        mouse_pos::Tuple{Float32,Float32} = events(ax_info).mouseposition[]
         if mouse_within_axis(ax_info, mouse_pos)
-            scroll_ylim(ax_info, val[2] * 0.1)
+            scroll_ylim(ax_info, val[2] * 0.1f0)
             return Consume(true)
         end
         if mouse_within_axis(ax_summary, mouse_pos)
-            scroll_ylim(ax_summary, val[2] * 0.1)
+            scroll_ylim(ax_summary, val[2] * 0.1f0)
             return Consume(true)
         end
         if mouse_within_axis(ax_results, mouse_pos)
@@ -146,7 +127,7 @@ function define_event_functions(gui::GUI)
             time_difference = current_click_time - last_click_time[]
             dragging = get_var(gui, :dragging)
             if event.action == Mouse.press
-                mouse_pos = events(ax_topo).mouseposition[]
+                mouse_pos::Tuple{Float32,Float32} = events(ax_topo).mouseposition[]
 
                 # Check if mouseclick is outside the ax_topo area (and return if so)
                 ctrl_is_pressed = get_var(gui, :ctrl_is_pressed)[]
@@ -216,20 +197,20 @@ function define_event_functions(gui::GUI)
     # Handle mouse movement
     on(events(ax_topo).mouseposition; priority = 2) do mouse_pos # priority ≥ 2 in order to suppress GLMakie left-click and drag zoom feature
         if get_var(gui, :dragging)[]
-            origin::Vec2{Int64} = pixelarea(ax_topo.scene)[].origin
-            widths::Vec2{Int64} = pixelarea(ax_topo.scene)[].widths
-            mouse_pos_loc::Vec2{Float64} = mouse_pos .- origin
+            origin::Point2f = pixelarea(ax_topo.scene)[].origin
+            widths::Point2f = pixelarea(ax_topo.scene)[].widths
+            mouse_pos_loc::Point2f = mouse_pos .- origin
 
-            xy_widths::Vec2 = ax_topo.finallimits[].widths
-            xy_origin::Vec2 = ax_topo.finallimits[].origin
+            xy_widths::Point2f = ax_topo.finallimits[].widths
+            xy_origin::Point2f = ax_topo.finallimits[].origin
 
-            xy::Vec2{Float64} = xy_origin .+ mouse_pos_loc .* xy_widths ./ widths
+            xy::Point2f = xy_origin .+ mouse_pos_loc .* xy_widths ./ widths
             selected_systems = get_selected_systems(gui)
             if !isempty(selected_systems) && isa(selected_systems[1], EnergySystemDesign) # Only nodes/area can be moved (connections will update correspondinlgy)
                 sub_design::EnergySystemDesign = selected_systems[1]
 
-                update_sub_system_locations!(sub_design, Tuple(xy .- sub_design.xy[]))
-                sub_design.xy[] = Tuple(xy)
+                update_sub_system_locations!(sub_design, xy .- sub_design.xy[])
+                sub_design.xy[] = Point2f(xy)
             end
             return Consume(true)
         end
@@ -364,7 +345,6 @@ function define_event_functions(gui::GUI)
         get_vars(gui)[:expand_all] = val
         plot_design!(gui, get_design(gui); expand_all = val)
         update_distances!(gui)
-        notify_components()
         return Consume(false)
     end
 

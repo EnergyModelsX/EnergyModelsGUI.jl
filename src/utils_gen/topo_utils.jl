@@ -1,16 +1,11 @@
 """
-    square_intersection(
-        c::Vector{Tc}, x::Vector{Tx},
-        θ::Tθ, Δ::TΔ
-    ) where {Tc<:Real, Tx<:Real, Tθ<:Real, TΔ<:Real}
+    square_intersection(c::Point2f, x::Point2f, θ::Float32, Δ::Float32)
 
 Calculate the intersection point between a line starting at `x` and direction described by
 `θ`, and a square with half side lengths `Δ` centered at center `c`. If the line does not
 intersect the square, the extension of the two facing sides to `x` will be used instead.
 """
-function square_intersection(
-    c::Vector{Tc}, x::Vector{Tx}, θ::Tθ, Δ::TΔ,
-) where {Tc<:Real,Tx<:Real,Tθ<:Real,TΔ<:Real}
+function square_intersection(c::Point2f, x::Point2f, θ::Float32, Δ::Float32)
     # Direction vector from θ
     dx = cos(θ)
     dy = sin(θ)
@@ -20,18 +15,24 @@ function square_intersection(
     ymin, ymax = c[2] - Δ, c[2] + Δ
 
     # Parametric line: X = x[1] + t*dx, Y = x[2] + t*dy
-    ts = Float64[]
+    ts = Float32[]
+    ts_out = Float32[]
+
     # Check intersection with vertical sides (x = xmin and x = xmax)
     if abs(dx) > eps()
         t1 = (xmin - x[1]) / dx
         y1 = x[2] + t1 * dy
         if ymin <= y1 <= ymax
             push!(ts, t1)
+        else
+            push!(ts_out, t1)
         end
         t2 = (xmax - x[1]) / dx
         y2 = x[2] + t2 * dy
         if ymin <= y2 <= ymax
             push!(ts, t2)
+        else
+            push!(ts_out, t2)
         end
     end
     # Check intersection with horizontal sides (y = ymin and y = ymax)
@@ -40,58 +41,31 @@ function square_intersection(
         x3 = x[1] + t3 * dx
         if xmin <= x3 <= xmax
             push!(ts, t3)
+        else
+            push!(ts_out, t3)
         end
         t4 = (ymax - x[2]) / dy
         x4 = x[1] + t4 * dx
         if xmin <= x4 <= xmax
             push!(ts, t4)
-        end
-    end
-
-    # Only consider intersections in the positive direction (t > 0)
-    ts_pos = filter(t -> t > 0, ts)
-    if !isempty(ts_pos)
-        tmin = minimum(ts_pos)
-        return [x[1] + tmin * dx, x[2] + tmin * dy]
-    else
-        # No intersection: find which two sides are "facing" x
-        # Compute vector from x to center
-        vx, vy = c[1] - x[1], c[2] - x[2]
-        # Determine which vertical side is facing x
-        xside = vx > 0 ? xmin : xmax
-        # Determine which horizontal side is facing x
-        yside = vy > 0 ? ymin : ymax
-
-        # Compute intersection with the extension of the facing vertical side
-        t_v = abs(dx) > eps() ? (xside - x[1]) / dx : Inf
-        # Compute intersection with the extension of the facing horizontal side
-        t_h = abs(dy) > eps() ? (yside - x[2]) / dy : Inf
-
-        # Choose the closest positive intersection
-        t_candidates = filter(t -> t > 0, [t_v, t_h])
-        if !isempty(t_candidates)
-            tmin = minimum(t_candidates)
-            return [x[1] + tmin * dx, x[2] + tmin * dy]
         else
-            @info "No meaningful intersection found." "c = $c" "x = $x" "θ = $θ" "Δ = $Δ"
-            throw(ArgumentError("No meaningful intersection found."))
+            push!(ts_out, t4)
         end
     end
+
+    tmin = isempty(ts) ? minimum(abs.(ts_out)) : minimum(abs.(ts))
+
+    return x + tmin * Point2f(dx, dy)
 end
 
 """
-    square_intersection(
-        c::Tuple{Tc, Tc},
-        θ::Tθ, Δ::TΔ
-    ) where {Tc<:Real, Tx<:Real, Tθ<:Real, TΔ<:Real}
+    square_intersection(c::Point2f, θ::Float32, Δ::Float32)
 
 Calculate the intersection point between a line starting at `c` and direction described
 by `θ` and a square with half side lengths `Δ` centered at center `c`.
 """
-function square_intersection(
-    c::Tuple{Tc,Tc}, θ::Tθ, Δ::TΔ,
-) where {Tc<:Real,Tθ<:Real,TΔ<:Real}
-    return square_intersection(collect(c), collect(c), θ, Δ)
+function square_intersection(c::Point2f, θ::Float32, Δ::Float32)
+    return square_intersection(c, c, θ, Δ)
 end
 
 """
@@ -118,8 +92,8 @@ given the minimum and maximum coordinates `min_x`, `min_y`, `max_x`, and `max_y`
 function find_min_max_coordinates(
     design::EnergySystemDesign, min_x::Number, max_x::Number, min_y::Number, max_y::Number,
 )
-    if design.xy !== nothing && !isa(get_parent(design), NothingElement)
-        x, y = design.xy[]
+    if !isa(get_parent(design), NothingElement)
+        x, y = design.xy[][1], design.xy[][2]
         min_x = min(min_x, x)
         max_x = max(max_x, x)
         min_y = min(min_y, y)
@@ -155,13 +129,13 @@ function angle(node_1::EnergySystemDesign, node_2::EnergySystemDesign)
 end
 
 """
-    angle_difference(angle1, angle2)
+    angle_difference(angle1::Float32, angle2::Float32)
 
 Compute the difference between two angles.
 """
-function angle_difference(angle1, angle2)
-    diff = abs(angle1 - angle2) % (2π)
-    return min(diff, 2π - diff)
+function angle_difference(angle1::Float32, angle2::Float32)
+    diff::Float32 = abs(angle1 - angle2) % Float32(2π)
+    return min(diff, Float32(2π) - diff)
 end
 
 """
@@ -176,36 +150,36 @@ get_text_alignment(::Val{:S}) = (:center, :top)
 get_text_alignment(::Val{:N}) = (:center, :bottom)
 
 """
-    function box(x, y, Δ)
+    function box(x::Float32, y::Float32, Δ::Float32)
 
 Get the coordinates of a box with half side lengths `Δ` and centered at (`x`,`y`) starting
 at the upper right corner.
 """
-function box(x::Real, y::Real, Δ::Real)
-    xs::Vector{Real} = [x + Δ, x - Δ, x - Δ, x + Δ, x + Δ]
-    ys::Vector{Real} = [y + Δ, y + Δ, y - Δ, y - Δ, y + Δ]
+function box(x::Float32, y::Float32, Δ::Float32)
+    xs::Vector{Float32} = [x + Δ, x - Δ, x - Δ, x + Δ, x + Δ]
+    ys::Vector{Float32} = [y + Δ, y + Δ, y - Δ, y - Δ, y + Δ]
 
     return xs, ys
 end
 
 """
-    update_sub_system_locations!(design::EnergySystemDesign, Δ::Tuple{Real,Real})
+    update_sub_system_locations!(design::EnergySystemDesign, Δ::Point2f)
 
 Update the coordinates of a subsystem of design based on the movement of EnergySystemDesign
 `design`.
 """
-function update_sub_system_locations!(design::EnergySystemDesign, Δ::Tuple{Real,Real})
+function update_sub_system_locations!(design::EnergySystemDesign, Δ::Point2f)
     for component ∈ get_components(design)
-        get_xy(component)[] = get_xy(component)[] .+ Δ
+        get_xy(component)[] += Δ
     end
 end
 
 """
     get_sector_points(;
-        center::Tuple{Real,Real} = (0.0, 0.0),
-        Δ::Real = 1.0,
-        θ₁::Real = 0,
-        θ₂::Real = π/4,
+        center::Point2f = Point2f(0.0f0, 0.0f0),
+        Δ::Float32 = 1.0f0,
+        θ₁::Float32 = 0.0f0,
+        θ₂::Float32 = Float32(π / 4),
         steps::Int=200,
         geometry::Symbol = :circle)
 
@@ -214,20 +188,20 @@ and angles `θ₁` and `θ₂` for a square (geometry = :rect), a circle (geomet
 triangle (geometry = :triangle).
 """
 function get_sector_points(;
-    c::Tuple{Real,Real} = (0.0, 0.0),
-    Δ::Real = 1.0,
-    θ₁::Real = 0.0,
-    θ₂::Real = π / 4,
+    c::Point2f = Point2f(0.0f0, 0.0f0),
+    Δ::Float32 = 1.0f0,
+    θ₁::Float32 = 0.0f0,
+    θ₂::Float32 = Float32(π / 4),
     steps::Int = 200,
     geometry::Symbol = :circle,
 )
     if geometry == :circle
-        θ::Vector{Float64} = LinRange(θ₁, θ₂, Int(round(steps * (θ₂ - θ₁) / (2π))))
-        x_coords::Vector{Float64} = Δ * cos.(θ) .+ c[1]
-        y_coords::Vector{Float64} = Δ * sin.(θ) .+ c[2]
+        θ::Vector{Float32} = LinRange(θ₁, θ₂, Int(round(steps * (θ₂ - θ₁) / (2π))))
+        x_coords::Vector{Float32} = Δ * cos.(θ) .+ c[1]
+        y_coords::Vector{Float32} = Δ * sin.(θ) .+ c[2]
 
         # Include the center and close the polygon
-        return [c; collect(zip(x_coords, y_coords)); c]
+        return Point2f[c, collect(zip(x_coords, y_coords))..., c]
     elseif geometry == :rect
         if θ₁ == 0 && θ₂ ≈ 2π
             x_coords, y_coords = box(c[1], c[2], Δ)
@@ -235,31 +209,31 @@ function get_sector_points(;
         else
             xy1 = square_intersection(c, θ₁, Δ)
             xy2 = square_intersection(c, θ₂, Δ)
-            vertices = [c; Tuple(xy1)]
+            vertices = Point2f[c, xy1]
             xsign = [1, -1, -1, 1]
             ysign = [1, 1, -1, -1]
-            for (i, corner_angle) ∈ enumerate([π / 4, 3π / 4, 5π / 4, 7π / 4])
+            for (i, corner_angle) ∈ enumerate(Float32[π/4, 3π/4, 5π/4, 7π/4])
                 if θ₁ < corner_angle && θ₂ > corner_angle
                     push!(vertices, c .+ (Δ * xsign[i], Δ * ysign[i]))
                 end
             end
-            push!(vertices, Tuple(xy2))
+            push!(vertices, xy2)
             push!(vertices, c)
             return vertices
         end
     elseif geometry == :triangle
-        input::Bool = θ₂ > π / 2
-        if input                        # input resources on a triangle to the left
+        input::Bool = (θ₁ + θ₂) / 2 > π / 2
+        if input                      # input resources on a triangle to the left
             f = θ -> -2Δ * θ / π + 2Δ
         else                          # output resources on a triangle to the right
             f = θ -> 2Δ * θ / π
         end
-        d::Float64 = Δ / 2
-        x::Tuple{Float64,Float64} = input ? c .- (d / 2, 0) : c .+ (d / 2, 0)
-        x_side::Float64 = input ? -Δ : Δ
-        xy1 = c .+ (x_side, f(θ₁))
-        xy2 = c .+ (x_side, f(θ₂))
-        return [x; xy1; xy2; x]
+        d::Float32 = Δ / 2
+        x::Point2f = input ? c .- (d / 2, 0) : c .+ (d / 2, 0)
+        x_side::Float32 = input ? -Δ : Δ
+        xy1 = c .+ Point2f(x_side, f(θ₁))
+        xy2 = c .+ Point2f(x_side, f(θ₂))
+        return Point2f[x, xy1, xy2, x]
     else
         @error "Geometry $geometry is not implemented."
     end

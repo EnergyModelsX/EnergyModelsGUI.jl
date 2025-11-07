@@ -182,24 +182,24 @@ function get_max_installed(::Any, ::Vector{<:TS.TimeStructure})
 end
 
 """
-    mouse_within_axis(ax::Makie.AbstractAxis, mouse_pos::Tuple{Float64,Float64})
+    mouse_within_axis(ax::Makie.AbstractAxis, mouse_pos::Tuple{Float32,Float32})
 
 Check if mouse position is within the pixel area of `ax`.
 """
-function mouse_within_axis(ax::Makie.AbstractAxis, mouse_pos::Tuple{Float64,Float64})
+function mouse_within_axis(ax::Makie.AbstractAxis, mouse_pos::Tuple{Float32,Float32})
     origin::Vec2{Int64} = pixelarea(ax.scene)[].origin
     widths::Vec2{Int64} = pixelarea(ax.scene)[].widths
-    mouse_pos_loc::Vec2{Float64} = mouse_pos .- origin
+    mouse_pos_loc::Vec2{Float32} = mouse_pos .- origin
 
-    return all(mouse_pos_loc .> 0.0) && all(mouse_pos_loc .- widths .< 0.0)
+    return all(mouse_pos_loc .> 0.0f0) && all(mouse_pos_loc .- widths .< 0.0f0)
 end
 
 """
-    scroll_ylim(ax::Makie.AbstractAxis, val::Float64)
+    scroll_ylim(ax::Makie.AbstractAxis, val::Float32)
 
 Shift the ylim with `val` units to mimic scrolling feature of an axis `ax`.
 """
-function scroll_ylim(ax::Makie.AbstractAxis, val::Float64)
+function scroll_ylim(ax::Makie.AbstractAxis, val::Float32)
     ylim = collect(ax.yaxis.attributes.limits[])
     ylim .+= val
     if ylim[2] > 1

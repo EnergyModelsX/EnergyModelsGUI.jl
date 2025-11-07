@@ -128,22 +128,22 @@ end
         @test node2.color[] == :black
 
         connection1 = connections[1] # fetch the Area 1 - Area 2 transmission
-        plt_connection1 = connection1.plots[1][][1]
+        plt_connection1 = connection1.plots[1][1]
         pick_component!(gui, plt_connection1; pick_topo_component = true)
         update!(gui)
-        @test get_plots(connection1)[1][][1].color[] == get_selection_color(gui)
+        @test get_plots(connection1)[1][1].color[] == get_selection_color(gui)
         pick_component!(gui, nothing; pick_topo_component = true)
-        @test get_plots(connection1)[1][][1].color[] == connection1.colors[1]
+        @test get_plots(connection1)[1][1].color[] == connection1.colors[1]
 
         link1 = get_connections(components[1])[5] # fetch the link to heat pump
-        plt_link1 = link1.plots[1][][1]
+        plt_link1 = link1.plots[1][1]
         pick_component!(gui, plt_link1; pick_topo_component = true)
         update!(gui)
-        @test get_plots(link1)[1][][1].color[] == get_selection_color(gui)
+        @test get_plots(link1)[1][1].color[] == get_selection_color(gui)
         pick_component!(gui, nothing; pick_topo_component = true)
         for plot ∈ link1.plots
             for (i, color) ∈ enumerate(link1.colors)
-                @test plot[][i].color[] == color
+                @test plot[i].color[] == color
             end
         end
     end
@@ -203,10 +203,10 @@ end
 
     # Test reset view button
     @testset "get_button(gui,:reset_view).clicks" begin
-        change::Tuple{Real,Real} = (1.3, -5.5)
+        change::EMGUI.Point2f = EMGUI.Point2f(1.3f0, -5.5f0)
         xy = components[3].xy
-        xc::Real = xy[][1]
-        yc::Real = xy[][2]
+        xc::Float32 = xy[][1]
+        yc::Float32 = xy[][2]
 
         xy[] = (xc + change[1], yc + change[2])
 

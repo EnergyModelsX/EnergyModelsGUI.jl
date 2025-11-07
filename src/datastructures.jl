@@ -119,8 +119,7 @@ energy system designs in Julia.
 - **`components::Vector{EnergySystemDesign}`** is the components of the system, stored
   as an array of EnergySystemDesign objects.
 - **`connections::Vector{Connection}`** are the connections between system parts.
-- **`xy::Observable{Tuple{Real,Real}}`** are the coordinates of the system, observed for
-  changes.
+- **`xy::Observable{<:Point2f}`** are the coordinates of the system, observed for changes.
 - **`icon::String`** is the optional (path to) icons associated with the system, stored as
   a string.
 - **`color::Observable{Symbol}`** is the color of the system, observed for changes and
@@ -138,7 +137,7 @@ mutable struct EnergySystemDesign <: AbstractGUIObj
     id_to_icon_map::Dict
     components::Vector{EnergySystemDesign}
     connections::Vector
-    xy::Observable{Tuple{Real,Real}}
+    xy::Observable{<:Point2f}
     icon::String
     color::Observable{Symbol}
     wall::Observable{Symbol}
@@ -152,7 +151,7 @@ function EnergySystemDesign(
     id_to_icon_map::Dict,
     components::Vector{EnergySystemDesign},
     connections::Vector,
-    xy::Observable{Tuple{Real,Real}},
+    xy::Observable{<:Point2f},
     icon::String,
     color::Observable{Symbol},
     wall::Observable{Symbol},
