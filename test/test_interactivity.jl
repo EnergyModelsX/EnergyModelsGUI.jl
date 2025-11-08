@@ -52,6 +52,12 @@ pin_plot_button = get_button(gui, :pin_plot)
         @test Base.show(design) == dump(design; maxdepth = 1)
         @test Base.show(component) == dump(component; maxdepth = 1)
         @test Base.show(connection) == dump(connection; maxdepth = 1)
+
+        inv_data = EMGUI.get_inv_data(design)
+        @test Base.show(inv_data) == dump(inv_data; maxdepth = 1)
+
+        system = EMGUI.parse_case(case)
+        @test Base.show(system) == dump(system; maxdepth = 1)
     end
 
     @testset "Test customizing descriptive names" begin
