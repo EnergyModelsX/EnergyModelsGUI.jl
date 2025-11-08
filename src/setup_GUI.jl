@@ -162,10 +162,12 @@ function GUI(
         "\tholding x while scrolling over plots will zoom in/out in the x-direction.\n",
         "\tholding y while scrolling over plots will zoom in/out in the y-direction.\n\n",
         "Left-clicking a component will put information about this component here.\n\n",
-        "Clicking a plot below enables you to pin this plot (hitting the `pin\n\
-        current plot` button) for comparison with other plots.\n",
+        "Clicking a plot below enables you to pin this plot (hitting the `pin\n",
+        "current plot` button) for comparison with other plots.\n",
         "Use the `Delete` button to unpin a selected plot.",
     )
+    vars[:info_text] = Observable(vars[:default_text])
+    vars[:summary_text] = Observable("No model results")
     vars[:dragging] = Ref(false)
     vars[:ctrl_is_pressed] = Ref(false)
 
@@ -410,7 +412,7 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
     # Add text at the top left of the axis domain (to print information of the selected/hovered node/connection)
     text!(
         ax_info,
-        vars[:default_text];
+        vars[:info_text];
         position = (0.01f0, 0.99f0),
         align = (:left, :top),
         fontsize = vars[:fontsize],
@@ -428,7 +430,7 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
     # Add text at the top left of the axis domain (to print information of the selected/hovered node/connection)
     text!(
         ax_summary,
-        "No model results";
+        vars[:summary_text];
         position = (0.01f0, 0.99f0),
         align = (:left, :top),
         fontsize = vars[:fontsize],
@@ -467,7 +469,7 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
     expand_all_toggle = Makie.Toggle(gridlayout_taskbar[1, 8]; active = vars[:expand_all])
 
     # Add the following to add flexibility
-    Makie.Label(gridlayout_taskbar[1, 9], ""; tellwidth = false)
+    Makie.Label(gridlayout_taskbar[1, 9], " "; tellwidth = false)
 
     # Add buttons related to the ax_results object (where the optimization results are plotted)
     Makie.Label(
@@ -539,11 +541,14 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
         justification = :right,
     )
     available_data_menu = Makie.Menu(
-        gridlayout_results_taskbar2[1, 2]; halign = :left, fontsize = vars[:fontsize],
+        gridlayout_results_taskbar2[1, 2];
+        options = zip(["no options"], [nothing]),
+        halign = :left,
+        fontsize = vars[:fontsize],
     )
 
     # Add the following to add flexibility
-    Makie.Label(gridlayout_results_taskbar3[1, 1], ""; tellwidth = false)
+    Makie.Label(gridlayout_results_taskbar3[1, 1], " "; tellwidth = false)
 
     reset_view_results_button = Makie.Button(
         gridlayout_results_taskbar3[1, 2]; label = "reset view",
@@ -638,7 +643,7 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
     )
 
     # Update the title of the figure
-    vars[:topo_title_obj] = text!(
+    topo_title_obj = text!(
         ax,
         vars[:topo_title_loc_x],
         vars[:topo_title_loc_y];
@@ -646,7 +651,7 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
         fontsize = vars[:fontsize],
     )
     Makie.translate!(
-        vars[:topo_title_obj],
+        topo_title_obj,
         0.0f0,
         0.0f0,
         vars[:z_translate_components] + 999.0f0,

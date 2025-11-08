@@ -399,7 +399,8 @@ function initialize_available_data!(gui)
             investment_overview *= "Investment overview (CAPEX):\n"
             investment_overview *= inv_overview_components
         end
-        get_ax(gui, :summary).scene.plots[1][1][] = investment_overview
+        summary_text = get_var(gui, :summary_text)
+        summary_text[] = investment_overview
     else
         if !isempty(model)
             @warn "Total quantities were not computed as model does not contain a feasible solution"

@@ -686,10 +686,9 @@ end
 Update the title of `get_axes(gui)[:topo]` based on `get_design(gui)`.
 """
 function update_title!(gui::GUI)
-    design = get_design(gui)
-    system = get_system(design)
-    parent = get_parent(system)
-    get_var(gui, :title)[] = if isa(parent, NothingElement)
+    parent = get_parent(gui)
+    title_obs = get_var(gui, :title)
+    title_obs[] = if isa(parent, NothingElement)
         "top_level"
     else
         "top_level.$(parent)"

@@ -195,11 +195,11 @@ function mouse_within_axis(ax::Makie.AbstractAxis, mouse_pos::Tuple{Float32,Floa
 end
 
 """
-    scroll_ylim(ax::Makie.AbstractAxis, val::Float32)
+    scroll_ylim(ax::Makie.AbstractAxis, val::Float64)
 
 Shift the ylim with `val` units to mimic scrolling feature of an axis `ax`.
 """
-function scroll_ylim(ax::Makie.AbstractAxis, val::Float32)
+function scroll_ylim(ax::Makie.AbstractAxis, val::Float64)
     ylim = collect(ax.yaxis.attributes.limits[])
     ylim .+= val
     if ylim[2] > 1
