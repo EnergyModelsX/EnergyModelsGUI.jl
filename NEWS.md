@@ -1,5 +1,19 @@
 # Release notes
 
+## Version 0.5.17 (2025-11-09)
+
+### Bugfix
+
+* Fix bug that made nodes/areas disappear when plotting too many objects (max z_level is 10000).
+* Fix square_intersection function.
+
+### Enhancements
+
+* Use `Float32` instead of `Number`/`Real`/`Float64` for coordinate related computations in topo (also `Point2f` instead of `Tuple` and `Vector`). 
+* Remove redundant `notify_component` function and `Observable`s (use the `@lift` macro instead).
+* Improve performance of updates to `ax_info`.
+* Add missing tests for show-function on the types `AbstractSystem` and `ProcInvData`, and improve code structure.
+
 ## Version 0.5.16 (2025-09-24)
 
 ### Enhancement
