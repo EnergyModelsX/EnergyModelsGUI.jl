@@ -323,9 +323,7 @@ function connect!(gui::GUI, connection::Connection, two_way::Bool)
             inspectable = true,
         )
         Makie.translate!(sctr, 0, 0, get_var(gui, :z_translate_lines))
-        get_vars(gui)[:z_translate_lines] += 1
         Makie.translate!(lns, 0, 0, get_var(gui, :z_translate_lines))
-        get_vars(gui)[:z_translate_lines] += 1
 
         sctr.kw[:EMGUI_obj] = connection
         lns.kw[:EMGUI_obj] = connection
@@ -333,6 +331,7 @@ function connect!(gui::GUI, connection::Connection, two_way::Bool)
         push!(arrow_heads, sctr)
         push!(line_connections, lns)
     end
+    get_vars(gui)[:z_translate_lines] += 0.0001f0
 end
 
 """
@@ -425,7 +424,7 @@ function draw_box!(gui::GUI, design::EnergySystemDesign)
         ) # Create a white background rectangle to hide lines from connections
 
         Makie.translate!(white_rect2, 0.0f0, 0.0f0, get_var(gui, :z_translate_components))
-        get_vars(gui)[:z_translate_components] += 1.0f0
+        get_vars(gui)[:z_translate_components] += 0.0001f0
         push!(design.plots, white_rect2)
         white_rect2.kw[:EMGUI_obj] = design
     end
@@ -445,7 +444,7 @@ function draw_box!(gui::GUI, design::EnergySystemDesign)
 
     add_inspector_to_poly!(white_rect, (self, i, p) -> get_hover_string(design))
     Makie.translate!(white_rect, 0.0f0, 0.0f0, get_var(gui, :z_translate_components))
-    get_vars(gui)[:z_translate_components] += 1.0f0
+    get_vars(gui)[:z_translate_components] += 0.0001f0
 
     push!(design.plots, white_rect)
     white_rect.kw[:EMGUI_obj] = design
@@ -512,7 +511,6 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
                     0.0f0,
                     get_var(gui, :z_translate_components),
                 )
-                get_vars(gui)[:z_translate_components] += 1.0f0
                 network_poly.kw[:EMGUI_obj] = design
                 push!(design.plots, network_poly)
             end
@@ -546,7 +544,6 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
                 0.0f0,
                 get_var(gui, :z_translate_components),
             )
-            get_vars(gui)[:z_translate_components] += 1.0f0
             center_box.kw[:EMGUI_obj] = design
             push!(design.plots, center_box)
         end
@@ -565,10 +562,10 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
             inspectable = false,
         )
         Makie.translate!(icon_image, 0.0f0, 0.0f0, get_var(gui, :z_translate_components))
-        get_vars(gui)[:z_translate_components] += 1.0f0
         icon_image.kw[:EMGUI_obj] = design
         push!(design.plots, icon_image)
     end
+    get_vars(gui)[:z_translate_components] += 0.0001f0
 end
 
 """
@@ -617,7 +614,7 @@ function draw_label!(gui::GUI, component::EnergySystemDesign)
         color = font_color,
     )
     Makie.translate!(label_text, 0.0f0, 0.0f0, get_var(gui, :z_translate_components))
-    get_vars(gui)[:z_translate_components] += 1.0f0
+    get_vars(gui)[:z_translate_components] += 0.0001f0
     label_text.kw[:EMGUI_obj] = component
     push!(get_plots(component), label_text)
 end

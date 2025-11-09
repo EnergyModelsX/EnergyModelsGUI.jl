@@ -142,8 +142,8 @@ function GUI(
 
     # Create iterables for plotting objects in layers (z-direction) such that nodes are
     # neatly placed on top of each other and lines are beneath nodes
-    vars[:z_translate_lines] = 1000.0f0
-    vars[:z_translate_components] = 5000.0f0
+    vars[:z_translate_lines] = 10.0f0
+    vars[:z_translate_components] = 50.0f0
 
     vars[:selected_systems] = []
 
