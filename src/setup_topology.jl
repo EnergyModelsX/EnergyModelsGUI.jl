@@ -11,8 +11,8 @@ the function initializes the `EnergySystemDesign`.
 - **`design_path::String=""`** is a file path or identifier related to the design.
 - **`id_to_color_map::Dict`** is a dictionary of resources and their assigned colors.
 - **`id_to_icon_map::Dict`** is a dictionary of nodes and their assigned icons.
-- **`x::Real=0.0`** is the initial x-coordinate of the system.
-- **`y::Real=0.0`** is the initial y-coordinate of the system.
+- **`x::Float32=0.0f0`** is the initial x-coordinate of the system.
+- **`y::Float32=0.0f0`** is the initial y-coordinate of the system.
 - **`icon::String=""`** is the optional (path to) icons associated with the system, stored as
   a string.
 - **`parent::Union{Symbol, Nothing}=nothing`** is a parent reference or indicator.
@@ -27,8 +27,8 @@ function EnergySystemDesign(
     design_path::String = "",
     id_to_color_map::Dict = Dict(),
     id_to_icon_map::Dict = Dict(),
-    x::Real = 0.0,
-    y::Real = 0.0,
+    x::Float32 = 0.0f0,
+    y::Float32 = 0.0f0,
     icon::String = "",
 )
     # Create the path to the file where existing design is stored (if any)
@@ -53,7 +53,7 @@ function EnergySystemDesign(
 
     # Create an observable for the coordinate xy that can be inherited as the coordinate
     # parent_xy
-    xy::Observable{Tuple{Real,Real}} = Observable((x, y))
+    xy::Observable{Point2f} = Observable(Point2f(x, y))
 
     # Create an iterator for the current system
     elements = get_children(system)
@@ -73,23 +73,22 @@ function EnergySystemDesign(
 
             # Extract x and y coordinates from file, or from structure or add defaults
             if haskey(system_info, "x") && haskey(system_info, "y")
-                x = system_info["x"]
-                y = system_info["y"]
+                x = Float32(system_info["x"])
+                y = Float32(system_info["y"])
             elseif isa(system, SystemGeo)
                 if hasproperty(element, :lon) && hasproperty(element, :lat)
                     # assigning longitude and latitude
-                    x = element.lon
-                    y = element.lat
+                    x = Float32(element.lon)
+                    y = Float32(element.lat)
                 else
                     @error "Missing lon and/or lat coordinates"
                 end
             else
                 if element == get_ref_element(system)
-                    x = parent_x
-                    y = parent_y
+                    x, y = parent_x, parent_y
                 else # place nodes in a circle around the parents availability node
                     x, y = place_nodes_in_circle(
-                        nodes_count, current_node, 1, parent_x, parent_y,
+                        nodes_count, current_node, 1.0f0, parent_x, parent_y,
                     )
                     current_node += 1
                 end

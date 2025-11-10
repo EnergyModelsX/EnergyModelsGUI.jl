@@ -12,6 +12,9 @@ Visualization of the results after simulations will be added at a later stage.
 
 The EnergyModelsGUI package has taken inspiration from the source code of [ModelingToolkitDesigner](https://github.com/bradcarman/ModelingToolkitDesigner.jl) as a starting point for development.
 
+> [!WARNING]
+> EnergyModelsGUI.jl currently does not support Julia verison 1.12 due to a breaking change in GLMakie. It is assumed that this issue will resolve soon in the future.
+
 ## Usage
 
 If you already have constructed a `case` in EMX you can view this case with

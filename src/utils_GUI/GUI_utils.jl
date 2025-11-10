@@ -15,7 +15,7 @@ function toggle_selection_color!(gui::GUI, selection::Connection, selected::Bool
     plots = selection.plots
     if selected
         for plot ∈ plots
-            for plot_sub ∈ plot[]
+            for plot_sub ∈ plot
                 plot_sub.color = get_selection_color(gui)
             end
         end
@@ -23,7 +23,7 @@ function toggle_selection_color!(gui::GUI, selection::Connection, selected::Bool
         colors::Vector{RGB} = selection.colors
         no_colors::Int64 = length(colors)
         for plot ∈ plots
-            for (i, plot_sub) ∈ enumerate(plot[])
+            for (i, plot_sub) ∈ enumerate(plot)
                 plot_sub.color = colors[((i-1)%no_colors)+1]
             end
         end
@@ -399,7 +399,8 @@ function initialize_available_data!(gui)
             investment_overview *= "Investment overview (CAPEX):\n"
             investment_overview *= inv_overview_components
         end
-        get_ax(gui, :summary).scene.plots[1][1][] = investment_overview
+        summary_text = get_var(gui, :summary_text)
+        summary_text[] = investment_overview
     else
         if !isempty(model)
             @warn "Total quantities were not computed as model does not contain a feasible solution"
