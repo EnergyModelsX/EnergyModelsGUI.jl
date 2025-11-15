@@ -183,6 +183,8 @@ function GUI(
     end
     screen = GLMakie.Screen(title = fig_title)
 
+    display(screen, fig)
+
     ## Create the main structure for the EnergyModelsGUI
     gui::GUI = GUI(
         fig, screen, axes, legends, buttons, menus, toggles, root_design, design,
@@ -206,15 +208,15 @@ function GUI(
     # Define all event functions in the GUI
     define_event_functions(gui)
 
+    # Update the placement of the title of the topology axis
+    notify(axes[:topo].finallimits)
+
     # make sure all graphics is adapted to the spawned figure sizes
     notify(get_toggle(gui, :expand_all).active)
 
     # Enable inspector (such that hovering objects shows information)
     # Linewidth set to zero as this boundary is slightly laggy on movement
     DataInspector(fig; range = 3, indicator_linewidth = 0)
-
-    # display the figure
-    display(screen, fig)
 
     return gui
 end
@@ -281,7 +283,7 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
             gridlayout_topology_ax[1, 1];
             source,
             dest,
-            alignmode = Outside(),
+            alignmode = Inside(),
         )
 
         if vars[:coarse_coast_lines] # Use low resolution coast lines

@@ -480,11 +480,10 @@ function update_plot!(gui::GUI, element)
             n_visible = length(get_visible_data(gui, time_axis)) + 1
             colormap = get_var(gui, :colormap)
             i = (n_visible - 1 % length(colormap)) + 1
-            color = Observable(parse(Colorant, colormap[i]))
+            color = colormap[i]
             if time_axis == :results_op
                 plot = stairs!(ax, points; step = :pre, label = label, color = color)
                 plot.color = color
-                plot.plots[1].color = color
             else
                 plot = barplot!(
                     ax,
@@ -503,8 +502,7 @@ function update_plot!(gui::GUI, element)
                 :selection => selection[:selection],
                 :t => periods,
                 :y => y_values,
-                :color => color[],
-                :color_obs => color,
+                :color => color,
                 :pinned => false,
                 :visible => true,
                 :selected => false,
@@ -533,13 +531,10 @@ function update_plot!(gui::GUI, element)
             overwritable[:xticks] = xticks
         end
         update_barplot_dodge!(gui)
-        if all(y_values .≈ 0) && !(time_axis == :results_op)
-            # Deactivate inspector for bars to avoid issue with wireframe when selecting
-            # a bar with values being zero
-            toggle_inspector!(plot, false)
-        else
-            toggle_inspector!(plot, true)
-        end
+
+        # Deactivate inspector for bars to avoid issue with wireframe when selecting
+        # a bar with values being zero
+        plot.inspectable = !(all(y_values .≈ 0) && !(time_axis == :results_op))
 
         if isnothing(get_results_legend(gui)) # Initialize the legend box
             gui.legends[:results] = axislegend(
@@ -610,44 +605,14 @@ end
 """
     update_limits!(ax::Axis)
 
-Adjust limits automatically to take into account legend and machine epsilon issues.
+Adjust limits automatically to avoid legend box overlapping the data.left
 """
 function update_limits!(ax::Axis)
-    # Fetch all y-values in the axis
-    barplots = getfirst(x -> isa(x, Makie.BarPlot) && x.visible[], ax.scene.plots)
-    if isnothing(barplots)
-        xy = vcat([p[1][] for p ∈ get_vis_plots(ax)]...)
-        y = [pt[2] for pt ∈ xy]
-        if isempty(y)
-            return nothing
-        end
-        x = [pt[1] for pt ∈ xy]
+    autolimits!(ax)
+    yorigin = ax.finallimits[].origin[2]
+    ywidth = ax.finallimits[].widths[2]
 
-        # Calculate the width of distribution of the data in the vertical direction
-        max_x = maximum(x)
-        min_x = minimum(x)
-        max_y = maximum(y)
-        min_y = minimum(y)
-        ywidth = max_y - min_y
-        xwidth = max_x - min_x
-
-        # Do the following for data with machine epsilon precision noice around zero that causes
-        # the warning "Warning: No strict ticks found" and the the bug related to issue #4266 in Makie
-        if abs(ywidth) < 1e-13
-            ywidth = 2 * max(1.0, max_y)
-            yorigin = 0.0
-        else
-            yorigin = min_y - ywidth * 0.04
-            ywidth += 2 * ywidth * 0.04
-        end
-
-        xlims!(ax, min_x - xwidth * 0.04, max_x + xwidth * 0.04)
-    else
-        autolimits!(ax)
-        yorigin = ax.finallimits[].origin[2]
-        ywidth = ax.finallimits[].widths[2]
-    end
-    # try to avoid legend box overlapping data
+    # try to avoid legend box overlapping the plots
     ylims!(ax, yorigin, yorigin + ywidth * 1.1)
 end
 

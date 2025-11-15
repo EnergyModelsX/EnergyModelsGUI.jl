@@ -1,6 +1,6 @@
 # Release notes
 
-## Version 0.5.17 (2025-11-09)
+## Version 0.5.17 (2025-11-15)
 
 ### Bugfix
 
@@ -13,6 +13,7 @@
 * Remove redundant `notify_component` function and `Observable`s (use the `@lift` macro instead).
 * Improve performance of updates to `ax_info`.
 * Add missing tests for show-function on the types `AbstractSystem` and `ProcInvData`, and improve code structure.
+* Bumped Makie packages to latest versions (and adjusted the code to the breaking changes) which increased performance.
 
 ## Version 0.5.16 (2025-09-24)
 

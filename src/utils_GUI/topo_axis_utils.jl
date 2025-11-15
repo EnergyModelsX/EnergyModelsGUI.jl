@@ -417,12 +417,13 @@ function draw_box!(gui::GUI, design::EnergySystemDesign)
             get_axes(gui)[:topo],
             rect;
             color = :white,
-            inspectable = false,
+            inspectable = true,
             strokewidth = get_var(gui, :linewidth),
             strokecolor = design.color,
             linestyle = linestyle,
         ) # Create a white background rectangle to hide lines from connections
 
+        add_inspector_to_poly!(white_rect2, (self, i, p) -> get_hover_string(design))
         Makie.translate!(white_rect2, 0.0f0, 0.0f0, get_var(gui, :z_translate_components))
         get_vars(gui)[:z_translate_components] += 0.0001f0
         push!(design.plots, white_rect2)
@@ -436,7 +437,7 @@ function draw_box!(gui::GUI, design::EnergySystemDesign)
         get_axes(gui)[:topo],
         rect;
         color = :white,
-        inspectable = false,
+        inspectable = true,
         strokewidth = get_var(gui, :linewidth),
         strokecolor = design.color,
         linestyle = linestyle,
@@ -498,13 +499,11 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
                 )
 
                 network_poly = poly!(
-                    get_axes(gui)[:topo], sector; color = color, inspectable = false,
+                    get_axes(gui)[:topo], sector; color = color, inspectable = true,
                 )
-                if isa(node, Sink) || isa(node, Source)
-                    add_inspector_to_poly!(
-                        network_poly, (self, i, p) -> get_hover_string(design),
-                    )
-                end
+                add_inspector_to_poly!(
+                    network_poly, (self, i, p) -> get_hover_string(design),
+                )
                 Makie.translate!(
                     network_poly,
                     0.0f0,
@@ -530,7 +529,7 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
                 get_axes(gui)[:topo],
                 box;
                 color = :white,
-                inspectable = false,
+                inspectable = true,
                 strokewidth = get_var(gui, :linewidth),
             )
 
@@ -559,7 +558,8 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
             xo_image,
             yo_image,
             rotr90(FileIO.load(design.icon));
-            inspectable = false,
+            inspectable = true,
+            inspector_label = (self, i, p) -> get_hover_string(design),
         )
         Makie.translate!(icon_image, 0.0f0, 0.0f0, get_var(gui, :z_translate_components))
         icon_image.kw[:EMGUI_obj] = design

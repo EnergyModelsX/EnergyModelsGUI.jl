@@ -5,18 +5,14 @@ Set the color of selection to `get_selection_color(gui)` if selected, and its or
 color otherwise using the argument `selected`.
 """
 function toggle_selection_color!(gui::GUI, selection::EnergySystemDesign, selected::Bool)
-    if selected
-        selection.color[] = get_selection_color(gui)
-    else
-        selection.color[] = :black
-    end
+    selection.color[] = selected ? get_selection_color(gui) : :black
 end
 function toggle_selection_color!(gui::GUI, selection::Connection, selected::Bool)
     plots = selection.plots
     if selected
         for plot ∈ plots
             for plot_sub ∈ plot
-                plot_sub.color = get_selection_color(gui)
+                plot_sub.color = RGBA{Float32}(parse(Colorant, get_selection_color(gui)))
             end
         end
     else
@@ -30,18 +26,9 @@ function toggle_selection_color!(gui::GUI, selection::Connection, selected::Bool
     end
 end
 function toggle_selection_color!(gui::GUI, selection::Dict{Symbol,Any}, selected::Bool)
-    color = selected ? parse(Colorant, get_selection_color(gui)) : selection[:color]
-    plot = selection[:plot]
-    plot.color[] = color
-
-    # Implement ugly hack to resolve bug in Makie for barplots due to legend updates
-    while !isempty(plot.plots)
-        plot = plot.plots[1]
-        plot.color[] = color
-    end
-
-    # Implement hack to resolve bug in Makie for stairs/lines due to legend updates
-    selection[:color_obs][] = color
+    color = selected ? get_selection_color(gui) : selection[:color]
+    selection[:plot].color = RGBA{Float32}(parse(Colorant, color))
+    update_legend!(gui)
 end
 
 """

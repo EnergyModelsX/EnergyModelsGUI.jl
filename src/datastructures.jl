@@ -119,7 +119,7 @@ energy system designs in Julia.
 - **`components::Vector{EnergySystemDesign}`** is the components of the system, stored
   as an array of EnergySystemDesign objects.
 - **`connections::Vector{Connection}`** are the connections between system parts.
-- **`xy::Observable{<:Point2f}`** are the coordinates of the system, observed for changes.
+- **`xy::Observable{<:Point2f}`** is the coordinate of the system, observed for changes.
 - **`icon::String`** is the optional (path to) icons associated with the system, stored as
   a string.
 - **`color::Observable{Symbol}`** is the color of the system, observed for changes and

@@ -240,20 +240,6 @@ function get_sector_points(;
 end
 
 """
-    toggle_inspector!(p::Makie.AbstractPlot, toggle::Bool)
-
-Toggle the inspector of a Makie plot `p` using the boolean `toggle`.
-"""
-function toggle_inspector!(p::Makie.AbstractPlot, toggle::Bool)
-    for p_sub ∈ p.plots
-        if :plots ∈ fieldnames(typeof(p_sub))
-            toggle_inspector!(p_sub, toggle)
-        end
-        p_sub.inspectable[] = toggle
-    end
-end
-
-"""
     add_inspector_to_poly!(p::Makie.AbstractPlot, inspector_label::Function)
 
 Add `inspector_label` for Poly and Mesh plots in plot `p`.
@@ -264,6 +250,5 @@ function add_inspector_to_poly!(p::Makie.AbstractPlot, inspector_label::Function
             add_inspector_to_poly!(p_sub, inspector_label)
         end
         p_sub.inspector_label = inspector_label
-        p_sub.inspectable[] = true
     end
 end
