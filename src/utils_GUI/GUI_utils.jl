@@ -1,22 +1,24 @@
 """
-    toggle_selection_color!(gui::GUI, selection, selected::Bool)
+    toggle_selection_color!(gui::GUI, selection::EnergySystemDesign, selected::Bool)
+    toggle_selection_color!(gui::GUI, selection::Connection, selected::Bool)
+    toggle_selection_color!(gui::GUI, selection::Dict{Symbol,Any}, selected::Bool)
 
 Set the color of selection to `get_selection_color(gui)` if selected, and its original
 color otherwise using the argument `selected`.
 """
 function toggle_selection_color!(gui::GUI, selection::EnergySystemDesign, selected::Bool)
-    selection.color[] = selected ? get_selection_color(gui) : :black
+    selection.color[] = selected ? get_selection_color(gui) : BLACK
 end
 function toggle_selection_color!(gui::GUI, selection::Connection, selected::Bool)
     plots = selection.plots
     if selected
         for plot ∈ plots
             for plot_sub ∈ plot
-                plot_sub.color = RGBA{Float32}(parse(Colorant, get_selection_color(gui)))
+                plot_sub.color = get_selection_color(gui)
             end
         end
     else
-        colors::Vector{RGB} = selection.colors
+        colors::Vector{RGBA{Float32}} = selection.colors
         no_colors::Int64 = length(colors)
         for plot ∈ plots
             for (i, plot_sub) ∈ enumerate(plot)
@@ -26,8 +28,7 @@ function toggle_selection_color!(gui::GUI, selection::Connection, selected::Bool
     end
 end
 function toggle_selection_color!(gui::GUI, selection::Dict{Symbol,Any}, selected::Bool)
-    color = selected ? get_selection_color(gui) : selection[:color]
-    selection[:plot].color = RGBA{Float32}(parse(Colorant, color))
+    selection[:plot].color = selected ? get_selection_color(gui) : selection[:color]
     update_legend!(gui)
 end
 

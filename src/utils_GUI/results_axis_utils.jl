@@ -481,7 +481,7 @@ function update_plot!(gui::GUI, element)
                     points;
                     dodge = n_visible * ones(Int, length(points)),
                     n_dodge = n_visible,
-                    strokecolor = :black,
+                    strokecolor = BLACK,
                     strokewidth = 1,
                     label = label,
                     color = color,

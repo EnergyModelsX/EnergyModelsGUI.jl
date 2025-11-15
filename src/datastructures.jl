@@ -122,8 +122,8 @@ energy system designs in Julia.
 - **`xy::Observable{<:Point2f}`** is the coordinate of the system, observed for changes.
 - **`icon::String`** is the optional (path to) icons associated with the system, stored as
   a string.
-- **`color::Observable{Symbol}`** is the color of the system, observed for changes and
-  represented as a Symbol. The color is toggled to highlight system activation.
+- **`color::Observable{RGBA{Float32}}`** is the color of the system, observed for changes. 
+  The color is toggled to highlight system activation.
 - **`wall::Observable{Symbol}`** represents an aspect of the system's state, observed
   for changes and represented as a Symbol.
 - **`file::String`** is the filename or path associated with the `EnergySystemDesign`.
@@ -139,7 +139,7 @@ mutable struct EnergySystemDesign <: AbstractGUIObj
     connections::Vector
     xy::Observable{<:Point2f}
     icon::String
-    color::Observable{Symbol}
+    color::Observable{RGBA{Float32}}
     wall::Observable{Symbol}
     file::String
     inv_data::ProcInvData
@@ -153,7 +153,7 @@ function EnergySystemDesign(
     connections::Vector,
     xy::Observable{<:Point2f},
     icon::String,
-    color::Observable{Symbol},
+    color::Observable{RGBA{Float32}},
     wall::Observable{Symbol},
     file::String,
 )
@@ -186,7 +186,7 @@ Mutable type for providing a flexible data structure for connections between
 - **`to::EnergySystemDesign`** is the `EnergySystemDesign` to which the connection is
   linked to.
 - **`connection::AbstractElement`** is the EMX connection structure.
-- **`colors::Vector{RGB}`** is the associated colors of the connection.
+- **`colors::Vector{RGBA{Float32}}`** is the associated colors of the connection.
 - **`plots::Vector{Any}`** is a vector with all Makie object associated with this object.
 - **`invest_data::ProcInvData`** stores processed investment data.
 """
@@ -194,7 +194,7 @@ mutable struct Connection <: AbstractGUIObj
     from::EnergySystemDesign
     to::EnergySystemDesign
     connection::AbstractElement
-    colors::Vector{RGB}
+    colors::Vector{RGBA{Float32}}
     inv_data::ProcInvData
     plots::Vector{Any}
 end
@@ -204,7 +204,7 @@ function Connection(
     connection::AbstractElement,
     id_to_color_map::Dict{Any,Any},
 )
-    colors::Vector{RGB} = get_resource_colors(connection, id_to_color_map)
+    colors::Vector{RGBA{Float32}} = get_resource_colors(connection, id_to_color_map)
     return Connection(from, to, connection, colors, ProcInvData(), Any[])
 end
 
@@ -287,6 +287,15 @@ end
 const JuMPContainer = PlotContainer{:JuMP}
 const CaseDataContainer = PlotContainer{:CaseData}
 const GlobalDataContainer = PlotContainer{:GlobalData}
+
+# Define standard colours in EMGUI
+const BLACK = RGBA{Float32}(0.0, 0.0, 0.0, 1.0)
+const WHITE = RGBA{Float32}(1.0, 1.0, 1.0, 1.0)
+const GREEN2 = RGBA{Float32}(0.0, 0.93333334, 0.0, 1.0)
+const RED = RGBA{Float32}(1.0, 0.0, 0.0, 1.0)
+const YELLOW = RGBA{Float32}(1.0, 1.0, 0.0, 1.0)
+const MAGENTA = RGBA{Float32}(1.0, 0.0, 1.0, 1.0)
+const CYAN = RGBA{Float32}(0.0, 1.0, 1.0, 1.0)
 
 Base.show(io::IO, obj::AbstractGUIObj) = dump(io, obj; maxdepth = 1)
 Base.show(io::IO, obj::ProcInvData) = dump(io, obj; maxdepth = 1)

@@ -90,7 +90,7 @@ end
         update!(gui)
         @test area1.color[] == get_selection_color(gui)
         pick_component!(gui, nothing; pick_topo_component = true)
-        @test area1.color[] == :black
+        @test area1.color[] == EMGUI.BLACK
 
         node2 = get_components(components[1])[2] # fetch node El 1
         plt_node2 = node2.plots[1]
@@ -98,28 +98,25 @@ end
         update!(gui)
         @test node2.color[] == get_selection_color(gui)
         pick_component!(gui, nothing; pick_topo_component = true)
-        @test node2.color[] == :black
+        @test node2.color[] == EMGUI.BLACK
 
         connection1 = connections[1] # fetch the Area 1 - Area 2 transmission
         plt_connection1 = connection1.plots[1][1]
         pick_component!(gui, plt_connection1; pick_topo_component = true)
         update!(gui)
-        @test get_plots(connection1)[1][1].color[] ==
-              EMGUI.RGBA{Float32}(parse(EMGUI.Colorant, get_selection_color(gui)))
+        @test get_plots(connection1)[1][1].color[] == get_selection_color(gui)
         pick_component!(gui, nothing; pick_topo_component = true)
-        @test get_plots(connection1)[1][1].color[] ==
-              EMGUI.RGBA{Float32}(connection1.colors[1])
+        @test get_plots(connection1)[1][1].color[] == connection1.colors[1]
 
         link1 = get_connections(components[1])[5] # fetch the link to heat pump
         plt_link1 = link1.plots[1][1]
         pick_component!(gui, plt_link1; pick_topo_component = true)
         update!(gui)
-        @test get_plots(link1)[1][1].color[] ==
-              EMGUI.RGBA{Float32}(parse(EMGUI.Colorant, get_selection_color(gui)))
+        @test get_plots(link1)[1][1].color[] == get_selection_color(gui)
         pick_component!(gui, nothing; pick_topo_component = true)
         for plot ∈ link1.plots
             for (i, color) ∈ enumerate(link1.colors)
-                @test plot[i].color[] == EMGUI.RGBA{Float32}(color)
+                @test plot[i].color[] == color
             end
         end
     end

@@ -7,6 +7,7 @@ import EnergyModelsGUI:
     get_root_design,
     get_components,
     get_selected_systems,
+    get_name,
     update!,
     toggle_selection_color!
 
@@ -88,7 +89,7 @@ function create_EMI_geography_images()
     push!(get_selected_systems(gui), component) # Manually add to :selected_systems
     update!(gui)
     toggle_selection_color!(gui, component, true)
-    available_data = [x[2][:name] for x ∈ collect(available_data_menu.options[])]
+    available_data = [get_name(x[2]) for x ∈ collect(available_data_menu.options[])]
     i_selected = findfirst(x -> x == "area_exchange", available_data)
     available_data_menu.i_selected = i_selected # Select flow_out (CO2)
     notify(export_button.clicks)
@@ -106,7 +107,7 @@ function create_EMI_geography_images()
     push!(selected_systems, sub_component) # Manually add to :selected_systems
     update!(gui)
     toggle_selection_color!(gui, sub_component, true)
-    available_data = [x[2][:name] for x ∈ collect(available_data_menu.options[])]
+    available_data = [get_name(x[2]) for x ∈ collect(available_data_menu.options[])]
     i_selected = findfirst(x -> x == "cap_add", available_data)
     available_data_menu.i_selected = i_selected # Select flow_out (CO2)
     notify(export_button.clicks)

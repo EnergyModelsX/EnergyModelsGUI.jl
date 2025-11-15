@@ -416,7 +416,7 @@ function draw_box!(gui::GUI, design::EnergySystemDesign)
         white_rect2 = poly!(
             get_axes(gui)[:topo],
             rect;
-            color = :white,
+            color = WHITE,
             inspectable = true,
             strokewidth = get_var(gui, :linewidth),
             strokecolor = design.color,
@@ -436,7 +436,7 @@ function draw_box!(gui::GUI, design::EnergySystemDesign)
     white_rect = poly!(
         get_axes(gui)[:topo],
         rect;
-        color = :white,
+        color = WHITE,
         inspectable = true,
         strokewidth = get_var(gui, :linewidth),
         strokecolor = design.color,
@@ -528,7 +528,7 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
             center_box = poly!(
                 get_axes(gui)[:topo],
                 box;
-                color = :white,
+                color = WHITE,
                 inspectable = true,
                 strokewidth = get_var(gui, :linewidth),
             )
@@ -600,9 +600,9 @@ function draw_label!(gui::GUI, component::EnergySystemDesign)
     node = get_element(component)
 
     if has_invested(component)
-        font_color = :red
+        font_color = RED
     else
-        font_color = :black
+        font_color = BLACK
     end
     label_text = text!(
         get_axes(gui)[:topo],

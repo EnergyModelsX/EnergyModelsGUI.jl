@@ -68,25 +68,16 @@ function set_colors(products::Vector{<:Resource}, id_to_color_map::Dict)
     )
 
     # Create a seed based on the existing colors
-    seed::Vector{RGB} = [
-        parse(Colorant, hex_color) for hex_color ∈ values(complete_id_to_color_map)
+    seed::Vector{RGB{Float32}} = [
+        parse(RGB{Float32}, hex_color) for hex_color ∈ values(complete_id_to_color_map)
     ]
 
     # Add non-desired colors to the seed
-    foul_colors = [
-        "#FFFF00", # Yellow
-        "#FF00FF", # Magenta
-        "#00FFFF", # Cyan
-        "#00FF00", # Green
-        "#000000", # Black
-        "#FFFFFF", # White
-    ]
-    for color ∈ values(foul_colors)
-        push!(seed, parse(Colorant, color))
-    end
+    non_desired_colors = [:yellow, :magenta, :cyan, :green1, :black, :white]
+    append!(seed, parse(Colorant, color) for color ∈ non_desired_colors)
 
     # Create new colors for the missing resources
-    products_colors::Vector{RGB} = distinguishable_colors(
+    products_colors::Vector{RGBA{Float32}} = distinguishable_colors(
         length(missing_product_colors), seed; dropseed = true,
     )
 
@@ -302,7 +293,7 @@ Get the colors linked the the resources in `resources` based on the mapping `id_
 """
 function get_resource_colors(resources::Vector{<:Resource}, id_to_color_map::Dict{Any,Any})
     hexColors::Vector{Any} = [id_to_color_map[resource.id] for resource ∈ resources]
-    return [parse(Colorant, hex_color) for hex_color ∈ hexColors]
+    return [parse(RGBA{Float32}, hex_color) for hex_color ∈ hexColors]
 end
 
 """
@@ -318,10 +309,10 @@ end
 """
     get_resource_colors(::Vector{Any}, ::Dict{Any,Any})
 
-Return empty RGB vector for empty input.
+Return empty RGBA{Float32} vector for empty input.
 """
 function get_resource_colors(::Vector{Any}, ::Dict{Any,Any})
-    return Vector{RGB}(undef, 0)
+    return Vector{RGBA{Float32}}(undef, 0)
 end
 
 """

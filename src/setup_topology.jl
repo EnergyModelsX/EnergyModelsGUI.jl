@@ -138,7 +138,7 @@ function EnergySystemDesign(
         connections,
         xy,
         icon,
-        Observable(:black),
+        Observable(BLACK),
         Observable(:E),
         file,
     )
