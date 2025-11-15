@@ -40,6 +40,8 @@ to the old EnergyModelsX `case` dictionary.
 - **`tol::Float64=1e-12`** the tolerance for numbers close to machine epsilon precision.
 - **`enable_data_inspector::Bool=true`** toggles the DataInspector functionality for
   hovering objects to show information.
+- **`use_geomakie::Bool=true`** toggles the use of GeoMakie for plotting geographical
+  designs when the `case` contains geographical information.
 
 !!! warning "Reading model results from CSV-files"
     Reading model results from a directory (*i.e.*, `model::String` implying that the results
@@ -69,6 +71,7 @@ function GUI(
     colormap::Vector = Makie.wong_colors(),
     tol::Float64 = 1e-8,
     enable_data_inspector::Bool = true,
+    use_geomakie::Bool = true,
 )
     # Generate the system topology:
     @info raw"Setting up the topology design structure"
@@ -107,6 +110,7 @@ function GUI(
         :scale_tot_capex => scale_tot_capex,
         :colormap => colormap,
         :tol => tol,
+        :use_geomakie => use_geomakie,
         :autolimits => Dict(
             :results_op => true,
             :results_sc => true,
@@ -276,7 +280,7 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
         vars[:plot_widths][1] / (vars[:plot_widths][2] - vars[:taskbar_height]) / 2
 
     # Check whether or not to use lat-lon coordinates to construct the axis used for visualizing the topology
-    if isa(get_system(design), SystemGeo)
+    if isa(get_system(design), SystemGeo) && vars[:use_geomakie]
         # Set the source mapping for projection
         source::String = "+proj=merc +lon_0=0 +x_0=0 +y_0=0 +a=6378137 +b=6378137 +units=m +no_defs"
         # Set the destination mapping for projection
