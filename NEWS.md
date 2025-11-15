@@ -18,6 +18,7 @@
 # Adjustments
 
 * Skip warnings if a provided non-empty `id_to_icon_map` does not contain icons for all `Node`s/`Area`s (as it is fine to combine custom icon with the default generated icons).
+* Introduced the new parametric type `PlotContainer` to replace `Dict{:Symbol, Any}` types used as container for plotted data.
 
 ## Version 0.5.16 (2025-09-24)
 

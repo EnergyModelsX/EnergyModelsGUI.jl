@@ -221,8 +221,8 @@ function initialize_available_data!(gui)
     system = get_system(design)
     model = get_model(gui)
     plotables = [nothing; vcat(get_elements_vec(system))...] # `nothing` here represents no selection
-    gui.vars[:available_data] = Dict{Any,Vector{Dict{Symbol,Any}}}(
-        element => Vector{Dict{Symbol,Any}}() for element ∈ plotables
+    gui.vars[:available_data] = Dict{Any,Vector{PlotContainer}}(
+        element => Vector{PlotContainer}() for element ∈ plotables
     )
 
     # Find appearances of node/area/link/transmission in the model
@@ -248,12 +248,11 @@ function initialize_available_data!(gui)
                     element = mode_to_transmission[element]
                 end
 
-                container = Dict(
-                    :name => string(sym),
-                    :is_jump_data => true,
-                    :selection => selection,
-                    :field_data => field_data,
-                    :description => create_description(gui, "variables.$sym"),
+                container = JuMPContainer(
+                    string(sym),
+                    selection,
+                    field_data,
+                    create_description(gui, "variables.$sym"),
                 )
                 push!(get_available_data(gui)[element], container)
             end
@@ -281,12 +280,11 @@ function initialize_available_data!(gui)
                 tot_opex .+= opex
 
                 # add opex_field to available data
-                container = Dict(
-                    :name => "opex_strategic",
-                    :is_jump_data => false,
-                    :selection => [element],
-                    :field_data => StrategicProfile(opex),
-                    :description => description,
+                container = GlobalDataContainer(
+                    "opex_strategic",
+                    [element],
+                    StrategicProfile(opex),
+                    description,
                 )
                 push!(get_available_data(gui)[element], container)
             end
@@ -310,12 +308,11 @@ function initialize_available_data!(gui)
                 tot_capex .+= capex
 
                 # add opex_field to available data
-                container = Dict(
-                    :name => "capex_strategic",
-                    :is_jump_data => false,
-                    :selection => [element],
-                    :field_data => StrategicProfile(capex),
-                    :description => description,
+                container = GlobalDataContainer(
+                    "capex_strategic",
+                    [element],
+                    StrategicProfile(capex),
+                    description,
                 )
                 push!(get_available_data(gui)[element], container)
             end
@@ -326,12 +323,11 @@ function initialize_available_data!(gui)
         if scale_tot_opex
             description *= " (scaled to strategic period)"
         end
-        container = Dict(
-            :name => "tot_opex",
-            :is_jump_data => false,
-            :selection => [element],
-            :field_data => StrategicProfile(tot_opex),
-            :description => description,
+        container = GlobalDataContainer(
+            "tot_opex",
+            [element],
+            StrategicProfile(tot_opex),
+            description,
         )
         push!(get_available_data(gui)[element], container)
 
@@ -340,12 +336,11 @@ function initialize_available_data!(gui)
         if scale_tot_capex
             description *= " (scaled to year)"
         end
-        container = Dict(
-            :name => "tot_capex",
-            :is_jump_data => false,
-            :selection => [element],
-            :field_data => StrategicProfile(tot_capex),
-            :description => description,
+        container = GlobalDataContainer(
+            "tot_capex",
+            [element],
+            StrategicProfile(tot_capex),
+            description,
         )
         push!(get_available_data(gui)[element], container)
 
@@ -398,7 +393,7 @@ function initialize_available_data!(gui)
     for element ∈ plotables
         # Add timedependent input data (if available)
         if !isnothing(element)
-            available_data = Vector{Dict}(undef, 0)
+            available_data = Vector{PlotContainer}(undef, 0)
             for field_name ∈ fieldnames(typeof(element))
                 field = getfield(element, field_name)
                 structure = String(nameof(typeof(element)))
@@ -666,7 +661,7 @@ function select_data!(gui::GUI, name::String)
     menu = get_menu(gui, :available_data)
 
     # Fetch all menu options
-    available_data = [x[2][:name] for x ∈ collect(menu.options[])]
+    available_data = [get_name(x[2]) for x ∈ collect(menu.options[])]
 
     # Find menu number for data with name `name`
     i_selected = findfirst(x -> x == name, available_data)

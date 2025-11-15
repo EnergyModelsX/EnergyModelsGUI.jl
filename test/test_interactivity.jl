@@ -105,20 +105,21 @@ end
         pick_component!(gui, plt_connection1; pick_topo_component = true)
         update!(gui)
         @test get_plots(connection1)[1][1].color[] ==
-              RGBA{Float32}(parse(Colorant, get_selection_color(gui)))
+              EMGUI.RGBA{Float32}(parse(EMGUI.Colorant, get_selection_color(gui)))
         pick_component!(gui, nothing; pick_topo_component = true)
-        @test get_plots(connection1)[1][1].color[] == RGBA{Float32}(connection1.colors[1])
+        @test get_plots(connection1)[1][1].color[] ==
+              EMGUI.RGBA{Float32}(connection1.colors[1])
 
         link1 = get_connections(components[1])[5] # fetch the link to heat pump
         plt_link1 = link1.plots[1][1]
         pick_component!(gui, plt_link1; pick_topo_component = true)
         update!(gui)
         @test get_plots(link1)[1][1].color[] ==
-              RGBA{Float32}(parse(Colorant, get_selection_color(gui)))
+              EMGUI.RGBA{Float32}(parse(EMGUI.Colorant, get_selection_color(gui)))
         pick_component!(gui, nothing; pick_topo_component = true)
         for plot ∈ link1.plots
             for (i, color) ∈ enumerate(link1.colors)
-                @test plot[i].color[] == RGBA{Float32}(color)
+                @test plot[i].color[] == EMGUI.RGBA{Float32}(color)
             end
         end
     end

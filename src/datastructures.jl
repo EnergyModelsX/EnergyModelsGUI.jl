@@ -264,6 +264,30 @@ mutable struct GUI
     vars::Dict{Symbol,Any}
 end
 
+"""
+    PlotContainer{T}
+
+Type for storing plot-related data available from the "Data" menu.
+
+# Fields
+
+- **`name::String`**: is the reference name for the data.
+- **`selection::Vector`**: is the indices used to extract the data to be plotted.
+- **`field_data::Any`**: is the data from which plots are extracted based on selection.
+- **`description::String`**: is the description to be used for the legend.
+"""
+struct PlotContainer{T}
+    name::String
+    selection::Vector
+    field_data::Any
+    description::String
+end
+
+# Create aliases for different PlotContainer types
+const JuMPContainer = PlotContainer{:JuMP}
+const CaseDataContainer = PlotContainer{:CaseData}
+const GlobalDataContainer = PlotContainer{:GlobalData}
+
 Base.show(io::IO, obj::AbstractGUIObj) = dump(io, obj; maxdepth = 1)
 Base.show(io::IO, obj::ProcInvData) = dump(io, obj; maxdepth = 1)
 Base.show(io::IO, system::AbstractSystem) = dump(io, system; maxdepth = 1)
@@ -729,3 +753,31 @@ EMB.get_time_struct(gui::GUI) = EMB.get_time_struct(get_design(gui))
 Returns the `parent` field of a `GUI` `gui`.
 """
 get_parent(gui::GUI) = get_parent(get_design(gui))
+
+"""
+    get_name(container::PlotContainer)
+
+Returns the `name` field of a `PlotContainer` `container`.
+"""
+get_name(container::PlotContainer) = container.name
+
+"""
+    get_selection(container::PlotContainer)
+
+Returns the `selection` field of a `PlotContainer` `container`.
+"""
+get_selection(container::PlotContainer) = container.selection
+
+"""
+    get_field_data(container::PlotContainer)
+
+Returns the `field_data` field of a `PlotContainer` `container`.
+"""
+get_field_data(container::PlotContainer) = container.field_data
+
+"""
+    get_description(container::PlotContainer)
+
+Returns the `description` field of a `PlotContainer` `container`.
+"""
+get_description(container::PlotContainer) = container.description
