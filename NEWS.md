@@ -15,6 +15,10 @@
 * Add missing tests for show-function on the types `AbstractSystem` and `ProcInvData`, and improve code structure.
 * Bumped Makie packages to latest versions (and adjusted the code to the breaking changes) which increased performance.
 
+# Adjustments
+
+* Skip warnings if a provided non-empty `id_to_icon_map` does not contain icons for all `Node`s/`Area`s (as it is fine to combine custom icon with the default generated icons).
+
 ## Version 0.5.16 (2025-09-24)
 
 ### Enhancement

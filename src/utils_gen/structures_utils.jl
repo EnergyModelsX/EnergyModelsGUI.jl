@@ -185,14 +185,13 @@ through `id_to_icon_map`.
 function find_icon(system::AbstractSystem, id_to_icon_map::Dict)
     icon::String = ""
     if !isempty(id_to_icon_map)
-        supertype::DataType = find_type_field(id_to_icon_map, get_parent(system))
-        if haskey(id_to_icon_map, get_parent(system).id)
-            icon = id_to_icon_map[get_parent(system).id]
-        elseif supertype != Nothing
-            icon = id_to_icon_map[supertype]
-        else
-            @warn("Could not find $(get_parent(system).id) in id_to_icon_map \
-                  nor the type $(typeof(get_parent(system))). Using default setup instead")
+        parent::AbstractElement = get_parent(system)
+        type::DataType = find_type_field(id_to_icon_map, parent)
+        id = parent.id
+        if haskey(id_to_icon_map, id)
+            icon = id_to_icon_map[id]
+        elseif type != Nothing
+            icon = id_to_icon_map[type]
         end
     end
     return icon
