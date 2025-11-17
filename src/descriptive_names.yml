@@ -84,7 +84,7 @@ structures:
   HydroPump:
     cap:                    "Installed pumping capacity"
 
-  CycleLife:
+  AbstractBatteryLife:
     stack_cost:             "Relative cost for replacing a battery stack"
 
   # EnergyModelsHeat
@@ -117,10 +117,6 @@ structures:
   AbstractRampParameters:
     up:                     "Maximum positive rate of change of a node"
     down:                   "Maximum negative rate of change of a node"
-
-  Reformer:
-    opex_var:               "Variable operating expense per capacity usage"
-    opex_fixed:             "Fixed operating expense per installed capacity"
 
   # EnergyModelsCO2
   CO2Source:
