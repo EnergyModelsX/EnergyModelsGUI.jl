@@ -15,6 +15,13 @@ function installed()
 end
 
 """
+    function loaded()
+
+Get a list of loaded packages.
+"""
+loaded() = filter((x) -> typeof(eval(x)) <:  Module, names(Main,imported=true))
+
+"""
     place_nodes_in_circle(total_nodes::Int64, current_node::Int64, r::Float32, xₒ::Float32, yₒ::Float32)
 
 Return coordinate for point number `i` of a total of `n` points evenly distributed around

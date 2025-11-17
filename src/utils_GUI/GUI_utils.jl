@@ -625,12 +625,11 @@ function update_descriptive_names!(gui::GUI)
         joinpath(@__DIR__, "..", "descriptive_names.yml"); dicttype = Dict{Symbol,Any},
     )
 
-    # Get a dictionary of installed packages
-    installed_packages = installed()
+    # Get a dictionary of loaded packages
+    loaded_packages = loaded()
 
     # Filter packages with names matching the pattern "EnergyModels*"
-    emx_packages = filter(pkg -> occursin(r"EnergyModels", pkg), keys(installed_packages))
-
+    emx_packages = filter(pkg -> occursin(r"EnergyModels", pkg), loaded_packages)
     # apply inheritances for fetching descriptive names
     # create a dictionary were the keys are all the types defined in emx_packages and the values are the types they inherit from
     emx_supertypes_dict = get_supertypes(emx_packages)
