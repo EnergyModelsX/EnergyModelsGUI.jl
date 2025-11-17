@@ -41,6 +41,9 @@ global_logger(logger_new)
 
         # Test specific GUI functionalities related to interactivity
         include("test_interactivity.jl")
+
+        # Test descriptive names functionalities
+        include("test_descriptive_names.jl")
     end
 end
 global_logger(logger_org)
