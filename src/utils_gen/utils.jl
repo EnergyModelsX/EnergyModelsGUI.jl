@@ -321,25 +321,10 @@ function get_types(modul::Module)
     return types
 end
 
-function get_types(moduls::Vector{Module})
-    types=[]
-    for modul ∈ moduls
-        append!(types, get_types(modul))
-    end
-    return types
-end
-
-function get_types(pkg::Union{String,Symbol})
-    return get_types(getfield(Main, Symbol(pkg)))
-end
-
-function get_types(pkgs::Union{Vector{<:Union{String,Symbol}},Set{<:Union{String,Symbol}}})
-    types = []
-    for pkg ∈ pkgs
-        append!(types, get_types(pkg))
-    end
-    return types
-end
+get_types(modules::Vector{Module}) = [get_types(modul) for modul ∈ modules]
+get_types(pkg::Union{String,Symbol}) = get_types(getfield(Main, Symbol(pkg)))
+get_types(pkgs::Union{Vector{<:Union{String,Symbol}},Set{<:Union{String,Symbol}}}) =
+    get_types.(pkgs)
 
 """
     get_supertypes(input) -> Dict{Symbol, Vector{Type}}
@@ -385,27 +370,11 @@ function get_supertypes(modul::Module)
     return types
 end
 
-function get_supertypes(moduls::Vector{Module})
-    types=Dict()
-    for modul ∈ moduls
-        merge!(types, get_supertypes(modul))
-    end
-    return types
-end
-
-function get_supertypes(pkg::Union{String,Symbol})
-    return get_supertypes(getfield(Main, Symbol(pkg)))
-end
-
-function get_supertypes(
-    pkgs::Union{Vector{<:Union{String,Symbol}},Set{<:Union{String,Symbol}}},
-)
-    types = Dict()
-    for pkg ∈ pkgs
-        merge!(types, get_supertypes(pkg))
-    end
-    return types
-end
+get_supertypes(moduls::Vector{Module}) =
+    merge!(Dict(), (get_supertypes(m) for m ∈ moduls)...)
+get_supertypes(pkg::Union{String,Symbol}) = get_supertypes(getfield(Main, Symbol(pkg)))
+get_supertypes(pkgs::Union{Vector{<:Union{String,Symbol}},Set{<:Union{String,Symbol}}}) =
+    merge!(Dict(), (get_supertypes(pkg) for pkg ∈ pkgs)...)
 
 """
     has_fields(type::Type) -> Bool
@@ -460,7 +429,6 @@ function update_tree!(current_lvl, tmp_type::Type)
     if !haskey(current_lvl, tmp_type)
         current_lvl[tmp_type] = Dict{Type,Union{Dict,Nothing}}()
     end
-    return
 end
 
 """
