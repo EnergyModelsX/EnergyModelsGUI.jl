@@ -270,3 +270,256 @@ function save_results(model::Model; directory = joinpath(pwd(), "csv_files"))
         YAML.write(io, metadata)
     end
 end
+
+"""
+    get_types(input) -> Vector{Symbol}
+
+Retrieves the names of all defined types from modules or packages.
+
+# Method Overloads
+
+- `get_types(modul::Module)`:
+  Returns a vector of type names defined in the given module.
+
+- `get_types(moduls::Vector{Module})`:
+  Returns a combined vector of type names from multiple modules.
+
+- `get_types(pkg::Union{String, Symbol})`:
+  Converts the package name to a module (via `Main`) and returns its defined types.
+
+- `get_types(pkgs::Union{Vector{<:Union{String, Symbol}}, Set{<:Union{String, Symbol}}})`:
+  Returns a combined vector of type names from multiple packages.
+
+# Arguments
+- `input`: Can be a single module, a vector of modules, a single package name (as `String` or `Symbol`), or a collection of package names.
+
+# Returns
+- `Vector{Symbol}`: A list of names corresponding to types defined in the given module(s) or package(s).
+
+# Description
+This set of functions helps extract type definitions from Julia modules or packages. It filters out non-type bindings and collects only those that are instances of `DataType`.
+
+# Example
+```julia
+get_types(Base)  # returns type names defined in Base
+
+get_types(["Base", "Core"])  # returns type names from both packages
+```
+"""
+function get_types(modul::Module)
+    types = []
+    for name ∈ names(modul)
+        if isdefined(modul, name) && (
+            getfield(modul, name) isa DataType || (
+                getfield(modul, name) isa UnionAll &&
+                Base.unwrap_unionall(getfield(modul, name)) isa DataType
+            )
+        )
+            push!(types, name)
+        end
+    end
+    return types
+end
+
+get_types(modules::Vector{Module}) = [get_types(modul) for modul ∈ modules]
+get_types(pkg::Union{String,Symbol}) = get_types(getfield(Main, Symbol(pkg)))
+get_types(pkgs::Union{Vector{<:Union{String,Symbol}},Set{<:Union{String,Symbol}}}) =
+    get_types.(pkgs)
+
+"""
+    get_supertypes(input) -> Dict{Symbol, Vector{Type}}
+
+Retrieves the supertypes of all defined types from modules or packages.
+
+# Method Overloads
+
+- `get_supertypes(modul::Module)`:
+  Returns a dictionary mapping type names to their supertypes from the given module.
+
+- `get_supertypes(moduls::Vector{Module})`:
+  Merges and returns supertypes from multiple modules.
+
+- `get_supertypes(pkg::Union{String, Symbol})`:
+  Converts the package name to a module (via `Main`) and returns its type supertypes.
+
+- `get_supertypes(pkgs::Union{Vector{<:Union{String, Symbol}}, Set{<:Union{String, Symbol}}})`:
+  Merges and returns supertypes from multiple packages via their names.
+
+# Arguments
+- `input`: Can be a single module, a vector of modules, a single package name (as `String` or `Symbol`), or a collection of package names.
+
+# Returns
+- `Dict{Symbol, Vector{Type}}`: A dictionary where each key is a type name and the value is a vector of its supertypes.
+
+# Description
+This set of functions helps extract the inheritance hierarchy of types defined in Julia modules or packages. It filters out non-type bindings and collects supertypes using `supertypes`.
+
+"""
+function get_supertypes(modul::Module)
+    types=Dict()
+    for name ∈ names(modul)
+        if isdefined(modul, name) && (
+            getfield(modul, name) isa DataType || (
+                getfield(modul, name) isa UnionAll &&
+                Base.unwrap_unionall(getfield(modul, name)) isa DataType
+            )
+        )
+            types[name] = supertypes(getfield(modul, name))
+        end
+    end
+    return types
+end
+
+get_supertypes(moduls::Vector{Module}) =
+    merge!(Dict(), (get_supertypes(m) for m ∈ moduls)...)
+get_supertypes(pkg::Union{String,Symbol}) = get_supertypes(getfield(Main, Symbol(pkg)))
+get_supertypes(pkgs::Union{Vector{<:Union{String,Symbol}},Set{<:Union{String,Symbol}}}) =
+    merge!(Dict(), (get_supertypes(pkg) for pkg ∈ pkgs)...)
+
+"""
+    has_fields(type::Type) -> Bool
+
+Checks whether a given type is a concrete struct with at least one field.
+
+# Arguments
+- `type::Type`: The type to be inspected.
+
+# Returns
+- `Bool`: Returns `true` if the type is a concrete struct and has one or more fields; otherwise, returns `false`.
+
+# Description
+This function combines three checks:
+- `isstructtype(type)`: Ensures the type is a struct.
+- `nfields(type) > 0`: Ensures the struct has at least one field.
+
+# Example
+```julia
+struct MyStruct
+    x::Int
+end
+
+has_fields(MyStruct)  # returns true
+
+abstract type AbstractType end
+has_fields(AbstractType)  # returns false
+```
+"""
+function has_fields(type)
+    t = type isa UnionAll ? Base.unwrap_unionall(type) : type
+    return (t isa DataType && isstructtype(t) && nfields(t) > 0)
+end
+
+"""
+    update_tree!(current_lvl::Dict{Type, Union{Dict, Nothing}}, tmp_type::Type) -> Nothing
+
+Ensures that a given type exists as a key in the current level of a nested type dependency dictionary.
+
+# Arguments
+- `current_lvl::Dict{Type, Union{Dict, Nothing}}`: The current level of the nested dictionary structure representing type dependencies.
+- `tmp_type::Type`: The type to be added as a key in the current level if it does not already exist.
+
+# Behavior
+If `tmp_type` is not already a key in `current_lvl`, it adds it with an empty dictionary as its value, preparing for further nesting.
+
+# Returns
+- `Nothing`: This function modifies `current_lvl` in-place and does not return a value.
+
+"""
+function update_tree!(current_lvl, tmp_type::Type)
+    if !haskey(current_lvl, tmp_type)
+        current_lvl[tmp_type] = Dict{Type,Union{Dict,Nothing}}()
+    end
+end
+
+"""
+    get_types_structure(emx_supertypes_dict::Dict{Any, Vector{Type}}) -> Dict{Type, Union{Dict, Nothing}}
+
+Constructs a nested dictionary representing type dependencies from a dictionary of supertypes.
+
+# Arguments
+- `emx_supertypes_dict::Dict{Any, Vector{Type}}`: A dictionary where each key corresponds to a type identifier, and the value is a vector of supertypes ordered from the most general to the most specific.
+
+# Returns
+- `Dict{Type, Union{Dict, Nothing}}`: A nested dictionary structure where each type is a key pointing to its subtype hierarchy. Leaf nodes point to `nothing`.
+
+# Description
+This function builds a tree-like structure of type dependencies by iterating through each type's supertypes and nesting them accordingly. It uses the helper function `update_tree!` to insert types into the correct level of the hierarchy.
+```
+"""
+function get_types_structure(emx_supertypes_dict)
+    # make a visualization of the type dependencies by building a nested dictionary of types
+    emx_type_dependencies = Dict{Type,Union{Dict,Nothing}}()
+    for (emx_type_id, emx_supertypes) ∈ emx_supertypes_dict
+        i = 0
+        current_lvl = emx_type_dependencies
+        while i < length(emx_supertypes)
+            tmp_type = emx_supertypes[end-i]
+            update_tree!(current_lvl, tmp_type)
+            current_lvl = current_lvl[tmp_type]
+            i+=1
+        end
+    end
+    return emx_type_dependencies
+end
+
+"""
+    inherit_descriptive_names_from_supertypes!(descriptive_names, emx_supertypes_dict)
+
+Copies descriptive field names from supertypes to subtypes in the `descriptive_names` dictionary.
+
+# Arguments
+- `descriptive_names::Dict`: A dictionary containing descriptive names for structure fields,
+ organized by type.
+- `emx_supertypes_dict::Dict`: A dictionary mapping type identifiers to arrays of types,
+ where the first element is the type itself and the remaining elements are its supertypes.
+
+# Description
+For each type in `emx_supertypes_dict`, this function checks if the type has fields.
+For each field, it looks for descriptive names in the supertypes.
+If a descriptive name exists for a field in a supertype but not in the subtype,
+ it copies the descriptive name from the supertype to the subtype.
+
+# Modifies
+- Updates `descriptive_names` in-place by inheriting missing descriptive names from supertypes.
+"""
+function inherit_descriptive_names_from_supertypes!(descriptive_names, emx_supertypes_dict)
+    for (emx_type_id, emx_supertypes) ∈ emx_supertypes_dict
+        emx_type = emx_supertypes[1]
+        # check if emx_type has field names and if so retrieve them, otherwise continue
+        if !has_fields(emx_type)
+            continue
+        end
+        emx_type_fieldnames = fieldnames(emx_type)
+        for fname ∈ emx_type_fieldnames
+            for emx_supertype ∈ emx_supertypes[2:end] # skip first element as it is the type itself
+                #check if the supertype has an entry in descriptive names for fname
+                # Extract only what is after the dot in emx_supertype, if any
+                supertype_str = string(emx_supertype)
+                supertype_key =
+                    occursin(r"\.", supertype_str) ?
+                    match(r"\.([^.]+)$", supertype_str).captures[1] : supertype_str
+                if haskey(descriptive_names[:structures], Symbol(supertype_key)) &&
+                   haskey(
+                    descriptive_names[:structures][Symbol(supertype_key)],
+                    Symbol(fname),
+                )
+                    # if so, and if the emx_type does not have an entry for fname, copy it
+                    if !haskey(descriptive_names[:structures], Symbol(emx_type)) ||
+                       !haskey(
+                        descriptive_names[:structures][Symbol(emx_type)],
+                        Symbol(fname),
+                    )
+                        if !haskey(descriptive_names[:structures], Symbol(emx_type))
+                            descriptive_names[:structures][Symbol(emx_type)] =
+                                Dict{Symbol,Any}()
+                        end
+                        descriptive_names[:structures][Symbol(emx_type)][Symbol(fname)] =
+                            descriptive_names[:structures][Symbol(supertype_key)][Symbol(
+                                fname,
+                            )]
+                    end
+                end
+            end
+        end
+    end
+end

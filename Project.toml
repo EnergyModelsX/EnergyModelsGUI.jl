@@ -26,6 +26,7 @@ SparseVariables = "2749762c-80ed-4b14-8f33-f0736679b02b"
 TimeStruct = "f9ed5ce0-9f41-4eaa-96da-f38ab8df101c"
 XLSX = "fdbf4ff8-1666-58a4-91e7-1b58723a45e0"
 YAML = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"
+InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 
 [weakdeps]
 EnergyModelsGeography = "3f775d88-a4da-46c4-a2cc-aa9f16db6708"
@@ -58,3 +59,4 @@ TimeStruct = "0.9"
 XLSX = "0.10"
 YAML = "0.4"
 julia = "1.10"
+InteractiveUtils = "1"

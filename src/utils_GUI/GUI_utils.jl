@@ -625,16 +625,19 @@ function update_descriptive_names!(gui::GUI)
         joinpath(@__DIR__, "..", "descriptive_names.yml"); dicttype = Dict{Symbol,Any},
     )
 
-    # Get a dictionary of installed packages
-    installed_packages = installed()
+    # Get a dictionary of loaded packages
+    loaded_packages = loaded()
 
     # Filter packages with names matching the pattern "EnergyModels*"
-    emx_packages = filter(pkg -> occursin(r"EnergyModels", pkg), keys(installed_packages))
-
-    # Search through EMX packages if icons are available there
+    emx_packages = filter(pkg -> occursin(r"EnergyModels", pkg), loaded_packages)
+    # apply inheritances for fetching descriptive names
+    # create a dictionary were the keys are all the types defined in emx_packages and the values are the types they inherit from
+    emx_supertypes_dict = get_supertypes(emx_packages)
+    inherit_descriptive_names_from_supertypes!(descriptive_names, emx_supertypes_dict)
     for package ∈ emx_packages
         package_path::Union{String,Nothing} = dirname(dirname(Base.find_package(package)))
         if !isnothing(package_path)
+            # check for presence of file to extend descriptive names
             path_to_descriptive_names_ext = joinpath(
                 package_path, "ext", "EMGUIExt", "descriptive_names.yml",
             )
