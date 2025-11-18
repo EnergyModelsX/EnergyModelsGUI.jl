@@ -63,3 +63,4 @@ case, model, m, gui = run_case()
         EMGUI.close(gui3)
     end
 end
+EMGUI.close(gui)
