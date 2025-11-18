@@ -1,10 +1,5 @@
 import EnergyModelsGUI:
-    get_root_design,
-    get_components,
-    get_connections,
-    get_menu,
-    get_button,
-    update!,
+    get_component,
     toggle_selection_color!,
     get_plots,
     get_selection_color,
@@ -18,8 +13,6 @@ import EnergyModelsGUI:
     update_info_box!,
     update_available_data_menu!,
     update_sub_system_locations!,
-    pick_component!,
-    clear_selection,
     get_design,
     get_vis_plots,
     get_plotted_data,
@@ -31,6 +24,11 @@ case, model, m, gui = run_case()
 root_design = get_root_design(gui)
 components = get_components(root_design)
 connections = get_connections(root_design)
+
+area1 = get_component(components, 1)
+area2 = get_component(components, 2)
+area3 = get_component(components, 3)
+area4 = get_component(components, 4)
 
 time_menu = get_menu(gui, :time)
 available_data_menu = get_menu(gui, :available_data)
@@ -84,47 +82,50 @@ end
 
     # Test color toggling
     @testset "Toggle colors" begin
-        area1 = components[1] # fetch Area 1
-        plt_area1 = area1.plots[1]
-        pick_component!(gui, plt_area1; pick_topo_component = true)
+        pick_component!(gui, get_plots(area1)[1], :topo)
         update!(gui)
         @test area1.color[] == get_selection_color(gui)
-        pick_component!(gui, nothing; pick_topo_component = true)
+        pick_component!(gui, nothing, :topo) # deselect
         @test area1.color[] == EMGUI.BLACK
 
-        node2 = get_components(components[1])[2] # fetch node El 1
-        plt_node2 = node2.plots[1]
-        pick_component!(gui, plt_node2; pick_topo_component = true)
+        node2 = get_component(area1, "El 1") # fetch node El 1
+        pick_component!(gui, get_plots(node2)[1], :topo)
         update!(gui)
         @test node2.color[] == get_selection_color(gui)
-        pick_component!(gui, nothing; pick_topo_component = true)
+        pick_component!(gui, nothing, :topo) # deselect
         @test node2.color[] == EMGUI.BLACK
 
         connection1 = connections[1] # fetch the Area 1 - Area 2 transmission
-        plt_connection1 = connection1.plots[1][1]
-        pick_component!(gui, plt_connection1; pick_topo_component = true)
+        plt_connection1 = get_plots(connection1)[1]
+        pick_component!(gui, plt_connection1, :topo)
         update!(gui)
-        @test get_plots(connection1)[1][1].color[] == get_selection_color(gui)
-        pick_component!(gui, nothing; pick_topo_component = true)
-        @test get_plots(connection1)[1][1].color[] == connection1.colors[1]
+        @test plt_connection1.color[][1] == get_selection_color(gui)
+        pick_component!(gui, nothing, :topo) # deselect
+        update!(gui)
+        @test plt_connection1.color[][1] == connection1.colors[1]
 
-        link1 = get_connections(components[1])[5] # fetch the link to heat pump
-        plt_link1 = link1.plots[1][1]
-        pick_component!(gui, plt_link1; pick_topo_component = true)
+        link1 = get_connections(area1)[5] # fetch the link to heat pump
+        plt_link1_sctr = get_plots(link1)[1]
+        pick_component!(gui, plt_link1_sctr, :topo)
         update!(gui)
-        @test get_plots(link1)[1][1].color[] == get_selection_color(gui)
-        pick_component!(gui, nothing; pick_topo_component = true)
-        for plot ∈ link1.plots
+        @test plt_link1_sctr.color[][1] == get_selection_color(gui)
+        pick_component!(gui, nothing, :topo) # deselect
+        for plot ∈ get_plots(link1) # This only tests one color (should probably add a test with more colors/`Resource`s)
             for (i, color) ∈ enumerate(link1.colors)
-                @test plot[i].color[] == color
+                if isa(plot, EMGUI.AbstractPlot)
+                    @test plot.color[][i] == color
+                else
+                    for plot_sub ∈ plot
+                        @test plot_sub.color[] == color
+                    end
+                end
             end
         end
     end
 
     # Test the open button functionality
-    area1 = components[1] # fetch Area 1
     @testset "get_button(gui,:open).clicks" begin
-        pick_component!(gui, area1; pick_topo_component = true) # Select Area 1
+        pick_component!(gui, area1, :topo) # Select Area 1
         notify(get_button(gui, :open).clicks) # Open Area 1
         @test get_var(gui, :title)[] == "top_level.Area 1"
     end
@@ -136,22 +137,20 @@ end
     end
 
     # Test the align horz. button (aligning nodes horizontally)
-    area2 = components[2] # fetch Area 2
     @testset "get_button(gui,:align_horizontal).clicks" begin
-        pick_component!(gui, area1; pick_topo_component = true) # Select Area 1
-        pick_component!(gui, area2; pick_topo_component = true) # Select Area 2
+        pick_component!(gui, area1, :topo) # Select Area 1
+        pick_component!(gui, area2, :topo) # Select Area 2
         notify(get_button(gui, :align_horizontal).clicks) # Align Area 1 and 2 horizontally
-        @test get_xy(components[1])[][2] == get_xy(components[2])[][2]
+        @test get_xy(area1)[][2] == get_xy(area2)[][2]
     end
 
     # Test the align vert. button (aligning nodes horizontally)
-    area3 = components[3] # fetch Area 3
-    clear_selection(gui; clear_topo = true)
+    clear_selection(gui, :topo)
     @testset "get_button(gui,:align_vertical).clicks" begin
-        pick_component!(gui, area2; pick_topo_component = true) # Select Area 2
-        pick_component!(gui, area3; pick_topo_component = true) # Select Area 3
+        pick_component!(gui, area2, :topo) # Select Area 2
+        pick_component!(gui, area3, :topo) # Select Area 3
         notify(get_button(gui, :align_vertical).clicks) # Align Area 2 and 3 vertically
-        @test get_xy(components[2])[][1] == get_xy(components[3])[][1]
+        @test get_xy(area2)[][1] == get_xy(area3)[][1]
     end
 
     # Test the save button functionality
@@ -163,9 +162,10 @@ end
         end
         notify(get_button(gui, :save).clicks) # click the save button
         area4_dict = YAML.load_file(joinpath(design_folder, "test_Area 4.yml"))
-        sub_components = get_components(components[4])
-        @test area4_dict["n_Solar Power"]["x"] ≈ get_xy(sub_components[2])[][1] atol = 1e-5
-        @test area4_dict["n_Battery"]["y"] ≈ get_xy(sub_components[3])[][2] atol = 1e-5
+        solar_power = get_component(area4, "Solar Power")
+        battery = get_component(area4, "Battery")
+        @test area4_dict["n_Solar Power"]["x"] ≈ get_xy(solar_power)[][1] atol = 1e-5
+        @test area4_dict["n_Battery"]["y"] ≈ get_xy(battery)[][2] atol = 1e-5
 
         # Clean up files
         rm(joinpath(design_folder, "test_top_level.yml"))
@@ -192,12 +192,13 @@ end
     @testset "get_toggle(gui,:expand_all).active" begin
         # Test if node n_El 1 became invisible
         get_toggle(gui, :expand_all).active = false
-        sub_components = get_components(components[1])
-        @test !get_plots(sub_components[2])[1].visible[]
+        n_el_1 = get_component(area1, "El 1") # fetch the n_El 1 node
+
+        @test !get_plots(n_el_1)[1].visible[]
 
         # Test if node n_El 1 became visible
         get_toggle(gui, :expand_all).active = true
-        @test get_plots(sub_components[2])[1].visible[]
+        @test get_plots(n_el_1)[1].visible[]
     end
 
     # Run through all components
@@ -207,9 +208,9 @@ end
     end
 
     @testset "get_menu(gui,:period).i_selected" begin
-        clear_selection(gui; clear_topo = true)
-        sub_component = get_components(components[2])[2] # fetch the n_Power supply node
-        pick_component!(gui, sub_component; pick_topo_component = true)
+        clear_selection(gui, :topo)
+        sub_component = get_component(area2, "Power supply") # fetch the n_Power supply node
+        pick_component!(gui, sub_component, :topo)
         update!(gui)
         select_data!(gui, "cap_use")
         time_axis = time_menu.selection[]
@@ -228,9 +229,9 @@ end
     end
 
     @testset "get_menu(gui,:representative_period).i_selected" begin
-        clear_selection(gui; clear_topo = true)
-        sub_component = get_components(components[1])[4] # fetch the Heating 1 node
-        pick_component!(gui, sub_component; pick_topo_component = true)
+        clear_selection(gui, :topo)
+        heating1 = get_component(area1, "Heating 1") # fetch the Heating 1 node
+        pick_component!(gui, heating1, :topo)
         update!(gui)
         select_data!(gui, "flow_in")
         time_axis = time_menu.selection[]
@@ -290,15 +291,15 @@ end
     end
 
     @testset "pin_plot_button.clicks" begin
-        clear_selection(gui; clear_topo = true)
-        sub_component = get_components(components[4])[2] # fetch the Solar Power node
-        pick_component!(gui, sub_component; pick_topo_component = true)
+        clear_selection(gui, :topo)
+        sub_component = get_component(area4, "Solar Power") # fetch the Solar Power node
+        pick_component!(gui, sub_component, :topo)
         update!(gui)
         select_data!(gui, "profile")
         time_axis = time_menu.selection[]
         notify(pin_plot_button.clicks)
-        sub_component2 = components[3].components[2] # fetch the EV charger node
-        pick_component!(gui, sub_component2; pick_topo_component = true) # Select Area 1
+        sub_component2 = get_component(area3, "EV charger") # fetch the EV charger node
+        pick_component!(gui, sub_component2, :topo) # Select Area 1
         update!(gui)
         select_data!(gui, "cap")
         notify(pin_plot_button.clicks)
@@ -363,7 +364,7 @@ end
     @testset "get_button(gui,:remove_plot).clicks" begin
         time_axis = time_menu.selection[]
         element = get_visible_data(gui, time_axis)[1]
-        pick_component!(gui, element; pick_results_component = true)
+        pick_component!(gui, element, :results)
 
         notify(get_button(gui, :remove_plot).clicks)
         notify(get_button(gui, :remove_plot).clicks) # test redundant clicks
@@ -371,7 +372,7 @@ end
     end
 
     @testset "get_button(gui,:clear_all).clicks" begin
-        clear_selection(gui; clear_topo = true)
+        clear_selection(gui, :topo)
         update_available_data_menu!(gui, nothing) # Make sure the menu is updated
         select_data!(gui, "emissions_strategic")
         notify(pin_plot_button.clicks)
@@ -383,8 +384,8 @@ end
     end
 
     @testset "Test plotting of representative periods from JuMP" begin
-        sub_component = get_components(components[4])[3] # fetch the Battery node
-        pick_component!(gui, sub_component; pick_topo_component = true)
+        sub_component = get_component(area4, "Battery") # fetch the Battery node
+        pick_component!(gui, sub_component, :topo)
         update!(gui)
         get_menu(gui, :period).i_selected = 3
         select_data!(gui, "stor_level_Δ_rp")
@@ -425,8 +426,8 @@ end
             [[get_nodes, get_links], [get_areas, get_transmissions]],
         )
         gui2 = GUI(case2; id_to_icon_map, scenarios_labels = ["Scenario 1"])
-        components = get_components(get_root_design(gui2))
-        @test isempty(get_components(components[4])[3].id_to_icon_map["Battery"])
+        components2 = get_components(get_root_design(gui2))
+        @test isempty(get_components(components2[4])[3].id_to_icon_map["Battery"])
         EMGUI.close(gui2)
     end
 
@@ -461,7 +462,7 @@ end
 
         # Test plotting over scenarios
         sink = get_components(get_root_design(gui3))[2]
-        pick_component!(gui3, sink; pick_topo_component = true)
+        pick_component!(gui3, sink, :topo)
         update!(gui3)
         select_data!(gui3, "penalty.deficit")
         @test get_ax(gui3, :results).scene.plots[3][1][][4][2] ≈ 200000 atol = 1e-5
@@ -472,23 +473,23 @@ end
     @testset "Test SP(RP(OP))" begin
         _, _, _, gui3 = run_test_case(; use_rp = true, use_sc = false)
         available_data_menu = get_menu(gui3, :available_data)
+        ax_results = get_ax(gui3, :results)
 
         # Test plotting over operational periods
         select_data!(gui3, "emissions_total")
         get_menu(gui3, :representative_period).i_selected = 2
-        @test get_ax(gui3, :results).scene.plots[1][1][][24][2] ≈ 1.048 atol = 1e-5
+        @test ax_results.scene.plots[1][1][][24][2] ≈ 1.048 atol = 1e-5
 
         # Test plotting over strategic periods
         select_data!(gui3, "emissions_strategic")
-        @test get_ax(gui3, :results).scene.plots[2][1][][2][2] ≈ 20601.06 atol = 1e-5
-
+        @test ax_results.scene.plots[2][1][][2][2] ≈ 20601.06 atol = 1e-5
         # Test plotting over representative periods
         get_menu(gui3, :period).i_selected = 3
         sink = get_components(get_root_design(gui3))[2]
-        pick_component!(gui3, sink; pick_topo_component = true)
+        pick_component!(gui3, sink, :topo)
         update!(gui3)
         select_data!(gui3, "penalty.deficit")
-        @test get_ax(gui3, :results).scene.plots[3][1][][2][2] ≈ 2.0e6 atol = 1e-5
+        @test ax_results.scene.plots[3][1][][2][2] ≈ 2.0e6 atol = 1e-5
         EMGUI.close(gui3)
     end
 
@@ -496,43 +497,55 @@ end
     @testset "Test SP(RP(SC(OP)))" begin
         _, _, _, gui3 = run_test_case(; use_rp = true, use_sc = true)
         available_data_menu = get_menu(gui3, :available_data)
+        ax_results = get_ax(gui3, :results)
+        period_menu = get_menu(gui3, :period)
+        representative_period_menu = get_menu(gui3, :representative_period)
+        scenario_menu = get_menu(gui3, :scenario)
 
         # Test plotting over operational periods
         select_data!(gui3, "emissions_total")
 
         # Test updating menu with non-tensorial timestructure
-        get_menu(gui3, :period).i_selected = 3
-        @test get_ax(gui3, :results).scene.plots[1][1][][24][2] ≈ 1.965 atol = 1e-5
-        get_menu(gui3, :representative_period).i_selected = 2
-        @test get_ax(gui3, :results).scene.plots[1][1][][24][2] ≈ 1.2576 atol = 1e-5
-        get_menu(gui3, :representative_period).i_selected = 1
-        @test get_ax(gui3, :results).scene.plots[1][1][][24][2] ≈ 1.965 atol = 1e-5
-        get_menu(gui3, :scenario).i_selected = 4
-        @test get_ax(gui3, :results).scene.plots[1][1][][24][2] ≈ 0.393 atol = 1e-5
-        get_menu(gui3, :period).i_selected = 2
-        @test get_ax(gui3, :results).scene.plots[1][1][][24][2] ≈ 0.262 atol = 1e-5
-        get_menu(gui3, :representative_period).i_selected = 2
-        @test get_ax(gui3, :results).scene.plots[1][1][][24][2] ≈ 1.048 atol = 1e-5
-        get_menu(gui3, :scenario).i_selected = 3
-        @test get_ax(gui3, :results).scene.plots[1][1][][24][2] ≈ 0.4192 atol = 1e-5
-        get_menu(gui3, :period).i_selected = 1
-        @test get_ax(gui3, :results).scene.plots[1][1][][24][2] ≈ 0.1965 atol = 1e-5
+        period_menu.i_selected = 3
+        @test ax_results.scene.plots[1][1][][24][2] ≈ 1.965 atol = 1e-5
 
-        get_menu(gui3, :period).i_selected = 3
-        @test get_ax(gui3, :results).scene.plots[1][1][][24][2] ≈ 0.9825 atol = 1e-5
-        get_menu(gui3, :representative_period).i_selected = 2
-        @test get_ax(gui3, :results).scene.plots[1][1][][24][2] ≈ 3.7728 atol = 1e-5
+        representative_period_menu.i_selected = 2
+        @test ax_results.scene.plots[1][1][][24][2] ≈ 1.2576 atol = 1e-5
+
+        representative_period_menu.i_selected = 1
+        @test ax_results.scene.plots[1][1][][24][2] ≈ 1.965 atol = 1e-5
+
+        scenario_menu.i_selected = 4
+        @test ax_results.scene.plots[1][1][][24][2] ≈ 0.393 atol = 1e-5
+
+        period_menu.i_selected = 2
+        @test ax_results.scene.plots[1][1][][24][2] ≈ 0.262 atol = 1e-5
+
+        representative_period_menu.i_selected = 2
+        @test ax_results.scene.plots[1][1][][24][2] ≈ 1.048 atol = 1e-5
+
+        scenario_menu.i_selected = 3
+        @test ax_results.scene.plots[1][1][][24][2] ≈ 0.4192 atol = 1e-5
+
+        period_menu.i_selected = 1
+        @test ax_results.scene.plots[1][1][][24][2] ≈ 0.1965 atol = 1e-5
+
+        period_menu.i_selected = 3
+        @test ax_results.scene.plots[1][1][][24][2] ≈ 0.9825 atol = 1e-5
+
+        representative_period_menu.i_selected = 2
+        @test ax_results.scene.plots[1][1][][24][2] ≈ 3.7728 atol = 1e-5
 
         # Test plotting over strategic periods
         select_data!(gui3, "emissions_strategic")
-        @test get_ax(gui3, :results).scene.plots[2][1][][2][2] ≈ 7648.6446 atol = 1e-5
+        @test ax_results.scene.plots[2][1][][2][2] ≈ 7648.6446 atol = 1e-5
 
         # Test plotting over scenarios
         sink = get_components(get_root_design(gui3))[2]
-        pick_component!(gui3, sink; pick_topo_component = true)
+        pick_component!(gui3, sink, :topo)
         update!(gui3)
         select_data!(gui3, "penalty.deficit")
-        @test get_ax(gui3, :results).scene.plots[3][1][][2][2] ≈ 4.0e6 atol = 1e-5
+        @test ax_results.scene.plots[3][1][][2][2] ≈ 4.0e6 atol = 1e-5
         EMGUI.close(gui3)
     end
 end

@@ -1,3 +1,13 @@
+import EnergyModelsGUI:
+    get_root_design,
+    get_components,
+    get_connections,
+    get_menu,
+    get_button,
+    update!,
+    pick_component!,
+    clear_selection
+
 """
     run_through_all(gui::GUI)
 
@@ -12,7 +22,7 @@ function run_through_all(
 
     run_through_all(
         gui,
-        EMGUI.get_root_design(gui),
+        get_root_design(gui),
         break_after_first,
         1,
         sleep_time,
@@ -32,14 +42,13 @@ function run_through_all(
     sleep_time::Float64,
 )
     indent_spacing = "  "
-    available_data_menu = EMGUI.get_menu(gui, :available_data)
-    for component ∈ EMGUI.get_components(design)
+    available_data_menu = get_menu(gui, :available_data)
+    for component ∈ get_components(design)
         @info indent_spacing^level *
-              "Running through component $(EMGUI.get_ref_element(component))"
-        EMGUI.clear_selection(gui; clear_topo = true)
-        EMGUI.pick_component!(gui, component; pick_topo_component = true)
-
-        EMGUI.update!(gui)
+              "Running through component $(get_ref_element(component))"
+        clear_selection(gui, :topo)
+        pick_component!(gui, component, :topo)
+        update!(gui)
         run_through_menu(
             available_data_menu,
             indent_spacing,
@@ -47,21 +56,21 @@ function run_through_all(
             break_after_first,
             sleep_time,
         )
-        if !isempty(component.components) # no sub system found
-            notify(EMGUI.get_button(gui, :open).clicks)
+        if !isempty(get_components(component)) # no sub system found
+            notify(get_button(gui, :open).clicks)
             run_through_all(gui, component, break_after_first, level + 1, sleep_time)
-            notify(EMGUI.get_button(gui, :up).clicks)
+            notify(get_button(gui, :up).clicks)
         end
         if break_after_first
             break
         end
     end
-    for connection ∈ EMGUI.get_connections(design)
+    for connection ∈ get_connections(design)
         @info indent_spacing^level *
-              "Running through connection $(EMGUI.get_element(connection))"
-        EMGUI.clear_selection(gui; clear_topo = true)
-        EMGUI.pick_component!(gui, connection; pick_topo_component = true)
-        EMGUI.update!(gui)
+              "Running through connection $(get_element(connection))"
+        clear_selection(gui, :topo)
+        pick_component!(gui, connection, :topo)
+        update!(gui)
         run_through_menu(
             available_data_menu,
             indent_spacing,

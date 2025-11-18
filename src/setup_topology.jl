@@ -15,7 +15,7 @@ the function initializes the `EnergySystemDesign`.
 - **`y::Float32=0.0f0`** is the initial y-coordinate of the system.
 - **`icon::String=""`** is the optional (path to) icons associated with the system, stored as
   a string.
-- **`parent::Union{Symbol, Nothing}=nothing`** is a parent reference or indicator.
+- **`parent::AbstractGUIObj=NothingDesign()`** is a parent EnergySystemDesign object.
 
 The function reads system configuration data from a TOML file specified by `design_path`
 (if it exists), initializes various internal fields, and processes connections and wall values.
@@ -30,6 +30,7 @@ function EnergySystemDesign(
     x::Float32 = 0.0f0,
     y::Float32 = 0.0f0,
     icon::String = "",
+    parent::AbstractGUIObj = NothingDesign(),
 )
     # Create the path to the file where existing design is stored (if any)
     file::String = design_file(system, design_path)
@@ -58,6 +59,20 @@ function EnergySystemDesign(
     # Create an iterator for the current system
     elements = get_children(system)
     parent_x, parent_y = xy[] # extract parent coordinates
+
+    design = EnergySystemDesign(
+        system,
+        id_to_color_map,
+        id_to_icon_map,
+        components,
+        connections,
+        parent,
+        xy,
+        icon,
+        Observable(BLACK),
+        Observable(:E),
+        file,
+    )
 
     # If system contains any components (i.e. !isnothing(elements)) add all components
     # (constructed as an EnergySystemDesign) to `components`
@@ -99,7 +114,7 @@ function EnergySystemDesign(
 
             # Add child to `components`
             push!(
-                components,
+                design.components,
                 EnergySystemDesign(
                     this_sys;
                     design_path,
@@ -108,6 +123,7 @@ function EnergySystemDesign(
                     x,
                     y,
                     icon = find_icon(this_sys, id_to_icon_map),
+                    parent = design,
                 ),
             )
         end
@@ -125,23 +141,12 @@ function EnergySystemDesign(
 
             # If `EnergySystemDesign`s found, create a new `Connection`
             if !isnothing(from) && !isnothing(to)
-                push!(connections, Connection(from, to, element, id_to_color_map))
+                push!(design.connections, Connection(from, to, element, id_to_color_map))
             end
         end
     end
 
-    return EnergySystemDesign(
-        system,
-        id_to_color_map,
-        id_to_icon_map,
-        components,
-        connections,
-        xy,
-        icon,
-        Observable(BLACK),
-        Observable(:E),
-        file,
-    )
+    return design
 end
 function EnergySystemDesign(case::Case; kwargs...)
     return EnergySystemDesign(parse_case(case); kwargs...)

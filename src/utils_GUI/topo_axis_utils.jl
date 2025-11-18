@@ -148,11 +148,17 @@ function plot_design!(
     if get_design(gui) == design
         update_distances!(gui)
     end
-    for component ∈ get_components(design), plot ∈ component.plots
+    for component ∈ get_components(design), plot ∈ get_plots(component)
         plot.visible = visible
     end
-    for connection ∈ get_connections(design), plots ∈ get_plots(connection), plot ∈ plots
-        plot.visible = visible
+    for connection ∈ get_connections(design), plots ∈ get_plots(connection)
+        if isa(plots, Makie.AbstractPlot) # handle the arrowheads (scatter! object)
+            plots.visible = visible
+        else # handle the lines (vector of line! objects)
+            for plot_sub ∈ plots
+                plot_sub.visible = visible
+            end
+        end
     end
 end
 
@@ -162,43 +168,7 @@ end
 Draws lines between connected nodes/areas in GUI `gui` using EnergySystemDesign `design`.
 """
 function connect!(gui::GUI, design::EnergySystemDesign)
-    # Find optimal placement of label by finding the wall that has the least number of connections
     connections = get_connections(design)
-    components = get_components(design)
-    for component ∈ components
-        linked_to_component::Vector{Connection} = filter(
-            x -> get_parent(get_system(component)).id == get_element(x).to.id,
-            connections,
-        )
-        linked_from_component::Vector{Connection} = filter(
-            x -> get_parent(get_system(component)).id == get_element(x).from.id,
-            connections,
-        )
-        on(component.xy; priority = 4) do _
-            angles::Vector{Float32} = vcat(
-                [
-                    angle(component, linked_component.from) for
-                    linked_component ∈ linked_to_component
-                ],
-                [
-                    angle(component, linked_component.to) for
-                    linked_component ∈ linked_from_component
-                ],
-            )
-            min_angle_diff::Vector{Float32} = fill(Inf, 4)
-            for i ∈ eachindex(min_angle_diff)
-                for angle ∈ angles
-                    Δθ::Float32 = angle_difference(angle, (i - 1) * Float32(π) / 2)
-                    if min_angle_diff[i] > Δθ
-                        min_angle_diff[i] = Δθ
-                    end
-                end
-            end
-            walls::Vector{Symbol} = [:E, :N, :W, :S]
-            component.wall[] = walls[argmax(min_angle_diff)]
-        end
-        notify(component.xy)
-    end
 
     for conn ∈ connections
         # Check if link between two elements goes in both directions (two_way)
@@ -239,25 +209,28 @@ function connect!(gui::GUI, connection::Connection, two_way::Bool)
     end
 
     # Allocate and store objects
-    line_connections::Vector{Any} = Vector{Any}(undef, 0)
-    arrow_heads::Vector{Any} = Vector{Any}(undef, 0)
-    push!(get_plots(connection), line_connections)
-    push!(get_plots(connection), arrow_heads)
     linestyle = get_linestyle(gui, connection)
+    linewidth = get_var(gui, :connection_linewidth)
+    markersize = get_var(gui, :markersize)
+    two_way_sep_px = get_var(gui, :two_way_sep_px)
+    line_sep_px = get_var(gui, :line_sep_px)
+    parent_scaling = get_var(gui, :parent_scaling)
 
     from_xy = connection.from.xy
     to_xy = connection.to.xy
     Δh = get_var(gui, :Δh)
 
-    for j ∈ 1:no_colors
-        triple = @lift begin
+    triple = @lift begin
+        xy_midpoints = Vector{Point2f}(fill(Point2f(0.0f0, 0.0f0), no_colors))
+        θs = Vector{Float32}(fill(0.0f0, no_colors))
+        pts_lines =
+            Vector{Vector{Point2f}}(fill(fill(Point2f(0.0f0, 0.0f0), 2), no_colors))
+        for j ∈ 1:no_colors
             lines_shift::Point2f =
-                pixel_to_data(gui, get_var(gui, :connection_linewidth)) .+
-                pixel_to_data(gui, get_var(gui, :line_sep_px))
-            two_way_sep::Point2f = pixel_to_data(gui, get_var(gui, :two_way_sep_px))
-            markersize_lengths::Point2f = pixel_to_data(
-                gui, get_var(gui, :markersize),
-            )
+                pixel_to_data(gui, linewidth) .+
+                pixel_to_data(gui, line_sep_px)
+            two_way_sep::Point2f = pixel_to_data(gui, two_way_sep_px)
+            markersize_lengths::Point2f = pixel_to_data(gui, markersize)
 
             xy_1::Point2f = $from_xy
             xy_2::Point2f = $to_xy
@@ -267,23 +240,21 @@ function connect!(gui::GUI, connection::Connection, two_way::Bool)
             sinθ::Float32 = sin(θ)
             cosϕ::Float32 = -sinθ # where ϕ = θ+π/2
             sinϕ::Float32 = cosθ
+
+            # Create directional vectors in the direction of θ and ϕ
             dirϕ::Point2f = Point2f(cosϕ, sinϕ)
             dirθ::Point2f = Point2f(cosθ, sinθ)
 
             Δ::Float32 = $Δh / 2 # half width of a box
             if !isempty(get_components(connection.from))
-                Δ *= get_var(gui, :parent_scaling)
+                Δ *= parent_scaling
             end
 
-            xy_start::Point2f = xy_1
-            xy_end::Point2f = xy_2
-            xy_midpoint::Point2f = xy_2 # The midpoint of the end of all lines (for arrow head)
+            xy_start::Point2f = xy_1 + (j - 1) * lines_shift .* dirϕ
+            xy_end::Point2f = xy_2 + (j - 1) * lines_shift .* dirϕ
+            xy_midpoint::Point2f = xy_2 + (no_colors - 1) / 2 * lines_shift .* dirϕ # The midpoint of the end of all lines (for arrow head)
 
-            xy_start += (j - 1) * lines_shift .* dirϕ
-            xy_end += (j - 1) * lines_shift .* dirϕ
-            xy_midpoint += (no_colors - 1) / 2 * lines_shift .* dirϕ
-
-            if two_way
+            if two_way # separate the opposite directed lines by two_way_sep
                 xy_start += two_way_sep / 2 .* dirϕ
                 xy_end += two_way_sep / 2 .* dirϕ
                 xy_midpoint += two_way_sep / 2 .* dirϕ
@@ -295,42 +266,53 @@ function connect!(gui::GUI, connection::Connection, two_way::Bool)
                 -xy_start[1] * cosθ - xy_start[2] * sinθ +
                 xy_midpoint[1] * cosθ +
                 xy_midpoint[2] * sinθ - minimum(markersize_lengths)
-            pts_line = Point2f[xy_start, parm*dirθ+xy_start]
 
-            # return the objects into a tuple Observable
-            (xy_midpoint, θ, pts_line)
+            xy_midpoints[j] = xy_midpoint
+            θs[j] = θ
+            pts_lines[j] = Point2f[xy_start, parm*dirθ+xy_start]
         end
-        xy_midpoint_j = @lift $triple[1]
-        θⱼ = @lift $triple[2]
-        pts_line_j = @lift $triple[3]
 
-        sctr = scatter!(
-            get_axes(gui)[:topo],
-            xy_midpoint_j;
-            marker = arrow_parts[j],
-            markersize = get_var(gui, :markersize),
-            rotation = θⱼ,
-            color = colors[j],
-            inspectable = false,
-        )
+        # return the objects into a tuple Observable
+        (xy_midpoints, θs, pts_lines)
+    end
+
+    # Extract observables from the tuple
+    xy_midpoints = @lift $triple[1]
+    θs = @lift $triple[2]
+
+    ax = get_ax(gui, :topo)
+    sctr = scatter!(
+        ax,
+        xy_midpoints;
+        marker = arrow_parts,
+        markersize = get_var(gui, :markersize),
+        rotation = θs,
+        color = colors,
+        inspectable = false,
+    )
+    Makie.translate!(sctr, 0, 0, get_var(gui, :z_translate_lines))
+    sctr.kw[:EMGUI_obj] = connection
+    push!(get_plots(connection), sctr)
+
+    lns_arr::Vector{Makie.AbstractPlot} = Makie.AbstractPlot[] # to store the line plots
+
+    for j ∈ 1:no_colors
+        pts_lines = @lift $triple[3][j]
         lns = lines!(
-            get_axes(gui)[:topo],
-            pts_line_j;
+            ax,
+            pts_lines;
             color = colors[j],
-            linewidth = get_var(gui, :connection_linewidth),
+            linewidth = linewidth,
             linestyle = linestyle[j],
             inspector_label = (self, i, p) -> get_hover_string(connection),
             inspectable = true,
         )
-        Makie.translate!(sctr, 0, 0, get_var(gui, :z_translate_lines))
         Makie.translate!(lns, 0, 0, get_var(gui, :z_translate_lines))
-
-        sctr.kw[:EMGUI_obj] = connection
         lns.kw[:EMGUI_obj] = connection
-
-        push!(arrow_heads, sctr)
-        push!(line_connections, lns)
+        push!(lns_arr, lns)
     end
+    push!(get_plots(connection), lns_arr)
+
     get_vars(gui)[:z_translate_lines] += 0.0001f0
 end
 
@@ -366,7 +348,7 @@ end
 Get the line style for an Connection `connection` based on its properties.
 """
 function get_linestyle(gui::GUI, connection::Connection)
-    # Check of connection is a transmission
+    # Check if connection is a transmission
     linestyles = get_linestyle(gui, get_element(connection))
     if !isempty(linestyles)
         return linestyles
@@ -457,65 +439,78 @@ end
 Draw an icon for EnergySystemDesign `design`.
 """
 function draw_icon!(gui::GUI, design::EnergySystemDesign)
+    ax = get_axes(gui)[:topo]
     if isempty(design.icon) # No path to an icon has been found
         node::EMB.Node = get_ref_element(design)
 
-        colors_input::Vector{RGB} = get_resource_colors(
+        colors_input::Vector{RGBA{Float32}} = get_resource_colors(
             inputs(node), design.id_to_color_map,
         )
-        colors_output::Vector{RGB} = get_resource_colors(
+        colors_output::Vector{RGBA{Float32}} = get_resource_colors(
             outputs(node), design.id_to_color_map,
         )
-        geometry::Symbol = if isa(node, Source)
-            :rect
+        all_colors = vcat(colors_input, colors_output)
+        no_circle_points::Int64 = 100
+        geometry::Symbol, no_points::Int64 = if isa(node, Source)
+            (:rect, 5)
         elseif isa(node, Sink)
-            :circle
+            (:circle, no_circle_points+2)
         else # assume NetworkNode
-            :triangle
+            (:triangle, 4)
         end
-        for (j, colors) ∈ enumerate([colors_input, colors_output])
-            no_colors::Int64 = length(colors)
-            for (i, color) ∈ enumerate(colors)
-                θᵢ::Float32 = 0.0f0
-                θᵢ₊₁::Float32 = 0.0f0
 
-                # Check if node is a NetworkNode (if so, devide disc into two where
-                # left side is for input and right side is for output)
-                if isa(node, NetworkNode)
-                    θᵢ = (-1)^(j + 1) * π / 2 + π * (i - 1) / no_colors
-                    θᵢ₊₁ = (-1)^(j + 1) * π / 2 + π * i / no_colors
-                else
-                    θᵢ = 2π * (i - 1) / no_colors
-                    θᵢ₊₁ = 2π * i / no_colors
+        no_polygons::Int64 = length(all_colors)
+        xy = design.xy
+        Δh = get_var(gui, :Δh)
+        icon_scale = get_var(gui, :icon_scale)
+        node_isa_networknode::Bool = isa(node, NetworkNode)
+
+        poly_points_obs::Observable{Vector{Vector{Point2f}}} = @lift begin
+            poly_points::Vector{Vector{Point2f}} = Vector{Vector{Point2f}}(
+                fill(fill(Point2f(0, 0), no_points), no_polygons),
+            )
+            idx = 1
+            for (j, colors) ∈ enumerate([colors_input, colors_output])
+                no_colors::Int64 = length(colors)
+                for i ∈ 1:no_colors
+                    θᵢ::Float32 = 0.0f0
+                    θᵢ₊₁::Float32 = 0.0f0
+
+                    # Check if node is a NetworkNode (if so, devide disc into two where
+                    # left side is for input and right side is for output)
+                    if node_isa_networknode
+                        θᵢ = (-1)^(j + 1) * π / 2 + π * (i - 1) / no_colors
+                        θᵢ₊₁ = (-1)^(j + 1) * π / 2 + π * i / no_colors
+                    else
+                        θᵢ = 2π * (i - 1) / no_colors
+                        θᵢ₊₁ = 2π * i / no_colors
+                    end
+                    poly_points[idx] = get_sector_points(;
+                        c = $xy,
+                        Δ = $Δh * icon_scale / 2,
+                        θ₁ = θᵢ,
+                        θ₂ = θᵢ₊₁,
+                        geometry = geometry,
+                        steps = no_circle_points,
+                    )
+                    idx += 1
                 end
-                Δh = get_var(gui, :Δh)
-                xy = design.xy
-                sector = @lift get_sector_points(;
-                    c = $xy,
-                    Δ = $Δh * get_var(gui, :icon_scale) / 2,
-                    θ₁ = θᵢ,
-                    θ₂ = θᵢ₊₁,
-                    geometry = geometry,
-                )
-
-                network_poly = poly!(
-                    get_axes(gui)[:topo], sector; color = color, inspectable = true,
-                )
-                add_inspector_to_poly!(
-                    network_poly, (self, i, p) -> get_hover_string(design),
-                )
-                Makie.translate!(
-                    network_poly,
-                    0.0f0,
-                    0.0f0,
-                    get_var(gui, :z_translate_components),
-                )
-                network_poly.kw[:EMGUI_obj] = design
-                push!(design.plots, network_poly)
             end
+            poly_points
         end
 
-        if isa(node, NetworkNode)
+        polys = poly!(ax, poly_points_obs; color = all_colors, inspectable = true)
+        add_inspector_to_poly!(polys, (self, i, p) -> get_hover_string(design))
+        Makie.translate!(
+            polys,
+            0.0f0,
+            0.0f0,
+            get_var(gui, :z_translate_components),
+        )
+        polys.kw[:EMGUI_obj] = design
+        push!(design.plots, polys)
+
+        if node_isa_networknode
             # Add a center box to separate input resources from output resources
             Δh = get_var(gui, :Δh)
             xy = design.xy
@@ -526,7 +521,7 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
             end
 
             center_box = poly!(
-                get_axes(gui)[:topo],
+                ax,
                 box;
                 color = WHITE,
                 inspectable = true,
@@ -554,7 +549,7 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
         yo_image = @lift ($xy[2] - $Δh * scale / 2) .. ($xy[2] + $Δh * scale / 2)
 
         icon_image = image!(
-            get_axes(gui)[:topo],
+            ax,
             xo_image,
             yo_image,
             rotr90(FileIO.load(design.icon));
@@ -574,44 +569,72 @@ end
 Add a label to an `EnergySystemDesign` component.
 """
 function draw_label!(gui::GUI, component::EnergySystemDesign)
+    connections = get_connections(get_parent(component))
+    id = get_parent(get_system(component)).id
+    linked_to_component::Vector{Connection} = filter(
+        x -> id == get_element(x).to.id,
+        connections,
+    )
+    linked_from_component::Vector{Connection} = filter(
+        x -> id == get_element(x).from.id,
+        connections,
+    )
+
     scale = 0.7
     Δh = get_var(gui, :Δh)
     xy = component.xy
+    walls::Vector{Symbol} = [:E, :N, :W, :S]
 
+    # Find optimal placement of label by finding the wall that has the least number of connections
     tuple = @lift begin
-        shift_xy = if component.wall[] == :E
+        angles::Vector{Float32} = vcat(
+            [
+                angle(component, linked_component.from) for
+                linked_component ∈ linked_to_component
+            ],
+            [
+                angle(component, linked_component.to) for
+                linked_component ∈ linked_from_component
+            ],
+        )
+        min_angle_diff::Vector{Float32} = fill(Inf, 4)
+        for i ∈ eachindex(min_angle_diff)
+            for angle ∈ angles
+                Δθ::Float32 = angle_difference(angle, (i - 1) * Float32(π) / 2)
+                if min_angle_diff[i] > Δθ
+                    min_angle_diff[i] = Δθ
+                end
+            end
+        end
+        wall = walls[argmax(min_angle_diff)]
+        shift_xy = if wall == :E
             Point2f($Δh * scale, 0.0f0)
-        elseif component.wall[] == :S
+        elseif wall == :S
             Point2f(0.0f0, -$Δh * scale)
-        elseif component.wall[] == :W
+        elseif wall == :W
             Point2f(-$Δh * scale, 0.0f0)
-        elseif component.wall[] == :N
+        elseif wall == :N
             Point2f(0.0f0, $Δh * scale)
         end
         xy_label = $xy + shift_xy
-        alignment = get_text_alignment(component.wall[])
+        alignment = get_text_alignment(wall)
         (xy_label, alignment)
     end
 
     # Extract observables from the tuple
-    xy_label_o = @lift $tuple[1]
-    alignment_o = @lift $tuple[2]
+    xy_label_obs = @lift $tuple[1]
+    alignment_obs = @lift $tuple[2]
 
     node = get_element(component)
 
-    if has_invested(component)
-        font_color = RED
-    else
-        font_color = BLACK
-    end
     label_text = text!(
         get_axes(gui)[:topo],
-        xy_label_o;
+        xy_label_obs;
         text = get_element_label(node),
-        align = alignment_o,
+        align = alignment_obs,
         fontsize = get_var(gui, :fontsize),
         inspectable = false,
-        color = font_color,
+        color = has_invested(component) ? RED : BLACK,
     )
     Makie.translate!(label_text, 0.0f0, 0.0f0, get_var(gui, :z_translate_components))
     get_vars(gui)[:z_translate_components] += 0.0001f0
@@ -683,7 +706,7 @@ end
 Update the title of `get_axes(gui)[:topo]` based on `get_design(gui)`.
 """
 function update_title!(gui::GUI)
-    parent = get_parent(gui)
+    parent = get_parent(get_system(gui))
     title_obs = get_var(gui, :title)
     title_obs[] = if isa(parent, NothingElement)
         "top_level"

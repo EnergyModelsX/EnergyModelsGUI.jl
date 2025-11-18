@@ -35,6 +35,19 @@ function place_nodes_in_circle(n::Int64, i::Int64, r::Float32, xₒ::Float32, y�
 end
 
 """
+    parse_color(type::Type, color::Colorant)
+    parse_color(type::Type, color::Any)
+
+Parse `color` into the type `type`.
+"""
+function parse_color(type::Type, color::Colorant)
+    return type(color)
+end
+function parse_color(type::Type, color::Any)
+    return parse(type, color)
+end
+
+"""
     set_colors(products::Vector{<:Resource}, id_to_color_map::Dict)
 
 Returns a dictionary that completes the dictionary `id_to_color_map` with default color values
@@ -69,12 +82,12 @@ function set_colors(products::Vector{<:Resource}, id_to_color_map::Dict)
 
     # Create a seed based on the existing colors
     seed::Vector{RGB{Float32}} = [
-        parse(RGB{Float32}, hex_color) for hex_color ∈ values(complete_id_to_color_map)
+        parse_color(RGB{Float32}, color) for color ∈ values(complete_id_to_color_map)
     ]
 
     # Add non-desired colors to the seed
     non_desired_colors = [:yellow, :magenta, :cyan, :green1, :black, :white]
-    append!(seed, parse(Colorant, color) for color ∈ non_desired_colors)
+    append!(seed, parse_color(RGB{Float32}, color) for color ∈ non_desired_colors)
 
     # Create new colors for the missing resources
     products_colors::Vector{RGBA{Float32}} = distinguishable_colors(
@@ -235,65 +248,13 @@ function save_design(design_dict::Dict, file::String)
 end
 
 """
-    get_linked_nodes!(
-        node::EMB.Node,
-        links::Vector{Link},
-        area_links::Vector{Link},
-        area_nodes::Vector{EMB.Node},
-        indices::Vector{Int},
-    )
-
-Recursively find all nodes connected (directly or indirectly) to `node` in a system of `links`
-and store the found links in `area_links` and nodes in `area_nodes`.
-
-Here, `indices` contains the indices where the next link and node is to be stored,
-respectively.
-"""
-function get_linked_nodes!(
-    node::EMB.Node,
-    links::Vector{Link},
-    area_links::Vector{Link},
-    area_nodes::Vector{EMB.Node},
-    indices::Vector{Int},
-)
-    for link ∈ links
-        if node ∈ [link.from, link.to] &&
-           (indices[1] == 1 || !(link ∈ area_links[1:(indices[1]-1)]))
-            area_links[indices[1]] = link
-            indices[1] += 1
-
-            new_node_added::Bool = false
-            if node == link.from && !(link.to ∈ area_nodes[1:(indices[2]-1)])
-                area_nodes[indices[2]] = link.to
-                new_node_added = true
-            elseif node == link.to && !(link.from ∈ area_nodes[1:(indices[2]-1)])
-                area_nodes[indices[2]] = link.from
-                new_node_added = true
-            end
-
-            # Recursively add other nodes
-            if new_node_added
-                indices[2] += 1
-                get_linked_nodes!(
-                    area_nodes[indices[2]-1],
-                    links,
-                    area_links,
-                    area_nodes,
-                    indices,
-                )
-            end
-        end
-    end
-end
-
-"""
     get_resource_colors(resources::Vector{Resource}, id_to_color_map::Dict{Any,Any})
 
 Get the colors linked the the resources in `resources` based on the mapping `id_to_color_map`.
 """
 function get_resource_colors(resources::Vector{<:Resource}, id_to_color_map::Dict{Any,Any})
-    hexColors::Vector{Any} = [id_to_color_map[resource.id] for resource ∈ resources]
-    return [parse(RGBA{Float32}, hex_color) for hex_color ∈ hexColors]
+    colors::Vector{Any} = [id_to_color_map[resource.id] for resource ∈ resources]
+    return [parse_color(RGBA{Float32}, color) for color ∈ colors]
 end
 
 """
