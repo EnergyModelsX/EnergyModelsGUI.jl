@@ -596,7 +596,7 @@ end
 """
     update_limits!(ax::Axis)
 
-Adjust limits automatically to avoid legend box overlapping the data.left
+Adjust limits automatically to avoid legend box overlapping the data.
 """
 function update_limits!(ax::Axis)
     autolimits!(ax)

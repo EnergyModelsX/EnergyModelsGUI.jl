@@ -309,7 +309,7 @@ const MAGENTA = RGBA{Float32}(1.0, 0.0, 1.0, 1.0)
 const CYAN = RGBA{Float32}(0.0, 1.0, 1.0, 1.0)
 
 Base.show(io::IO, obj::AbstractGUIObj) = dump(io, obj; maxdepth = 1)
-Base.show(::IO, ::NothingDesign) = ""
+Base.show(io::IO, ::NothingDesign) = print(io, "NothingDesign()")
 Base.show(io::IO, obj::ProcInvData) = dump(io, obj; maxdepth = 1)
 Base.show(io::IO, system::AbstractSystem) = dump(io, system; maxdepth = 1)
 Base.show(io::IO, gui::GUI) = dump(io, gui; maxdepth = 1)
