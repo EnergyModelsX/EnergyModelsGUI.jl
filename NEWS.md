@@ -1,6 +1,6 @@
 # Release notes
 
-## Version 0.5.17 (2025-11-18)
+## Version 0.5.17 (2025-11-19)
 
 ### Bugfix
 
