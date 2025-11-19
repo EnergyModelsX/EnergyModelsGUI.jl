@@ -38,6 +38,10 @@ to the old EnergyModelsX `case` dictionary.
 - **`scale_tot_capex::Bool=false`** divides total CAPEX quantities with the duration of the strategic period.
 - **`colormap::Vector=Makie.wong_colors()`** is the colormap used for plotting results.
 - **`tol::Float64=1e-12`** the tolerance for numbers close to machine epsilon precision.
+- **`enable_data_inspector::Bool=true`** toggles the DataInspector functionality for
+  hovering objects to show information.
+- **`use_geomakie::Bool=true`** toggles the use of GeoMakie for plotting geographical
+  designs when the `case` contains geographical information.
 
 !!! warning "Reading model results from CSV-files"
     Reading model results from a directory (*i.e.*, `model::String` implying that the results
@@ -66,6 +70,8 @@ function GUI(
     scale_tot_capex::Bool = false,
     colormap::Vector = Makie.wong_colors(),
     tol::Float64 = 1e-8,
+    enable_data_inspector::Bool = true,
+    use_geomakie::Bool = true,
 )
     # Generate the system topology:
     @info raw"Setting up the topology design structure"
@@ -92,7 +98,7 @@ function GUI(
         :parent_scaling => 1.1,     # Scale for enlargement of boxes around main boxes for nodes for parent systems
         :icon_scale => 0.9f0,       # scale icons w.r.t. the surrounding box in fraction of Δh
         :two_way_sep_px => 10,      # No pixels between set of lines for nodes having connections both ways
-        :selection_color => :green2, # Colors for box boundaries when selection objects
+        :selection_color => GREEN2, # Colors for box boundaries when selection objects
         :investment_lineStyle => Linestyle([1.0, 1.5, 2.0, 2.5] .* 5), # linestyle for investment connections and box boundaries for nodes
         :path_to_results => path_to_results, # Path to the location where axes[:results] can be exported
         :plotted_data => [],
@@ -104,6 +110,7 @@ function GUI(
         :scale_tot_capex => scale_tot_capex,
         :colormap => colormap,
         :tol => tol,
+        :use_geomakie => use_geomakie,
         :autolimits => Dict(
             :results_op => true,
             :results_sc => true,
@@ -183,6 +190,8 @@ function GUI(
     end
     screen = GLMakie.Screen(title = fig_title)
 
+    display(screen, fig)
+
     ## Create the main structure for the EnergyModelsGUI
     gui::GUI = GUI(
         fig, screen, axes, legends, buttons, menus, toggles, root_design, design,
@@ -206,15 +215,15 @@ function GUI(
     # Define all event functions in the GUI
     define_event_functions(gui)
 
+    # Update the placement of the title of the topology axis
+    notify(axes[:topo].finallimits)
+
     # make sure all graphics is adapted to the spawned figure sizes
     notify(get_toggle(gui, :expand_all).active)
 
     # Enable inspector (such that hovering objects shows information)
     # Linewidth set to zero as this boundary is slightly laggy on movement
-    DataInspector(fig; range = 3, indicator_linewidth = 0)
-
-    # display the figure
-    display(screen, fig)
+    DataInspector(fig; range = 3, indicator_linewidth = 0, enabled = enable_data_inspector)
 
     return gui
 end
@@ -271,7 +280,7 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
         vars[:plot_widths][1] / (vars[:plot_widths][2] - vars[:taskbar_height]) / 2
 
     # Check whether or not to use lat-lon coordinates to construct the axis used for visualizing the topology
-    if isa(get_system(design), SystemGeo)
+    if isa(get_system(design), SystemGeo) && vars[:use_geomakie]
         # Set the source mapping for projection
         source::String = "+proj=merc +lon_0=0 +x_0=0 +y_0=0 +a=6378137 +b=6378137 +units=m +no_defs"
         # Set the destination mapping for projection
@@ -281,7 +290,7 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
             gridlayout_topology_ax[1, 1];
             source,
             dest,
-            alignmode = Outside(),
+            alignmode = Inside(),
         )
 
         if vars[:coarse_coast_lines] # Use low resolution coast lines

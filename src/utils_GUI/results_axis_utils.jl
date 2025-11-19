@@ -28,7 +28,7 @@ end
         key_str::String,
         pre_desc::String,
         selection::Vector,
-        available_data::Vector{Dict},
+        available_data::Vector{PlotContainer},
         gui::GUI,
     )
 
@@ -40,15 +40,14 @@ function add_description!(
     key_str::String,
     pre_desc::String,
     selection::Vector,
-    available_data::Vector{Dict},
+    available_data::Vector{PlotContainer},
     gui::GUI,
 )
-    container = Dict(
-        :name => name,
-        :is_jump_data => false,
-        :selection => selection,
-        :field_data => field,
-        :description => create_description(gui, key_str; pre_desc),
+    container = CaseDataContainer(
+        name,
+        selection,
+        field,
+        create_description(gui, key_str; pre_desc),
     )
     push!(available_data, container)
 end
@@ -60,7 +59,7 @@ end
         key_str::String,
         pre_desc::String,
         selection::Vector,
-        available_data::Vector{Dict},
+        available_data::Vector{PlotContainer},
         gui::GUI,
     )
 
@@ -73,7 +72,7 @@ function add_description!(
     key_str::String,
     pre_desc::String,
     selection::Vector,
-    available_data::Vector{Dict},
+    available_data::Vector{PlotContainer},
     gui::GUI,
 )
     for (dictname, dictvalue) ∈ field
@@ -100,7 +99,7 @@ end
         key_str::String,
         pre_desc::String,
         selection::Vector,
-        available_data::Vector{Dict},
+        available_data::Vector{PlotContainer},
         gui::GUI,
     )
 
@@ -113,7 +112,7 @@ function add_description!(
     key_str::String,
     pre_desc::String,
     selection::Vector,
-    available_data::Vector{Dict},
+    available_data::Vector{PlotContainer},
     gui::GUI,
 )
     for data ∈ field
@@ -133,7 +132,7 @@ end
         ::String,
         pre_desc::String,
         element,
-        available_data::Vector{Dict},
+        available_data::Vector{PlotContainer},
         gui::GUI,
     )
 
@@ -146,7 +145,7 @@ function add_description!(
     key_str::String,
     pre_desc::String,
     selection::Vector,
-    available_data::Vector{Dict},
+    available_data::Vector{PlotContainer},
     gui::GUI,
 )
     structure = get_nth_field(key_str, '.', 3)
@@ -169,7 +168,7 @@ end
 """
     get_data(
         model::Union{JuMP.Model, Dict},
-        selection::Dict{Symbol, Any},
+        selection::PlotContainer,
         T::TS.TimeStructure,
         sp::Int64,
         rp::Int64,
@@ -180,12 +179,12 @@ Get the values from the JuMP `model`, or the input data, at `selection` for all 
 restricted to strategic period `sp`, representative period `rp`, and scenario `sc`.
 """
 function get_data(
-    model::Union{JuMP.Model,Dict}, selection::Dict, T::TS.TimeStructure, sp::Int64,
+    model::Union{JuMP.Model,Dict}, selection::PlotContainer, T::TS.TimeStructure, sp::Int64,
     rp::Int64, sc::Int64,
 )
-    field_data = selection[:field_data]
-    if selection[:is_jump_data]
-        sym = Symbol(selection[:name])
+    field_data = get_field_data(selection)
+    if isa(selection, JuMPContainer)
+        sym = Symbol(get_name(selection))
         i_T, type = get_time_axis(model[sym])
     else
         type = nested_eltype(field_data)
@@ -296,31 +295,26 @@ function get_jump_axis_types(data::DataFrame)
 end
 
 """
-    create_label(selection::Vector{Any})
+    create_label(selection::PlotContainer)
 
 Return a label for a given `selection` to be used in the get_menus(gui)[:available_data] menu.
 """
-function create_label(selection::Dict{Symbol,Any})
-    label::String =
-        (selection[:is_jump_data] || isempty(selection[:name])) ? "" : "Case data: "
-    if haskey(selection, :description)
-        if isempty(selection[:name])
-            label *= selection[:description]
-        else
-            label *= selection[:description] * " ($(selection[:name]))"
-        end
+function create_label(selection::PlotContainer)
+    label::String = isa(selection, CaseDataContainer) ? "Case data: " : ""
+    if isempty(get_name(selection))
+        label *= get_description(selection)
     else
-        label *= selection[:name]
+        label *= get_description(selection) * " ($(get_name(selection)))"
     end
     otherRes::Bool = false
-    for select ∈ selection[:selection]
+    for select ∈ get_selection(selection)
         if isa(select, Resource)
             if !otherRes
                 label *= " ("
                 otherRes = true
             end
             label *= "$(select)"
-            if select != selection[:selection][end]
+            if select != get_selection(selection)[end]
                 label *= ", "
             end
         end
@@ -383,11 +377,8 @@ function update_plot!(gui::GUI, element)
     selection = available_data_menu.selection[]
     if !isnothing(selection) && selection != "no options"
         xlabel = "Time"
-        if haskey(selection, :description)
-            ylabel = selection[:description]
-        else
-            ylabel = selection[:name]
-        end
+        ylabel = get_description(selection)
+
         sp = period_menu.selection[]
         rp = representative_period_menu.selection[]
         sc = scenario_menu.selection[]
@@ -480,18 +471,17 @@ function update_plot!(gui::GUI, element)
             n_visible = length(get_visible_data(gui, time_axis)) + 1
             colormap = get_var(gui, :colormap)
             i = (n_visible - 1 % length(colormap)) + 1
-            color = Observable(parse(Colorant, colormap[i]))
+            color = colormap[i]
             if time_axis == :results_op
                 plot = stairs!(ax, points; step = :pre, label = label, color = color)
                 plot.color = color
-                plot.plots[1].color = color
             else
                 plot = barplot!(
                     ax,
                     points;
                     dodge = n_visible * ones(Int, length(points)),
                     n_dodge = n_visible,
-                    strokecolor = :black,
+                    strokecolor = BLACK,
                     strokewidth = 1,
                     label = label,
                     color = color,
@@ -499,12 +489,11 @@ function update_plot!(gui::GUI, element)
             end
             new_data = Dict(
                 :plot => plot,
-                :name => selection[:name],
-                :selection => selection[:selection],
+                :name => get_name(selection),
+                :selection => get_selection(selection),
                 :t => periods,
                 :y => y_values,
-                :color => color[],
-                :color_obs => color,
+                :color => color,
                 :pinned => false,
                 :visible => true,
                 :selected => false,
@@ -520,8 +509,8 @@ function update_plot!(gui::GUI, element)
             plot[1][] = points
             plot.visible[] = true # If it has been hidden after a "Remove Plot" action
             plot.label[] = label
-            overwritable[:name] = selection[:name]
-            overwritable[:selection] = selection[:selection]
+            overwritable[:name] = get_name(selection)
+            overwritable[:selection] = get_selection(selection)
             overwritable[:t] = periods
             overwritable[:y] = y_values
             overwritable[:pinned] = false
@@ -533,13 +522,10 @@ function update_plot!(gui::GUI, element)
             overwritable[:xticks] = xticks
         end
         update_barplot_dodge!(gui)
-        if all(y_values .≈ 0) && !(time_axis == :results_op)
-            # Deactivate inspector for bars to avoid issue with wireframe when selecting
-            # a bar with values being zero
-            toggle_inspector!(plot, false)
-        else
-            toggle_inspector!(plot, true)
-        end
+
+        # Deactivate inspector for bars to avoid issue with wireframe when selecting
+        # a bar with values being zero
+        plot.inspectable = !(all(y_values .≈ 0) && !(time_axis == :results_op))
 
         if isnothing(get_results_legend(gui)) # Initialize the legend box
             gui.legends[:results] = axislegend(
@@ -610,44 +596,14 @@ end
 """
     update_limits!(ax::Axis)
 
-Adjust limits automatically to take into account legend and machine epsilon issues.
+Adjust limits automatically to avoid legend box overlapping the data.
 """
 function update_limits!(ax::Axis)
-    # Fetch all y-values in the axis
-    barplots = getfirst(x -> isa(x, Makie.BarPlot) && x.visible[], ax.scene.plots)
-    if isnothing(barplots)
-        xy = vcat([p[1][] for p ∈ get_vis_plots(ax)]...)
-        y = [pt[2] for pt ∈ xy]
-        if isempty(y)
-            return nothing
-        end
-        x = [pt[1] for pt ∈ xy]
+    autolimits!(ax)
+    yorigin = ax.finallimits[].origin[2]
+    ywidth = ax.finallimits[].widths[2]
 
-        # Calculate the width of distribution of the data in the vertical direction
-        max_x = maximum(x)
-        min_x = minimum(x)
-        max_y = maximum(y)
-        min_y = minimum(y)
-        ywidth = max_y - min_y
-        xwidth = max_x - min_x
-
-        # Do the following for data with machine epsilon precision noice around zero that causes
-        # the warning "Warning: No strict ticks found" and the the bug related to issue #4266 in Makie
-        if abs(ywidth) < 1e-13
-            ywidth = 2 * max(1.0, max_y)
-            yorigin = 0.0
-        else
-            yorigin = min_y - ywidth * 0.04
-            ywidth += 2 * ywidth * 0.04
-        end
-
-        xlims!(ax, min_x - xwidth * 0.04, max_x + xwidth * 0.04)
-    else
-        autolimits!(ax)
-        yorigin = ax.finallimits[].origin[2]
-        ywidth = ax.finallimits[].widths[2]
-    end
-    # try to avoid legend box overlapping data
+    # try to avoid legend box overlapping the plots
     ylims!(ax, yorigin, yorigin + ywidth * 1.1)
 end
 

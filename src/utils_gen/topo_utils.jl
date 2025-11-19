@@ -92,7 +92,7 @@ given the minimum and maximum coordinates `min_x`, `min_y`, `max_x`, and `max_y`
 function find_min_max_coordinates(
     design::EnergySystemDesign, min_x::Number, max_x::Number, min_y::Number, max_y::Number,
 )
-    if !isa(get_parent(design), NothingElement)
+    if !isa(get_parent(get_system(design)), NothingElement)
         x, y = design.xy[][1], design.xy[][2]
         min_x = min(min_x, x)
         max_x = max(max_x, x)
@@ -240,20 +240,6 @@ function get_sector_points(;
 end
 
 """
-    toggle_inspector!(p::Makie.AbstractPlot, toggle::Bool)
-
-Toggle the inspector of a Makie plot `p` using the boolean `toggle`.
-"""
-function toggle_inspector!(p::Makie.AbstractPlot, toggle::Bool)
-    for p_sub ∈ p.plots
-        if :plots ∈ fieldnames(typeof(p_sub))
-            toggle_inspector!(p_sub, toggle)
-        end
-        p_sub.inspectable[] = toggle
-    end
-end
-
-"""
     add_inspector_to_poly!(p::Makie.AbstractPlot, inspector_label::Function)
 
 Add `inspector_label` for Poly and Mesh plots in plot `p`.
@@ -264,6 +250,5 @@ function add_inspector_to_poly!(p::Makie.AbstractPlot, inspector_label::Function
             add_inspector_to_poly!(p_sub, inspector_label)
         end
         p_sub.inspector_label = inspector_label
-        p_sub.inspectable[] = true
     end
 end

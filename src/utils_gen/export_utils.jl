@@ -280,10 +280,10 @@ function export_to_repl(gui::GUI)
             t = vis_plots[1][:t]
             data = Matrix{Any}(undef, length(t), length(vis_plots) + 1)
             data[:, 1] = t
-            header = (
+            header = [
                 Vector{Any}(undef, length(vis_plots) + 1),
                 Vector{Any}(undef, length(vis_plots) + 1),
-            )
+            ]
             header[1][1] = "t"
             header[2][1] = "(" * string(nameof(eltype(t))) * ")"
             for (j, vis_plot) ∈ enumerate(vis_plots)
@@ -292,7 +292,7 @@ function export_to_repl(gui::GUI)
                 header[2][j+1] = join([string(x) for x ∈ vis_plots[j][:selection]], ", ")
             end
             println("\n")  # done in order to avoid the prompt shifting the topspline of the table
-            pretty_table(data; header = header)
+            pretty_table(data; column_labels = header)
         end
     else
         model = get_model(gui)

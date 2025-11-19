@@ -6,6 +6,13 @@ Supertype for EnergyModelsGUI objects representing `Node`s/`Link`s/`Area`s/`Tran
 abstract type AbstractGUIObj end
 
 """
+    NothingDesign <: AbstractGUIObj
+
+Type for representing a non-existent design.
+"""
+struct NothingDesign <: AbstractGUIObj end
+
+"""
     AbstractSystem
 
 Supertype for EnergyModelsGUI objects representing a sub system of a Case.
@@ -119,11 +126,12 @@ energy system designs in Julia.
 - **`components::Vector{EnergySystemDesign}`** is the components of the system, stored
   as an array of EnergySystemDesign objects.
 - **`connections::Vector{Connection}`** are the connections between system parts.
-- **`xy::Observable{<:Point2f}`** are the coordinates of the system, observed for changes.
+- **`parent::AbstractGUIObj`** is the parent of the system.
+- **`xy::Observable{<:Point2f}`** is the coordinate of the system, observed for changes.
 - **`icon::String`** is the optional (path to) icons associated with the system, stored as
   a string.
-- **`color::Observable{Symbol}`** is the color of the system, observed for changes and
-  represented as a Symbol. The color is toggled to highlight system activation.
+- **`color::Observable{RGBA{Float32}}`** is the color of the system, observed for changes. 
+  The color is toggled to highlight system activation.
 - **`wall::Observable{Symbol}`** represents an aspect of the system's state, observed
   for changes and represented as a Symbol.
 - **`file::String`** is the filename or path associated with the `EnergySystemDesign`.
@@ -137,9 +145,10 @@ mutable struct EnergySystemDesign <: AbstractGUIObj
     id_to_icon_map::Dict
     components::Vector{EnergySystemDesign}
     connections::Vector
+    parent::AbstractGUIObj
     xy::Observable{<:Point2f}
     icon::String
-    color::Observable{Symbol}
+    color::Observable{RGBA{Float32}}
     wall::Observable{Symbol}
     file::String
     inv_data::ProcInvData
@@ -151,9 +160,10 @@ function EnergySystemDesign(
     id_to_icon_map::Dict,
     components::Vector{EnergySystemDesign},
     connections::Vector,
+    parent::AbstractGUIObj,
     xy::Observable{<:Point2f},
     icon::String,
-    color::Observable{Symbol},
+    color::Observable{RGBA{Float32}},
     wall::Observable{Symbol},
     file::String,
 )
@@ -163,6 +173,7 @@ function EnergySystemDesign(
         id_to_icon_map,
         components,
         connections,
+        parent,
         xy,
         icon,
         color,
@@ -186,7 +197,7 @@ Mutable type for providing a flexible data structure for connections between
 - **`to::EnergySystemDesign`** is the `EnergySystemDesign` to which the connection is
   linked to.
 - **`connection::AbstractElement`** is the EMX connection structure.
-- **`colors::Vector{RGB}`** is the associated colors of the connection.
+- **`colors::Vector{RGBA{Float32}}`** is the associated colors of the connection.
 - **`plots::Vector{Any}`** is a vector with all Makie object associated with this object.
 - **`invest_data::ProcInvData`** stores processed investment data.
 """
@@ -194,7 +205,7 @@ mutable struct Connection <: AbstractGUIObj
     from::EnergySystemDesign
     to::EnergySystemDesign
     connection::AbstractElement
-    colors::Vector{RGB}
+    colors::Vector{RGBA{Float32}}
     inv_data::ProcInvData
     plots::Vector{Any}
 end
@@ -204,7 +215,7 @@ function Connection(
     connection::AbstractElement,
     id_to_color_map::Dict{Any,Any},
 )
-    colors::Vector{RGB} = get_resource_colors(connection, id_to_color_map)
+    colors::Vector{RGBA{Float32}} = get_resource_colors(connection, id_to_color_map)
     return Connection(from, to, connection, colors, ProcInvData(), Any[])
 end
 
@@ -264,7 +275,41 @@ mutable struct GUI
     vars::Dict{Symbol,Any}
 end
 
+"""
+    PlotContainer{T}
+
+Type for storing plot-related data available from the "Data" menu.
+
+# Fields
+
+- **`name::String`**: is the reference name for the data.
+- **`selection::Vector`**: is the indices used to extract the data to be plotted.
+- **`field_data::Any`**: is the data from which plots are extracted based on selection.
+- **`description::String`**: is the description to be used for the legend.
+"""
+struct PlotContainer{T}
+    name::String
+    selection::Vector
+    field_data::Any
+    description::String
+end
+
+# Create aliases for different PlotContainer types
+const JuMPContainer = PlotContainer{:JuMP}
+const CaseDataContainer = PlotContainer{:CaseData}
+const GlobalDataContainer = PlotContainer{:GlobalData}
+
+# Define standard colours in EMGUI
+const BLACK = RGBA{Float32}(0.0, 0.0, 0.0, 1.0)
+const WHITE = RGBA{Float32}(1.0, 1.0, 1.0, 1.0)
+const GREEN2 = RGBA{Float32}(0.0, 0.93333334, 0.0, 1.0)
+const RED = RGBA{Float32}(1.0, 0.0, 0.0, 1.0)
+const YELLOW = RGBA{Float32}(1.0, 1.0, 0.0, 1.0)
+const MAGENTA = RGBA{Float32}(1.0, 0.0, 1.0, 1.0)
+const CYAN = RGBA{Float32}(0.0, 1.0, 1.0, 1.0)
+
 Base.show(io::IO, obj::AbstractGUIObj) = dump(io, obj; maxdepth = 1)
+Base.show(io::IO, ::NothingDesign) = print(io, "NothingDesign()")
 Base.show(io::IO, obj::ProcInvData) = dump(io, obj; maxdepth = 1)
 Base.show(io::IO, system::AbstractSystem) = dump(io, system; maxdepth = 1)
 Base.show(io::IO, gui::GUI) = dump(io, gui; maxdepth = 1)
@@ -398,7 +443,7 @@ get_system(design::EnergySystemDesign) = design.system
 
 Returns the `parent` field of a `EnergySystemDesign` `design`.
 """
-get_parent(design::EnergySystemDesign) = get_parent(get_system(design))
+get_parent(design::EnergySystemDesign) = design.parent
 
 """
     get_element(design::EnergySystemDesign)
@@ -413,6 +458,22 @@ get_element(design::EnergySystemDesign) = get_element(get_system(design))
 Returns the `components` field of a `EnergySystemDesign` `design`.
 """
 get_components(design::EnergySystemDesign) = design.components
+
+"""
+    get_component(designs::Vector{EnergySystemDesign}, id)
+    get_component(designs::EnergySystemDesign, id)
+
+Extract the component from a vector of `EnergySystemDesign`(s) that has a `parent` with 
+the given `id`.
+"""
+function get_component(designs::Vector{EnergySystemDesign}, id)
+    for design ∈ designs
+        if get_parent(get_system(design)).id == id
+            return design
+        end
+    end
+end
+get_component(designs::EnergySystemDesign, id) = get_component(get_components(designs), id)
 
 """
     get_connections(design::EnergySystemDesign)
@@ -457,20 +518,6 @@ Returns the `file` field of a `EnergySystemDesign` `design`.
 get_file(design::EnergySystemDesign) = design.file
 
 """
-    get_inv_data(design::EnergySystemDesign)
-
-Returns the `inv_data` field of a `EnergySystemDesign` `design`.
-"""
-get_inv_data(design::EnergySystemDesign) = design.inv_data
-
-"""
-    get_plots(design::EnergySystemDesign)
-
-Returns the `plots` field of a `EnergySystemDesign` `design`.
-"""
-get_plots(design::EnergySystemDesign) = design.plots
-
-"""
     EMB.get_time_struct(design::EnergySystemDesign)
 
 Returns the time structure of the EnergySystemDesign `design`.
@@ -513,20 +560,6 @@ Returns the `colors` field of a `Connection` `conn`.
 get_colors(conn::Connection) = conn.colors
 
 """
-    get_inv_data(design::Connection)
-
-Returns the `inv_data` field of a `Connection` `design`.
-"""
-get_inv_data(design::Connection) = design.inv_data
-
-"""
-    get_plots(conn::Connection)
-
-Returns the `plots` field of a `Connection` `conn`.
-"""
-get_plots(conn::Connection) = conn.plots
-
-"""
     get_inv_times(data::ProcInvData)
     get_inv_times(design::AbstractGUIObj)
 
@@ -552,6 +585,20 @@ Returns a boolean indicator if investment has occured.
 """
 has_invested(data::ProcInvData) = data.invested
 has_invested(design::AbstractGUIObj) = has_invested(get_inv_data(design))
+
+"""
+    get_inv_data(obj::AbstractGUIObj)
+
+Returns the `inv_data` field of a `AbstractGUIObj` `obj`.
+"""
+get_inv_data(obj::AbstractGUIObj) = obj.inv_data
+
+"""
+    get_plots(obj::AbstractGUIObj)
+
+Returns the `plots` field of a `AbstractGUIObj` `obj`.
+"""
+get_plots(obj::AbstractGUIObj) = obj.plots
 
 """
     get_fig(gui::GUI)
@@ -729,3 +776,38 @@ EMB.get_time_struct(gui::GUI) = EMB.get_time_struct(get_design(gui))
 Returns the `parent` field of a `GUI` `gui`.
 """
 get_parent(gui::GUI) = get_parent(get_design(gui))
+
+"""
+    get_system(gui::GUI)
+
+Returns the `system` field in the `design` field of a `GUI` `gui`.
+"""
+get_system(gui::GUI) = get_system(get_design(gui))
+
+"""
+    get_name(container::PlotContainer)
+
+Returns the `name` field of a `PlotContainer` `container`.
+"""
+get_name(container::PlotContainer) = container.name
+
+"""
+    get_selection(container::PlotContainer)
+
+Returns the `selection` field of a `PlotContainer` `container`.
+"""
+get_selection(container::PlotContainer) = container.selection
+
+"""
+    get_field_data(container::PlotContainer)
+
+Returns the `field_data` field of a `PlotContainer` `container`.
+"""
+get_field_data(container::PlotContainer) = container.field_data
+
+"""
+    get_description(container::PlotContainer)
+
+Returns the `description` field of a `PlotContainer` `container`.
+"""
+get_description(container::PlotContainer) = container.description

@@ -133,10 +133,10 @@ function define_event_functions(gui::GUI)
                 ctrl_is_pressed = get_var(gui, :ctrl_is_pressed)[]
                 if mouse_within_axis(ax_topo, mouse_pos)
                     if !ctrl_is_pressed && !isempty(get_selected_systems(gui))
-                        clear_selection(gui; clear_results = false)
+                        clear_selection(gui, :topo)
                     end
 
-                    pick_component!(gui; pick_topo_component = true)
+                    pick_component!(gui, :topo)
                     if time_difference < double_click_threshold
                         notify(get_button(gui, :open).clicks)
                         return Consume(true)
@@ -150,9 +150,9 @@ function define_event_functions(gui::GUI)
                 if mouse_within_axis(ax_results, mouse_pos)
                     time_axis = time_menu.selection[]
                     if !ctrl_is_pressed && !isempty(get_selected_plots(gui, time_axis))
-                        clear_selection(gui; clear_topo = false)
+                        clear_selection(gui, :results)
                     end
-                    pick_component!(gui; pick_results_component = true)
+                    pick_component!(gui, :results)
                     gui.vars[:autolimits][time_axis] = false
                     return Consume(false)
                 end
@@ -250,7 +250,7 @@ function define_event_functions(gui::GUI)
                     expand_all = get_var(gui, :expand_all),
                 )
                 update_title!(gui)
-                clear_selection(gui)
+                clear_selection(gui, :topo)
                 notify(get_button(gui, :reset_view).clicks)
             end
         end
@@ -259,7 +259,7 @@ function define_event_functions(gui::GUI)
 
     # Navigate up button: Handle click on the navigate up button (go back to the root_design)
     on(get_button(gui, :up).clicks; priority = 10) do clicks
-        if !isa(get_parent(get_design(gui)), NothingElement)
+        if !isa(get_parent(get_system(gui)), NothingElement)
             get_vars(gui)[:expand_all] = get_toggle(gui, :expand_all).active[]
             plot_design!(
                 gui, get_design(gui); visible = false,
@@ -334,7 +334,7 @@ function define_event_functions(gui::GUI)
             selection[:visible] = false
             selection[:pinned] = false
         end
-        clear_selection(gui; clear_topo = false)
+        clear_selection(gui, :results)
         update_legend!(gui)
         return Consume(false)
     end

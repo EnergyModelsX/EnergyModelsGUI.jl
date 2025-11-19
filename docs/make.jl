@@ -13,6 +13,7 @@ if isfile(news)
 end
 cp("NEWS.md", news)
 
+ENV["EMX_TEST"] = true # Set flag for example scripts to check if they are run as part CI
 include("generate_images.jl")
 
 DocMeta.setdocmeta!(

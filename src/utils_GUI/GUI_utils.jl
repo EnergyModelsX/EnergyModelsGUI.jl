@@ -1,47 +1,44 @@
 """
-    toggle_selection_color!(gui::GUI, selection, selected::Bool)
+    toggle_selection_color!(gui::GUI, selection::EnergySystemDesign, selected::Bool)
+    toggle_selection_color!(gui::GUI, selection::Connection, selected::Bool)
+    toggle_selection_color!(gui::GUI, selection::Dict{Symbol,Any}, selected::Bool)
 
 Set the color of selection to `get_selection_color(gui)` if selected, and its original
 color otherwise using the argument `selected`.
 """
 function toggle_selection_color!(gui::GUI, selection::EnergySystemDesign, selected::Bool)
-    if selected
-        selection.color[] = get_selection_color(gui)
-    else
-        selection.color[] = :black
-    end
+    selection.color[] = selected ? get_selection_color(gui) : BLACK
 end
 function toggle_selection_color!(gui::GUI, selection::Connection, selected::Bool)
     plots = selection.plots
     if selected
         for plot ∈ plots
-            for plot_sub ∈ plot
-                plot_sub.color = get_selection_color(gui)
+            selection_color = get_selection_color(gui)
+            if isa(plot, Makie.AbstractPlot)
+                plot.color = fill(selection_color, length(plot.color[]))
+            else
+                for plot_sub ∈ plot
+                    plot_sub.color = selection_color
+                end
             end
         end
     else
-        colors::Vector{RGB} = selection.colors
+        colors::Vector{RGBA{Float32}} = selection.colors
         no_colors::Int64 = length(colors)
         for plot ∈ plots
-            for (i, plot_sub) ∈ enumerate(plot)
-                plot_sub.color = colors[((i-1)%no_colors)+1]
+            if isa(plot, Makie.AbstractPlot)
+                plot.color = colors
+            else
+                for (i, plot_sub) ∈ enumerate(plot)
+                    plot_sub.color = colors[((i-1)%no_colors)+1]
+                end
             end
         end
     end
 end
 function toggle_selection_color!(gui::GUI, selection::Dict{Symbol,Any}, selected::Bool)
-    color = selected ? parse(Colorant, get_selection_color(gui)) : selection[:color]
-    plot = selection[:plot]
-    plot.color[] = color
-
-    # Implement ugly hack to resolve bug in Makie for barplots due to legend updates
-    while !isempty(plot.plots)
-        plot = plot.plots[1]
-        plot.color[] = color
-    end
-
-    # Implement hack to resolve bug in Makie for stairs/lines due to legend updates
-    selection[:color_obs][] = color
+    selection[:plot].color = selected ? get_selection_color(gui) : selection[:color]
+    update_legend!(gui)
 end
 
 """
@@ -71,79 +68,51 @@ function get_EMGUI_obj(plt)
 end
 
 """
-    pick_component!(gui::GUI)
+    pick_component!(gui::GUI, ax_type::Symbol)
+    pick_component!(gui::GUI, plt::AbstractPlot, ax_type::Symbol)
+    pick_component!(gui::GUI, element::AbstractGUIObj, ::Symbol)
+    pick_component!(gui::GUI, element::Dict, ::Symbol)
+    pick_component!(gui::GUI, ::Nothing, ax_type::Symbol)
 
-Check if a system is found under the mouse pointer and if it is an `EnergySystemDesign`
-or a `Connection` and update state variables.
+Check if a system is found under the mouse pointer and if it is an `AbstractGUIObj` (for
+objects in the topology axis) or a `Dict` (for objects in the results axis). If found, 
+state variables are updated. Results in the topology axis are only cleared if `ax_type = :topo`
+and in the results axis if `ax_type = :results`.
 """
-function pick_component!(
-    gui::GUI;
-    pick_topo_component = false,
-    pick_results_component = false,
-)
+function pick_component!(gui::GUI, ax_type::Symbol)
     plt, _ = pick(get_fig(gui))
-
-    pick_component!(gui, plt; pick_topo_component, pick_results_component)
+    pick_component!(gui, plt, ax_type)
 end
-function pick_component!(
-    gui::GUI, plt::AbstractPlot; pick_topo_component = false, pick_results_component = false,
-)
-    if pick_topo_component || pick_results_component
-        element = get_EMGUI_obj(plt)
-        pick_component!(gui, element; pick_topo_component, pick_results_component)
-    end
+function pick_component!(gui::GUI, plt::AbstractPlot, ax_type::Symbol)
+    pick_component!(gui, get_EMGUI_obj(plt), ax_type)
 end
-function pick_component!(
-    gui::GUI,
-    element::Union{EnergySystemDesign,Connection};
-    pick_topo_component = false,
-    pick_results_component = false,
-)
-    if isnothing(element)
-        clear_selection(
-            gui; clear_topo = pick_topo_component, clear_results = pick_results_component,
-        )
-    else
-        push!(gui.vars[:selected_systems], element)
-        toggle_selection_color!(gui, element, true)
-    end
+function pick_component!(gui::GUI, element::AbstractGUIObj, ::Symbol)
+    push!(gui.vars[:selected_systems], element)
+    toggle_selection_color!(gui, element, true)
 end
-function pick_component!(
-    gui::GUI, element::Dict; pick_topo_component = false, pick_results_component = false,
-)
-    if isnothing(element)
-        clear_selection(
-            gui; clear_topo = pick_topo_component, clear_results = pick_results_component,
-        )
-    else
-        element[:selected] = true
-        toggle_selection_color!(gui, element, true)
-    end
+function pick_component!(gui::GUI, element::Dict, ::Symbol)
+    element[:selected] = true
+    toggle_selection_color!(gui, element, true)
 end
-function pick_component!(
-    gui::GUI, ::Nothing; pick_topo_component = false, pick_results_component = false,
-)
-    clear_selection(
-        gui; clear_topo = pick_topo_component, clear_results = pick_results_component,
-    )
+function pick_component!(gui::GUI, ::Nothing, ax_type::Symbol)
+    clear_selection(gui, ax_type)
 end
 
 """
-    clear_selection(gui::GUI; clear_topo=true, clear_results=true)
+    clear_selection(gui::GUI, ax_type::Symbol)
 
-Clear the color selection of components within 'get_design(gui)' instance and reset the
-`get_selected_systems(gui)` variable.
+Clear the color selection of the topology axis if `ax_type = :topo`, and of the results axis 
+if `ax_type = :results`.
 """
-function clear_selection(gui::GUI; clear_topo = true, clear_results = true)
-    if clear_topo
+function clear_selection(gui::GUI, ax_type::Symbol)
+    if ax_type == :topo
         selected_systems = get_selected_systems(gui)
         for selection ∈ selected_systems
             toggle_selection_color!(gui, selection, false)
         end
         empty!(selected_systems)
         update_available_data_menu!(gui, nothing) # Make sure the menu is updated
-    end
-    if clear_results
+    elseif ax_type == :results
         time_axis = get_menu(gui, :time).selection[]
         for selection ∈ get_selected_plots(gui, time_axis)
             selection[:selected] = false
@@ -234,8 +203,8 @@ function initialize_available_data!(gui)
     system = get_system(design)
     model = get_model(gui)
     plotables = [nothing; vcat(get_elements_vec(system))...] # `nothing` here represents no selection
-    gui.vars[:available_data] = Dict{Any,Vector{Dict{Symbol,Any}}}(
-        element => Vector{Dict{Symbol,Any}}() for element ∈ plotables
+    gui.vars[:available_data] = Dict{Any,Vector{PlotContainer}}(
+        element => Vector{PlotContainer}() for element ∈ plotables
     )
 
     # Find appearances of node/area/link/transmission in the model
@@ -261,12 +230,11 @@ function initialize_available_data!(gui)
                     element = mode_to_transmission[element]
                 end
 
-                container = Dict(
-                    :name => string(sym),
-                    :is_jump_data => true,
-                    :selection => selection,
-                    :field_data => field_data,
-                    :description => create_description(gui, "variables.$sym"),
+                container = JuMPContainer(
+                    string(sym),
+                    selection,
+                    field_data,
+                    create_description(gui, "variables.$sym"),
                 )
                 push!(get_available_data(gui)[element], container)
             end
@@ -294,12 +262,11 @@ function initialize_available_data!(gui)
                 tot_opex .+= opex
 
                 # add opex_field to available data
-                container = Dict(
-                    :name => "opex_strategic",
-                    :is_jump_data => false,
-                    :selection => [element],
-                    :field_data => StrategicProfile(opex),
-                    :description => description,
+                container = GlobalDataContainer(
+                    "opex_strategic",
+                    [element],
+                    StrategicProfile(opex),
+                    description,
                 )
                 push!(get_available_data(gui)[element], container)
             end
@@ -323,12 +290,11 @@ function initialize_available_data!(gui)
                 tot_capex .+= capex
 
                 # add opex_field to available data
-                container = Dict(
-                    :name => "capex_strategic",
-                    :is_jump_data => false,
-                    :selection => [element],
-                    :field_data => StrategicProfile(capex),
-                    :description => description,
+                container = GlobalDataContainer(
+                    "capex_strategic",
+                    [element],
+                    StrategicProfile(capex),
+                    description,
                 )
                 push!(get_available_data(gui)[element], container)
             end
@@ -339,12 +305,11 @@ function initialize_available_data!(gui)
         if scale_tot_opex
             description *= " (scaled to strategic period)"
         end
-        container = Dict(
-            :name => "tot_opex",
-            :is_jump_data => false,
-            :selection => [element],
-            :field_data => StrategicProfile(tot_opex),
-            :description => description,
+        container = GlobalDataContainer(
+            "tot_opex",
+            [element],
+            StrategicProfile(tot_opex),
+            description,
         )
         push!(get_available_data(gui)[element], container)
 
@@ -353,12 +318,11 @@ function initialize_available_data!(gui)
         if scale_tot_capex
             description *= " (scaled to year)"
         end
-        container = Dict(
-            :name => "tot_capex",
-            :is_jump_data => false,
-            :selection => [element],
-            :field_data => StrategicProfile(tot_capex),
-            :description => description,
+        container = GlobalDataContainer(
+            "tot_capex",
+            [element],
+            StrategicProfile(tot_capex),
+            description,
         )
         push!(get_available_data(gui)[element], container)
 
@@ -411,7 +375,7 @@ function initialize_available_data!(gui)
     for element ∈ plotables
         # Add timedependent input data (if available)
         if !isnothing(element)
-            available_data = Vector{Dict}(undef, 0)
+            available_data = Vector{PlotContainer}(undef, 0)
             for field_name ∈ fieldnames(typeof(element))
                 field = getfield(element, field_name)
                 structure = String(nameof(typeof(element)))
@@ -670,16 +634,16 @@ function update_descriptive_names!(gui::GUI)
 end
 
 """
-    select_data(name::String, menu)
+    select_data!(gui::GUI, name::String)
 
-Select the data with name `name` from the `menu`
+Select the data with name `name` from the `available_data` menu.
 """
 function select_data!(gui::GUI, name::String)
     # Fetch the available data menu object
     menu = get_menu(gui, :available_data)
 
     # Fetch all menu options
-    available_data = [x[2][:name] for x ∈ collect(menu.options[])]
+    available_data = [get_name(x[2]) for x ∈ collect(menu.options[])]
 
     # Find menu number for data with name `name`
     i_selected = findfirst(x -> x == name, available_data)

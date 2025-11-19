@@ -1,10 +1,10 @@
 # Release notes
 
-## Version 0.5.17 (2025-11-09)
+## Version 0.5.17 (2025-11-19)
 
 ### Bugfix
 
-* Fix bug that made nodes/areas disappear when plotting too many objects (max z_level is 10000).
+* Fix bug that made `Node`s/`Area`s disappear when plotting too many objects (max z_level is 10000).
 * Fix square_intersection function.
 
 ### Enhancements
@@ -13,6 +13,14 @@
 * Remove redundant `notify_component` function and `Observable`s (use the `@lift` macro instead).
 * Improve performance of updates to `ax_info`.
 * Add missing tests for show-function on the types `AbstractSystem` and `ProcInvData`, and improve code structure.
+* Bumped Makie packages to latest versions (and adjusted the code to the breaking changes) which increased performance.
+* Improved code performance.
+* Toggeling of GeoMakie is also now available which improves performance if the background map is not required.
+
+# Adjustments
+
+* Skip warnings if a provided non-empty `id_to_icon_map` does not contain icons for all `Node`s/`Area`s (as it is fine to combine custom icon with the default generated icons).
+* Introduced the new parametric type `PlotContainer` to replace `Dict{:Symbol, Any}` types used as container for plotted data.
 
 ## Version 0.5.16 (2025-09-24)
 

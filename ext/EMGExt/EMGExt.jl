@@ -136,23 +136,10 @@ end
 Create a sub-system of `system` with the `element` as the availability node.
 """
 function EMGUI.sub_system(system::EMGUI.SystemGeo, element::AbstractElement)
-    area_an::EMB.Node = availability_node(element)
+    # Get all nodes and links in the area directly or indirectly connected by `Link`s to `element`.
+    area_nodes::Vector{EMB.Node}, area_links::Vector{Link} =
+        EMG.nodes_in_area(element, get_links(system); n_nodes = length(get_nodes(system)))
 
-    # Allocate redundantly large vector (for efficiency) to collect all links and nodes
-    links::Vector{Link} = get_links(system)
-    area_links::Vector{Link} = Vector{Link}(undef, length(links))
-    area_nodes::Vector{EMB.Node} = Vector{EMB.Node}(
-        undef, length(get_nodes(system)),
-    )
-
-    area_nodes[1] = area_an
-
-    # Create counting indices for area_links and area_nodes respectively
-    indices::Vector{Int} = [1, 2]
-
-    EMGUI.get_linked_nodes!(area_an, links, area_links, area_nodes, indices)
-    resize!(area_links, indices[1] - 1)
-    resize!(area_nodes, indices[2] - 1)
     return EMGUI.System(
         get_time_struct(system),
         get_products(system),
@@ -160,7 +147,7 @@ function EMGUI.sub_system(system::EMGUI.SystemGeo, element::AbstractElement)
         area_nodes,
         area_links,
         element,
-        area_an,
+        availability_node(element),
     )
 end
 
