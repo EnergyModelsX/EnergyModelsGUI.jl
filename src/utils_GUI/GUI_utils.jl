@@ -634,9 +634,9 @@ function update_descriptive_names!(gui::GUI)
 end
 
 """
-    select_data(name::String, menu)
+    select_data!(gui::GUI, name::String)
 
-Select the data with name `name` from the `menu`
+Select the data with name `name` from the `available_data` menu.
 """
 function select_data!(gui::GUI, name::String)
     # Fetch the available data menu object
