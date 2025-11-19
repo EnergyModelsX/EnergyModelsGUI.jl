@@ -5,12 +5,8 @@ EnergyModelsGeography = "3f775d88-a4da-46c4-a2cc-aa9f16db6708"
 EnergyModelsInvestments = "fca3f8eb-b383-437d-8e7b-aac76bb2004f"
 EnergyModelsRenewableProducers = "b007c34f-ba52-4995-ba37-fffe79fbde35"
 HiGHS = "87dc4568-4c63-4d18-b0c0-bb2238e4078b"
-IntervalSets = "8197267c-284f-5f27-9208-e0e47529a953"
 JuMP = "4076af6c-e467-56ae-b986-b466b2749572"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 PrettyTables = "08abe8d2-0d0c-5749-adfa-8a2ac140af0d"
 TimeStruct = "f9ed5ce0-9f41-4eaa-96da-f38ab8df101c"
 YAML = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"
-
-[compat]
-IntervalSets = "<0.7.12"
