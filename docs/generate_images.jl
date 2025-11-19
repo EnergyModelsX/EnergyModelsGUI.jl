@@ -13,6 +13,8 @@ import EnergyModelsGUI:
     toggle_selection_color!,
     select_data!
 
+include(joinpath(@__DIR__, "..", "examples", "generate_examples.jl"))
+
 """
     create_colors_visualization_image()
 
@@ -66,8 +68,6 @@ end
 Create figures of the GUI based on the EMI_geography.jl example to be used for docs and README.md.
 """
 function create_EMI_geography_images()
-    include(joinpath(@__DIR__, "..", "examples", "generate_examples.jl"))
-
     case, model = generate_example_data_geo()
     optimizer = optimizer_with_attributes(HiGHS.Optimizer, MOI.Silent() => true)
     m = create_model(case, model)
