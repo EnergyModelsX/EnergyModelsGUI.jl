@@ -4,7 +4,7 @@
 
 ### Enhancements
 
-* Added the option `pre_plot_sub_components` to the `GUI`-constructor to skip preplotting hidden sub components of an area (the option is by default `false`). The components of an `Area` are then plotted on demand (on the `open` functionality). This greatly enhances performance for large cases.
+* Added the option `pre_plot_sub_components` to the `GUI`-constructor to skip preplotting hidden sub components of an area (the option is by default `true`). The components of an `Area` are then plotted on demand (on the `open` functionality). This greatly enhances performance for large cases.
 * Improved general performance.
 
 ## Version 0.5.17 (2025-11-19)
