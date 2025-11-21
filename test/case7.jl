@@ -413,11 +413,11 @@ function run_case()
         model = m,
         periods_labels = ["2022 - 2030", "2030 - 2040", "2040 - 2050"],
         representative_periods_labels = ["Winter", "Remaining"],
-        expand_all = true,
         path_to_results = path_to_results,
         case_name = case_name,
         scale_tot_opex = false,
         scale_tot_capex = true,
+        pre_plot_sub_components = false,
     )
 
     return case, model, m, gui

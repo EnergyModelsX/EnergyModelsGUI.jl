@@ -96,7 +96,7 @@ function export_xlsx(plots::Vector, filename::String, xlabel::Symbol)
         end
         labels::Vector{String} = [plot[:name] for plot ∈ plots]
 
-        headers::Vector{Any} = vcat(xlabel, labels)
+        headers::Vector{String} = vcat(string(xlabel), labels)
 
         #XLSX.rename!(sheet, "My Data Sheet")
         XLSX.writetable!(sheet, data, headers)
@@ -281,8 +281,8 @@ function export_to_repl(gui::GUI)
             data = Matrix{Any}(undef, length(t), length(vis_plots) + 1)
             data[:, 1] = t
             header = [
-                Vector{Any}(undef, length(vis_plots) + 1),
-                Vector{Any}(undef, length(vis_plots) + 1),
+                Vector{String}(undef, length(vis_plots) + 1),
+                Vector{String}(undef, length(vis_plots) + 1),
             ]
             header[1][1] = "t"
             header[2][1] = "(" * string(nameof(eltype(t))) * ")"

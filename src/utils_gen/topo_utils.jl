@@ -69,11 +69,11 @@ function square_intersection(c::Point2f, θ::Float32, Δ::Float32)
 end
 
 """
-    l2_norm(x::Vector{<:Real})
+    l2_norm(x::Point2f)
 
 Compute the l2-norm of a vector.
 """
-function l2_norm(x::Vector{<:Real})
+function l2_norm(x::Point2f)
     return sqrt(sum(x .^ 2))
 end
 
@@ -93,7 +93,7 @@ function find_min_max_coordinates(
     design::EnergySystemDesign, min_x::Number, max_x::Number, min_y::Number, max_y::Number,
 )
     if !isa(get_parent(get_system(design)), NothingElement)
-        x, y = design.xy[][1], design.xy[][2]
+        x, y = get_xy(design)[][1], get_xy(design)[][2]
         min_x = min(min_x, x)
         max_x = max(max_x, x)
         min_y = min(min_y, y)
@@ -125,7 +125,9 @@ Based on the location of `node_1` and `node_2`, return the angle between the x-a
 `node_2` with `node_1` being the origin.
 """
 function angle(node_1::EnergySystemDesign, node_2::EnergySystemDesign)
-    return atan(node_2.xy[][2] - node_1.xy[][2], node_2.xy[][1] - node_1.xy[][1])
+    xy_1 = get_xy(node_1)[]
+    xy_2 = get_xy(node_2)[]
+    return atan(xy_2[2] - xy_1[2], xy_2[1] - xy_1[1])
 end
 
 """
@@ -210,8 +212,8 @@ function get_sector_points(;
             xy1 = square_intersection(c, θ₁, Δ)
             xy2 = square_intersection(c, θ₂, Δ)
             vertices = Point2f[c, xy1]
-            xsign = [1, -1, -1, 1]
-            ysign = [1, 1, -1, -1]
+            xsign = Float32[1, -1, -1, 1]
+            ysign = Float32[1, 1, -1, -1]
             for (i, corner_angle) ∈ enumerate(Float32[π/4, 3π/4, 5π/4, 7π/4])
                 if θ₁ < corner_angle && θ₂ > corner_angle
                     push!(vertices, c .+ (Δ * xsign[i], Δ * ysign[i]))

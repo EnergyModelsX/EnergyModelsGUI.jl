@@ -10,28 +10,26 @@ function toggle_selection_color!(gui::GUI, selection::EnergySystemDesign, select
     selection.color[] = selected ? get_selection_color(gui) : BLACK
 end
 function toggle_selection_color!(gui::GUI, selection::Connection, selected::Bool)
-    plots = selection.plots
+    plots = get_plots(selection)
     if selected
         for plot ∈ plots
             selection_color = get_selection_color(gui)
-            if isa(plot, Makie.AbstractPlot)
+            if isa(plot.color[], Vector)
                 plot.color = fill(selection_color, length(plot.color[]))
             else
-                for plot_sub ∈ plot
-                    plot_sub.color = selection_color
-                end
+                plot.color = selection_color
             end
         end
     else
-        colors::Vector{RGBA{Float32}} = selection.colors
-        no_colors::Int64 = length(colors)
+        colors = get_colors(selection)
+        no_colors = length(colors)
+        i::Int64 = 0
         for plot ∈ plots
-            if isa(plot, Makie.AbstractPlot)
+            if isa(plot.color[], Vector)
                 plot.color = colors
             else
-                for (i, plot_sub) ∈ enumerate(plot)
-                    plot_sub.color = colors[((i-1)%no_colors)+1]
-                end
+                plot.color = colors[((i-1)%no_colors)+1]
+                i += 1
             end
         end
     end
@@ -49,22 +47,22 @@ structure of Makie, we must iteratively look through up to three nested layers t
 this object is stored.
 """
 function get_EMGUI_obj(plt)
-    if isa(plt, AbstractPlot)
-        if haskey(plt.kw, :EMGUI_obj)
-            return plt.kw[:EMGUI_obj]
-        elseif isa(plt.parent, AbstractPlot)
-            if haskey(plt.parent.kw, :EMGUI_obj)
-                return plt.parent.kw[:EMGUI_obj]
-            elseif isa(plt.parent.parent, AbstractPlot)
-                if haskey(plt.parent.parent.kw, :EMGUI_obj)
-                    return plt.parent.parent.kw[:EMGUI_obj]
-                elseif isa(plt.parent.parent.parent, AbstractPlot) &&
-                       haskey(plt.parent.parent.parent.kw, :EMGUI_obj)
-                    return plt.parent.parent.parent.kw[:EMGUI_obj]
-                end
-            end
-        end
+    !isa(plt, AbstractPlot) && return nothing
+
+    # Check current level
+    obj = get(plt.kw, :EMGUI_obj, nothing)
+    !isnothing(obj) && return obj
+
+    # Check parent levels (up to 3 levels deep)
+    current = plt.parent
+    for _ ∈ 1:3
+        !isa(current, AbstractPlot) && break
+        obj = get(current.kw, :EMGUI_obj, nothing)
+        !isnothing(obj) && return obj
+        current = current.parent
     end
+
+    return nothing
 end
 
 """
@@ -342,27 +340,29 @@ function initialize_available_data!(gui)
         # Create investment overview in the information box
         total_opex = sum(tot_opex_unscaled .* sp_dur)
         total_capex = sum(tot_capex_unscaled)
-        investment_overview = "Result summary:\n\n"
-        investment_overview *= "Objective value: $(format_number(get_obj_value(model)))\n\n"
-        investment_overview *= "Investment summary (no values discounted):\n\n"
-        investment_overview *= "Total operational cost: $(format_number(total_opex))\n"
-        investment_overview *= "Total investment cost: $(format_number(total_capex))\n\n"
-        inv_overview_components = ""
+        io = IOBuffer()
+        println(io, "Result summary:\n")
+        println(io, "Objective value: $(format_number(get_obj_value(model)))\n")
+        println(io, "Investment summary (no values discounted):\n")
+        println(io, "Total operational cost: $(format_number(total_opex))")
+        println(io, "Total investment cost: $(format_number(total_capex))\n")
+        has_investments::Bool = false
         for obj ∈ design
             inv_times = get_inv_times(obj)
             if !isempty(inv_times)
+                if !has_investments
+                    println(io, "Investment overview (CAPEX):")
+                    has_investments = true
+                end
                 capex = get_capex(obj)
                 label = get_element_label(obj)
-                inv_overview_components *= "\t$label:\n"
+                println(io, "\t", label, ":")
                 for (t, capex) ∈ zip(inv_times, capex)
-                    inv_overview_components *= "\t\t$t: $(format_number(capex))\n"
+                    println(io, "\t\t", t, ": ", format_number(capex))
                 end
             end
         end
-        if !isempty(inv_overview_components)
-            investment_overview *= "Investment overview (CAPEX):\n"
-            investment_overview *= inv_overview_components
-        end
+        investment_overview = String(take!(io))
         summary_text = get_var(gui, :summary_text)
         summary_text[] = investment_overview
     else
@@ -375,7 +375,7 @@ function initialize_available_data!(gui)
     for element ∈ plotables
         # Add timedependent input data (if available)
         if !isnothing(element)
-            available_data = Vector{PlotContainer}(undef, 0)
+            available_data = PlotContainer[]
             for field_name ∈ fieldnames(typeof(element))
                 field = getfield(element, field_name)
                 structure = String(nameof(typeof(element)))
@@ -506,8 +506,8 @@ function get_investment_times(gui::GUI, max_inst::Float64)
     model = get_model(gui)
     for component ∈ get_root_design(gui)
         element = get_element(component)
-        investment_times::Vector{String} = Vector{String}[]
-        investment_capex::Vector{Float64} = Vector{Float64}[]
+        investment_times = String[]
+        investment_capex = Float64[]
         for (i, t) ∈ enumerate(𝒯ᴵⁿᵛ)
             for investment_indicator ∈ investment_indicators # important not to use shorthand loop syntax here due to the break command (exiting both loops in that case)
                 sym = Symbol(investment_indicator)
@@ -684,13 +684,13 @@ function get_all_periods!(vec::Vector, ts::TwoLevel)
     end
 end
 function get_all_periods!(vec::Vector, ts::RepresentativePeriods)
-    append!(vec, repr_periods(T))
+    append!(vec, repr_periods(ts))
     for t ∈ ts.rep_periods
         get_all_periods!(vec, t)
     end
 end
 function get_all_periods!(vec::Vector, ts::OperationalScenarios)
-    append!(vec, opscenarios(T))
+    append!(vec, opscenarios(ts))
     for t ∈ ts.scenarios
         get_all_periods!(vec, t)
     end
@@ -731,7 +731,16 @@ function transfer_model(model::String, system::AbstractSystem)
         metadata_path = joinpath(model, "metadata.yaml")
         data[:metadata] = YAML.load_file(metadata_path; dicttype = Dict{Symbol,Any})
         𝒯 = get_time_struct(system)
-        Threads.@threads for file ∈ files
+
+        results = Vector{Pair{Symbol,DataFrame}}(undef, length(files))
+        all_periods = Union{TS.TimePeriod,TS.TimeStructure}[]
+        get_all_periods!(all_periods, 𝒯)
+        periods_dict = get_repr_dict(unique(all_periods))
+        products_dict = get_repr_dict(get_products(system))
+        plotables_dict = get_repr_dict(get_plotables(system))
+
+        Threads.@threads for i ∈ eachindex(files)
+            file = files[i]
             varname = Symbol(basename(file)[1:(end-4)])
 
             df = CSV.read(file, DataFrame)
@@ -745,26 +754,32 @@ function transfer_model(model::String, system::AbstractSystem)
             end
 
             col_names = names(df)
-            all_periods = []
-            get_all_periods!(all_periods, 𝒯)
-            df[!, :t] = convert_array(df[!, :t], get_repr_dict(unique(all_periods)))
+            df[!, :t] = convert_array(df[!, :t], periods_dict)
             if "res" ∈ col_names
-                df[!, :res] = convert_array(
-                    df[!, :res],
-                    get_repr_dict(get_products(system)),
-                )
+                df[!, :res] = convert_array(df[!, :res], products_dict)
             end
             if "element" ∈ col_names
-                df[!, :element] = convert_array(
-                    df[!, :element],
-                    get_repr_dict(get_plotables(system)),
-                )
+                df[!, :element] = convert_array(df[!, :element], plotables_dict)
             end
 
-            data[varname] = df
+            results[i] = varname => df
+        end
+        for (k, v) ∈ results
+            data[k] = v
         end
     else
         @warn "The model must be a directory containing the results. No results loaded."
     end
     return data
+end
+
+"""
+    sub_plots_empty(component::EnergySystemDesign)
+
+Check if any sub-component of `component` is missing plots.
+"""
+function sub_plots_empty(component::EnergySystemDesign)
+    return any(
+        isempty(get_plots(sub_component)) for sub_component ∈ get_components(component)
+    )
 end

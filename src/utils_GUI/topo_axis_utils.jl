@@ -27,13 +27,13 @@ Find the minimum distance between the elements in the design object `gui` and up
 that neighbouring icons do not overlap.
 """
 function update_distances!(gui::GUI)
-    min_d::Float32 = Inf
+    min_d::Float32 = Inf32
     design = get_design(gui)
     components = get_components(design)
     if length(components) > 1
         for component ∈ components
             d::Float32 = minimum([
-                l2_norm(collect(get_xy(component)[] .- get_xy(component2)[])) for
+                l2_norm(get_xy(component)[] .- get_xy(component2)[]) for
                 component2 ∈ components if component != component2
             ])
             if d < min_d
@@ -90,7 +90,7 @@ function align(gui::GUI, align::Symbol)
     ys::Vector{Float32} = Float32[]
     for sub_design ∈ get_selected_systems(gui)
         if isa(sub_design, EnergySystemDesign)
-            x, y = sub_design.xy[]
+            x, y = get_xy(sub_design)[]
             push!(xs, x)
             push!(ys, y)
         end
@@ -105,12 +105,13 @@ function align(gui::GUI, align::Symbol)
 
     for sub_design ∈ get_selected_systems(gui)
         if isa(sub_design, EnergySystemDesign)
-            x, y = sub_design.xy[]
+            xy = get_xy(sub_design)
+            x, y = xy[]
 
             if align == :horizontal
-                sub_design.xy[] = (x, z)
+                xy[] = (x, z)
             elseif align == :vertical
-                sub_design.xy[] = (z, y)
+                xy[] = (z, y)
             end
         end
     end
@@ -124,7 +125,9 @@ Initialize the plot of the topology of design object `gui` given an EnergySystem
 """
 function initialize_plot!(gui::GUI, design::EnergySystemDesign)
     for component ∈ get_components(design)
-        initialize_plot!(gui, component)
+        if get_var(gui, :pre_plot_sub_components)
+            initialize_plot!(gui, component)
+        end
         add_component!(gui, component)
     end
     return connect!(gui, design)
@@ -148,17 +151,9 @@ function plot_design!(
     if get_design(gui) == design
         update_distances!(gui)
     end
-    for component ∈ get_components(design), plot ∈ get_plots(component)
+    components_and_connections = vcat(get_components(design), get_connections(design))
+    for component ∈ components_and_connections, plot ∈ get_plots(component)
         plot.visible = visible
-    end
-    for connection ∈ get_connections(design), plots ∈ get_plots(connection)
-        if isa(plots, Makie.AbstractPlot) # handle the arrowheads (scatter! object)
-            plots.visible = visible
-        else # handle the lines (vector of line! objects)
-            for plot_sub ∈ plots
-                plot_sub.visible = visible
-            end
-        end
     end
 end
 
@@ -192,8 +187,8 @@ end
 When a boolean argument `two_way` is specified, draw the lines in both directions.
 """
 function connect!(gui::GUI, connection::Connection, two_way::Bool)
-    colors::Vector{RGB} = get_colors(connection)
-    no_colors::Int64 = length(colors)
+    colors = get_colors(connection)
+    no_colors = length(colors)
 
     # Create an arrow to highlight the direction of the energy flow
     l::Float32 = 1.0f0 # length of the arrow
@@ -294,8 +289,6 @@ function connect!(gui::GUI, connection::Connection, two_way::Bool)
     sctr.kw[:EMGUI_obj] = connection
     push!(get_plots(connection), sctr)
 
-    lns_arr::Vector{Makie.AbstractPlot} = Makie.AbstractPlot[] # to store the line plots
-
     for j ∈ 1:no_colors
         pts_lines = @lift $triple[3][j]
         lns = lines!(
@@ -309,9 +302,8 @@ function connect!(gui::GUI, connection::Connection, two_way::Bool)
         )
         Makie.translate!(lns, 0, 0, get_var(gui, :z_translate_lines))
         lns.kw[:EMGUI_obj] = connection
-        push!(lns_arr, lns)
+        push!(get_plots(connection), lns)
     end
-    push!(get_plots(connection), lns_arr)
 
     get_vars(gui)[:z_translate_lines] += 0.0001f0
 end
@@ -440,6 +432,7 @@ Draw an icon for EnergySystemDesign `design`.
 """
 function draw_icon!(gui::GUI, design::EnergySystemDesign)
     ax = get_axes(gui)[:topo]
+    xy = get_xy(design)
     if isempty(design.icon) # No path to an icon has been found
         node::EMB.Node = get_ref_element(design)
 
@@ -459,8 +452,7 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
             (:triangle, 4)
         end
 
-        no_polygons::Int64 = length(all_colors)
-        xy = design.xy
+        no_polygons = length(all_colors)
         Δh = get_var(gui, :Δh)
         icon_scale = get_var(gui, :icon_scale)
         node_isa_networknode::Bool = isa(node, NetworkNode)
@@ -513,7 +505,6 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
         if node_isa_networknode
             # Add a center box to separate input resources from output resources
             Δh = get_var(gui, :Δh)
-            xy = design.xy
 
             box = @lift begin
                 Δ = $Δh * get_var(gui, :icon_scale) / 4
@@ -539,11 +530,10 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
                 get_var(gui, :z_translate_components),
             )
             center_box.kw[:EMGUI_obj] = design
-            push!(design.plots, center_box)
+            push!(get_plots(design), center_box)
         end
     else
         Δh = get_var(gui, :Δh)
-        xy = design.xy
         scale = get_var(gui, :icon_scale)
         xo_image = @lift ($xy[1] - $Δh * scale / 2) .. ($xy[1] + $Δh * scale / 2)
         yo_image = @lift ($xy[2] - $Δh * scale / 2) .. ($xy[2] + $Δh * scale / 2)
@@ -597,7 +587,7 @@ function draw_label!(gui::GUI, component::EnergySystemDesign)
                 linked_component ∈ linked_from_component
             ],
         )
-        min_angle_diff::Vector{Float32} = fill(Inf, 4)
+        min_angle_diff::Vector{Float32} = fill(Inf32, 4)
         for i ∈ eachindex(min_angle_diff)
             for angle ∈ angles
                 Δθ::Float32 = angle_difference(angle, (i - 1) * Float32(π) / 2)
@@ -727,10 +717,7 @@ function get_hover_string(obj::AbstractGUIObj)
     inv_str = "$label ($(nameof(typeof(element))))"
     if !isempty(inv_times)
         capex = get_capex(obj)
-        label = get_element_label(obj)
-        for (t, capex) ∈ zip(inv_times, capex)
-            inv_str *= "\n\t$t: $(format_number(capex))"
-        end
+        inv_str *= join(["\n\t$t: $(format_number(c))" for (t, c) ∈ zip(inv_times, capex)])
     end
     return inv_str
 end

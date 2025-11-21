@@ -220,7 +220,7 @@ function save_design(design::EnergySystemDesign)
 
     for component ∈ get_components(design)
         # Extract x,y-coordinates
-        x, y = component.xy[]
+        x, y = get_xy(component)[]
 
         design_dict[string(get_parent(get_system(component)))] = Dict(
             :x => round(x; digits = 5), :y => round(y; digits = 5),
@@ -232,8 +232,8 @@ function save_design(design::EnergySystemDesign)
         end
     end
 
-    @info "Saving design coordinates to file $(design.file)"
-    return save_design(design_dict, design.file)
+    @info "Saving design coordinates to file $(get_file(design))"
+    return save_design(design_dict, get_file(design))
 end
 
 """

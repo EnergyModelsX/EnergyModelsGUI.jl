@@ -9,37 +9,40 @@ function update_info_box!(gui::GUI, element)
         info_text[] = get_var(gui, :default_text)
         return nothing
     end
-    info_text[] = print_nested_structure!(
+    io = IOBuffer()
+    print_nested_structure!(
         element,
-        "";
+        io;
         vector_limit = 5,
         show_the_n_last_elements = 1,
     )
+    info_text[] = String(take!(io))
 end
 
 """
     print_nested_structure!(
         element,
-        output::Observable;
+        io::IOBuffer;
         indent::Int64=0,
         vector_limit::Int64=typemax(Int64),
     )
 
-Appends the nested structure of element in a nice format to the output[] string. The
+Appends the nested structure of element in a nice format to the io buffer. The
 parameter `vector_limit` is used to truncate large vectors.
 """
 function print_nested_structure!(
     element,
-    output::String;
+    io::IOBuffer;
     indent::Int64 = 0,
     vector_limit::Int64 = typemax(Int64),
     show_the_n_last_elements::Int64 = 3,
 )
     if indent == 0
+        type = typeof(element)
         if isa(element, Dict) || isa(element, Vector)
-            output *= "$(typeof(element))\n"
+            println(io, type)
         else
-            output *= "$element ($(typeof(element)))\n"
+            println(io, element, " (", type, ")")
         end
     end
     indent += 1
@@ -61,62 +64,60 @@ function print_nested_structure!(
         if eltype(element) <: expandable
             for (i, field1) ∈ enumerate(element)
                 if i == vector_limit + 1
-                    output *= indent_str * "...\n"
+                    println(io, indent_str, "...")
                     continue
                 end
                 if i <= vector_limit || i > length(element) - show_the_n_last_elements
+                    type = typeof(field1)
                     if isa(field1, expandable)
-                        output *= indent_str * "$i ($(typeof(field1))):\n"
-                        output =
-                            print_nested_structure!(field1, output; indent, vector_limit)
+                        println(io, indent_str, i, " (", type, "):")
+                        print_nested_structure!(field1, io; indent, vector_limit)
                     else
-                        output *= indent_str * "$i: $(typeof(field1))($field1)\n"
+                        println(io, indent_str, i, ": ", type, "(", field1, ")")
                     end
                 end
             end
         else
-            output *= indent_str * "["
+            print(io, indent_str, "[")
             for (i, field1) ∈ enumerate(element)
                 if i == vector_limit + 1
-                    output *= " ... "
+                    print(io, " ... ")
                     continue
                 end
                 if i <= vector_limit || i > length(element) - show_the_n_last_elements
-                    output *= "$field1"
+                    print(io, field1)
                     if i != length(element)
-                        output *= ", "
+                        print(io, ", ")
                     end
                 end
             end
-            output *= "]\n"
+            println(io, "]")
         end
     elseif isa(element, Dict)
         for field1 ∈ keys(element)
             if isa(element[field1], expandable)
-                output *= indent_str * "$field1 ($(typeof(element[field1]))):\n"
-                output =
-                    print_nested_structure!(element[field1], output; indent, vector_limit)
+                println(io, indent_str, field1, " (", typeof(element[field1]), "):")
+                print_nested_structure!(element[field1], io; indent, vector_limit)
             else
-                output *= indent_str * "$field1 => $(element[field1])\n"
+                println(io, indent_str, field1, " => ", element[field1])
             end
         end
     else
         for field1 ∈ fieldnames(typeof(element))
             value1 = getfield(element, field1)
             if isa(value1, expandable)
-                output *= indent_str * "$(field1) ($(typeof(value1))):\n"
-                output = print_nested_structure!(value1, output; indent, vector_limit)
+                println(io, indent_str, field1, " (", typeof(value1), "):")
+                print_nested_structure!(value1, io; indent, vector_limit)
             else
                 if isa(value1, OperationalProfile) &&
                    !isa(value1, FixedProfile) &&
                    length(value1.vals) > vector_limit
                     # Truncate large vectors
-                    output *= indent_str * "$(field1): $(typeof(value1))\n"
+                    println(io, indent_str, field1, ": ", typeof(value1))
                 else
-                    output *= indent_str * "$(field1): $value1\n"
+                    println(io, indent_str, field1, ": ", value1)
                 end
             end
         end
     end
-    return output
 end

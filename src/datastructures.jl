@@ -135,8 +135,8 @@ energy system designs in Julia.
 - **`wall::Observable{Symbol}`** represents an aspect of the system's state, observed
   for changes and represented as a Symbol.
 - **`file::String`** is the filename or path associated with the `EnergySystemDesign`.
-- **`plots::Vector{Any}`** is a vector with all Makie object associated with this object.
-  The value does not have to be provided.
+- **`plots::Vector{Makie.AbstractPlot}`** is a vector with all Makie object associated with 
+  this object.
 - **`invest_data::ProcInvData`** stores processed investment data.
 """
 mutable struct EnergySystemDesign <: AbstractGUIObj
@@ -152,7 +152,7 @@ mutable struct EnergySystemDesign <: AbstractGUIObj
     wall::Observable{Symbol}
     file::String
     inv_data::ProcInvData
-    plots::Vector{Any}
+    plots::Vector{Makie.AbstractPlot}
 end
 function EnergySystemDesign(
     system::AbstractSystem,
@@ -198,7 +198,8 @@ Mutable type for providing a flexible data structure for connections between
   linked to.
 - **`connection::AbstractElement`** is the EMX connection structure.
 - **`colors::Vector{RGBA{Float32}}`** is the associated colors of the connection.
-- **`plots::Vector{Any}`** is a vector with all Makie object associated with this object.
+- **`plots::Vector{Makie.AbstractPlot}`** is a vector with all Makie object associated with 
+  this object.
 - **`invest_data::ProcInvData`** stores processed investment data.
 """
 mutable struct Connection <: AbstractGUIObj
@@ -207,7 +208,7 @@ mutable struct Connection <: AbstractGUIObj
     connection::AbstractElement
     colors::Vector{RGBA{Float32}}
     inv_data::ProcInvData
-    plots::Vector{Any}
+    plots::Vector{Makie.AbstractPlot}
 end
 function Connection(
     from::EnergySystemDesign,

@@ -49,12 +49,12 @@ function EnergySystemDesign(
     end
 
     # Initialize components and connections
-    components::Vector{EnergySystemDesign} = EnergySystemDesign[]
-    connections::Vector{Connection} = Connection[]
+    components = EnergySystemDesign[]
+    connections = Connection[]
 
     # Create an observable for the coordinate xy that can be inherited as the coordinate
     # parent_xy
-    xy::Observable{Point2f} = Observable(Point2f(x, y))
+    xy = Observable(Point2f(x, y))
 
     # Create an iterator for the current system
     elements = get_children(system)
@@ -78,7 +78,7 @@ function EnergySystemDesign(
     # (constructed as an EnergySystemDesign) to `components`
     if !isnothing(elements)
         current_node::Int64 = 1
-        nodes_count::Int64 = length(get_children(system))
+        nodes_count = length(get_children(system))
 
         # Loop through all components of `system`
         for element ∈ elements

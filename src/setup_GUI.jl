@@ -72,6 +72,7 @@ function GUI(
     tol::Float64 = 1e-8,
     enable_data_inspector::Bool = true,
     use_geomakie::Bool = true,
+    pre_plot_sub_components::Bool = true,
 )
     # Generate the system topology:
     @info raw"Setting up the topology design structure"
@@ -82,6 +83,11 @@ function GUI(
     @info raw"Setting up the GUI"
     design::EnergySystemDesign = root_design # variable to store current system (inkluding sub systems)
 
+    if expand_all && !pre_plot_sub_components
+        expand_all = false
+        @warn("Incompatible EMGUI settings: `expand_all` is set to true but 
+        `pre_plot_sub_components` is set to false. Setting `expand_all` to false.")
+    end
     # Set variables
     vars::Dict{Symbol,Any} = Dict(
         :title => Observable("top_level"),
@@ -111,6 +117,7 @@ function GUI(
         :colormap => colormap,
         :tol => tol,
         :use_geomakie => use_geomakie,
+        :pre_plot_sub_components => pre_plot_sub_components,
         :autolimits => Dict(
             :results_op => true,
             :results_sc => true,
@@ -137,7 +144,7 @@ function GUI(
     vars[:path_to_descriptive_names] = path_to_descriptive_names
     vars[:descriptive_names_dict] = descriptive_names_dict
 
-    vars[:plot_widths] = plot_widths
+    vars[:plot_widths] = Vec{2,Int64}(plot_widths)
     vars[:hide_topo_ax_decorations] = hide_topo_ax_decorations
     vars[:expand_all] = expand_all
 
@@ -155,24 +162,36 @@ function GUI(
     vars[:selected_systems] = []
 
     # Default text for the text area
-    vars[:default_text] = string(
-        "Tips:\n",
-        "Keyboard shortcuts:\n",
-        "\tctrl+left-click: Select multiple nodes.\n",
-        "\tright-click and drag: to pan\n",
-        "\tscroll wheel: zoom in or out\n",
-        "\tspace: Enter the selected system\n",
-        "\tctrl+s: Save\n",
-        "\tctrl+r: Reset view\n",
-        "\tctrl+w: Close window\n",
-        "\tEsc (or MouseButton4): Exit the current system and into the parent system\n",
-        "\tholding x while scrolling over plots will zoom in/out in the x-direction.\n",
-        "\tholding y while scrolling over plots will zoom in/out in the y-direction.\n\n",
-        "Left-clicking a component will put information about this component here.\n\n",
-        "Clicking a plot below enables you to pin this plot (hitting the `pin\n",
-        "current plot` button) for comparison with other plots.\n",
-        "Use the `Delete` button to unpin a selected plot.",
+    io = IOBuffer()
+    println(io, "Tips:")
+    println(io, "Keyboard shortcuts:")
+    println(io, "\tctrl+left-click: Select multiple nodes.")
+    println(io, "\tright-click and drag: to pan")
+    println(io, "\tscroll wheel: zoom in or out")
+    println(io, "\tspace: Enter the selected system")
+    println(io, "\tctrl+s: Save")
+    println(io, "\tctrl+r: Reset view")
+    println(io, "\tctrl+w: Close window")
+    println(
+        io,
+        "\tEsc (or MouseButton4): Exit the current system and into the parent system",
     )
+    println(
+        io,
+        "\tholding x while scrolling over plots will zoom in/out in the x-direction.",
+    )
+    println(
+        io,
+        "\tholding y while scrolling over plots will zoom in/out in the y-direction.\n",
+    )
+    println(
+        io,
+        "Left-clicking a component will put information about this component here.\n",
+    )
+    println(io, "Clicking a plot below enables you to pin this plot (hitting the `pin")
+    println(io, "current plot` button) for comparison with other plots.")
+    print(io, "Use the `Delete` button to unpin a selected plot.")
+    vars[:default_text] = String(take!(io))
     vars[:info_text] = Observable(vars[:default_text])
     vars[:summary_text] = Observable("No model results")
     vars[:dragging] = Ref(false)
@@ -219,7 +238,9 @@ function GUI(
     notify(axes[:topo].finallimits)
 
     # make sure all graphics is adapted to the spawned figure sizes
-    notify(get_toggle(gui, :expand_all).active)
+    if get_var(gui, :expand_all)
+        notify(get_toggle(gui, :expand_all).active)
+    end
 
     # Enable inspector (such that hovering objects shows information)
     # Linewidth set to zero as this boundary is slightly laggy on movement
@@ -305,7 +326,6 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
 
             # Download the file if it doesn't exist in the temporary directory
             if !isfile(local_file_path)
-                @debug "Trying to download file $url to $local_file_path"
                 HTTP.download(url, local_file_path)
             end
 

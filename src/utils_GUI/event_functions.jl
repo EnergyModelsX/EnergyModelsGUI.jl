@@ -9,9 +9,11 @@ function define_event_functions(gui::GUI)
     ax_info = get_ax(gui, :info)
     ax_summary = get_ax(gui, :summary)
 
+    expand_all_toggle = get_toggle(gui, :expand_all)
+    expand_all = get_var(gui, :expand_all)
+
     # On zooming, make sure all graphics are adjusted acordingly
     on(ax_topo.finallimits; priority = 10) do finallimits
-        @debug "Changes in finallimits"
         widths::Vec = finallimits.widths
         origin::Vec = finallimits.origin
         get_vars(gui)[:xlimits] = [origin[1], origin[1] + widths[1]]
@@ -33,9 +35,8 @@ function define_event_functions(gui::GUI)
 
     # If the window is resized, make sure all graphics are adjusted acordingly
     fig = get_fig(gui)
-    on(fig.scene.events.window_area; priority = 3) do val
-        @debug "Changes in window_area"
-        get_vars(gui)[:plot_widths] = Tuple(fig.scene.viewport.val.widths)
+    on(fig.scene.events.window_area; priority = 3) do _
+        get_vars(gui)[:plot_widths] = fig.scene.viewport.val.widths
         get_vars(gui)[:ax_aspect_ratio] =
             get_var(gui, :plot_widths)[1] /
             (get_var(gui, :plot_widths)[2] - get_var(gui, :taskbar_height)) / 2
@@ -83,7 +84,7 @@ function define_event_functions(gui::GUI)
                 end
             elseif Int(event.key) == 87 # ctrl+w: Close
                 if ctrl_is_pressed
-                    Threads.@spawn GLMakie.closeall()
+                    GLMakie.closeall()
                 end
                 #elseif Int(event.key) == 340 # Shift
                 #elseif Int(event.key) == 342 # Alt
@@ -240,14 +241,17 @@ function define_event_functions(gui::GUI)
                     gui,
                     get_design(gui);
                     visible = false,
-                    expand_all = get_var(gui, :expand_all),
+                    expand_all,
                 )
+                if isa(component, EnergySystemDesign) && sub_plots_empty(component)
+                    initialize_plot!(gui, component)
+                end
                 gui.design = component
                 plot_design!(
                     gui,
                     get_design(gui);
                     visible = true,
-                    expand_all = get_var(gui, :expand_all),
+                    expand_all,
                 )
                 update_title!(gui)
                 clear_selection(gui, :topo)
@@ -260,18 +264,10 @@ function define_event_functions(gui::GUI)
     # Navigate up button: Handle click on the navigate up button (go back to the root_design)
     on(get_button(gui, :up).clicks; priority = 10) do clicks
         if !isa(get_parent(get_system(gui)), NothingElement)
-            get_vars(gui)[:expand_all] = get_toggle(gui, :expand_all).active[]
-            plot_design!(
-                gui, get_design(gui); visible = false,
-                expand_all = get_var(gui, :expand_all),
-            )
+            get_vars(gui)[:expand_all] = expand_all_toggle.active[]
+            plot_design!(gui, get_design(gui); visible = false, expand_all)
             gui.design = get_root_design(gui)
-            plot_design!(
-                gui, get_design(gui); visible = true, expand_all = get_var(
-                    gui,
-                    :expand_all,
-                ),
-            )
+            plot_design!(gui, get_design(gui); visible = true, expand_all)
             update_title!(gui)
             adjust_limits!(gui)
             notify(get_button(gui, :reset_view).clicks)
@@ -340,9 +336,16 @@ function define_event_functions(gui::GUI)
     end
 
     # Toggle expansion of all systems
-    on(get_toggle(gui, :expand_all).active; priority = 10) do val
+    on(expand_all_toggle.active; priority = 10) do val
         # Plot the topology
         get_vars(gui)[:expand_all] = val
+        if !get_vars(gui)[:pre_plot_sub_components]
+            for component ∈ get_components(get_design(gui))
+                if sub_plots_empty(component)
+                    initialize_plot!(gui, component)
+                end
+            end
+        end
         plot_design!(gui, get_design(gui); expand_all = val)
         update_distances!(gui)
         return Consume(false)

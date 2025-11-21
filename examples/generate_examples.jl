@@ -522,7 +522,6 @@ It will be repalced in the near future with a simplified example.
 """
 
 function generate_example_data_geo()
-    @debug "Generate case data"
     @info "Generate data coded dummy model for now (Investment Model)"
 
     # Retrieve the products

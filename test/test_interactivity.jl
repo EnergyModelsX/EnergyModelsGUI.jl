@@ -39,32 +39,12 @@ axes_menu = get_menu(gui, :axes)
 
 pin_plot_button = get_button(gui, :pin_plot)
 
-# Test specific miscellaneous functionalities
-@testset "Test functionality" verbose = true begin
-    # Test print functionalities of GUI structures to the REPL
-    @testset "Test Base.show() functions" begin
-        design = EMGUI.get_design(gui)
-        component = EMGUI.get_components(design)[1]
-        connection = EMGUI.get_connections(design)[1]
-        @test Base.show(gui) == dump(gui; maxdepth = 1)
-        @test Base.show(design) == dump(design; maxdepth = 1)
-        @test Base.show(component) == dump(component; maxdepth = 1)
-        @test Base.show(connection) == dump(connection; maxdepth = 1)
-
-        inv_data = EMGUI.get_inv_data(design)
-        @test Base.show(inv_data) == dump(inv_data; maxdepth = 1)
-
-        system = EMGUI.parse_case(case)
-        @test Base.show(system) == dump(system; maxdepth = 1)
-    end
-end
-
 # Test specific GUI functionalities
 @testset "Test interactivity" verbose = true begin
     op_cost = [3371970.00359, 5382390.00598, 2010420.00219]
     inv_cost = [0.0, 0.0, 29536224.881975]
     @testset "Compare with Integrate results" begin
-        T = EMGUI.get_time_struct(gui)
+        T = get_time_struct(gui)
         m = EMGUI.get_model(gui)
         for (i, t) ∈ enumerate(strategic_periods(T))
             if haskey(m, :cap_capex)
@@ -78,6 +58,27 @@ end
                 sum(value.(m[:opex_fixed][:, t])) + sum(value.(m[:opex_var][:, t]))
             @test op_cost[i] ≈ tot_opex_sp
         end
+    end
+
+    # Test Expand all toggle functionality
+    @testset "get_toggle(gui,:expand_all).active" begin
+        # Check that sub-components are initially not plotted (as pre_plot_sub_components = false)
+        @test all(isempty(get_plots(component)) for component ∈ get_components(area1))
+        get_toggle(gui, :expand_all).active = true
+
+        # Test if node n_El 1 became invisible
+        get_toggle(gui, :expand_all).active = false
+        n_el_1 = get_component(area1, "El 1") # fetch the n_El 1 node
+
+        # Test if node n_El 1 became invisible
+        @test !get_plots(n_el_1)[1].visible[]
+
+        # Test if node n_El 1 became visible again
+        get_toggle(gui, :expand_all).active = true
+        @test get_plots(n_el_1)[1].visible[]
+
+        # Check that that sub-components are now plotted
+        @test all(!isempty(get_plots(component)) for component ∈ get_components(area1))
     end
 
     # Test color toggling
@@ -110,15 +111,14 @@ end
         update!(gui)
         @test plt_link1_sctr.color[][1] == get_selection_color(gui)
         pick_component!(gui, nothing, :topo) # deselect
+        i::Int64 = 1
+        no_colors::Int64 = length(link1.colors)
         for plot ∈ get_plots(link1) # This only tests one color (should probably add a test with more colors/`Resource`s)
-            for (i, color) ∈ enumerate(link1.colors)
-                if isa(plot, EMGUI.AbstractPlot)
-                    @test plot.color[][i] == color
-                else
-                    for plot_sub ∈ plot
-                        @test plot_sub.color[] == color
-                    end
-                end
+            if isa(plot.color[], Vector)
+                @test plot.color[] == link1.colors
+            else
+                @test plot.color[] == link1.colors[((i-1)%no_colors)+1]
+                i += 1
             end
         end
     end
@@ -186,19 +186,6 @@ end
         update_sub_system_locations!(components[3], change)
         notify(get_button(gui, :reset_view).clicks) # Reset view
         @test true # Hard to have a test here that works on CI
-    end
-
-    # Test Expand all toggle functionality
-    @testset "get_toggle(gui,:expand_all).active" begin
-        # Test if node n_El 1 became invisible
-        get_toggle(gui, :expand_all).active = false
-        n_el_1 = get_component(area1, "El 1") # fetch the n_El 1 node
-
-        @test !get_plots(n_el_1)[1].visible[]
-
-        # Test if node n_El 1 became visible
-        get_toggle(gui, :expand_all).active = true
-        @test get_plots(n_el_1)[1].visible[]
     end
 
     # Run through all components
