@@ -42,6 +42,10 @@ to the old EnergyModelsX `case` dictionary.
   hovering objects to show information.
 - **`use_geomakie::Bool=true`** toggles the use of GeoMakie for plotting geographical
   designs when the `case` contains geographical information.
+- **`pre_plot_sub_components::Bool=true`** toggles whether or not to pre-plot all
+  sub-components of areas in the topology design. Setting this to `false` greatly
+  enhances performance for large cases, as the components of an `Area` are then
+  plotted on demand (on the `open` functionality).
 
 !!! warning "Reading model results from CSV-files"
     Reading model results from a directory (*i.e.*, `model::String` implying that the results

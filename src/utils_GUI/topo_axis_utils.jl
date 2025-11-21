@@ -714,10 +714,13 @@ function get_hover_string(obj::AbstractGUIObj)
     element = get_element(obj)
     label = get_element_label(element)
     inv_times = get_inv_times(obj)
-    inv_str = "$label ($(nameof(typeof(element))))"
+    io = IOBuffer()
+    print(io, "$label ($(nameof(typeof(element))))")
     if !isempty(inv_times)
         capex = get_capex(obj)
-        inv_str *= join(["\n\t$t: $(format_number(c))" for (t, c) ∈ zip(inv_times, capex)])
+        for (t, c) ∈ zip(inv_times, capex)
+            print(io, "\n\t", t, ": ", format_number(c))
+        end
     end
-    return inv_str
+    return String(take!(io))
 end
