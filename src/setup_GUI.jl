@@ -89,8 +89,8 @@ function GUI(
 
     if expand_all && !pre_plot_sub_components
         expand_all = false
-        @warn("Incompatible EMGUI settings: `expand_all` is set to true but 
-        `pre_plot_sub_components` is set to false. Setting `expand_all` to false.")
+        @warn "Incompatible EMGUI settings: `expand_all` is set to true but " *
+              "`pre_plot_sub_components` is set to false. Setting `expand_all` to false."
     end
     # Set variables
     vars::Dict{Symbol,Any} = Dict(
