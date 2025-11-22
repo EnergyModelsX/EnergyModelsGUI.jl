@@ -347,8 +347,8 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
             strokecolor = :gray50,
             strokewidth = 0.5,
             inspectable = false,
-            depth_shift = 1.0f0 - 2f-5,
-            stroke_depth_shift = 1.0f0 - 3f-5,
+            depth_shift = 1.0f0 - 2.0f-5,
+            stroke_depth_shift = 1.0f0 - 3.0f-5,
         )
         ocean_coords = [(180, -90), (-180, -90), (-180, 90), (180, 90)]
         ocean = poly!(
@@ -359,7 +359,7 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
             strokecolor = :gray50,
             inspectable = false,
             depth_shift = 1.0f0,
-            stroke_depth_shift = 1.0f0 - 1f-5,
+            stroke_depth_shift = 1.0f0 - 1.0f-5,
         )
     else # The design does not use the EnergyModelsGeography package: Create a simple Makie axis
         ax = Axis(
