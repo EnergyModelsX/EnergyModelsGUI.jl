@@ -135,9 +135,10 @@ energy system designs in Julia.
 - **`wall::Observable{Symbol}`** represents an aspect of the system's state, observed
   for changes and represented as a Symbol.
 - **`file::String`** is the filename or path associated with the `EnergySystemDesign`.
+- **`visible::Observable{Bool}`** indicates whether the system is visible, observed for changes.
+- **`inv_data::ProcInvData`** stores processed investment data.
 - **`plots::Vector{Makie.AbstractPlot}`** is a vector with all Makie object associated with 
   this object.
-- **`invest_data::ProcInvData`** stores processed investment data.
 """
 mutable struct EnergySystemDesign <: AbstractGUIObj
     system::AbstractSystem
@@ -151,6 +152,7 @@ mutable struct EnergySystemDesign <: AbstractGUIObj
     color::Observable{RGBA{Float32}}
     wall::Observable{Symbol}
     file::String
+    visible::Observable{Bool}
     inv_data::ProcInvData
     plots::Vector{Makie.AbstractPlot}
 end
@@ -166,6 +168,7 @@ function EnergySystemDesign(
     color::Observable{RGBA{Float32}},
     wall::Observable{Symbol},
     file::String,
+    visible::Observable{Bool},
 )
     return EnergySystemDesign(
         system,
@@ -179,6 +182,7 @@ function EnergySystemDesign(
         color,
         wall,
         file,
+        visible,
         ProcInvData(),
         Any[],
     )
@@ -198,15 +202,17 @@ Mutable type for providing a flexible data structure for connections between
   linked to.
 - **`connection::AbstractElement`** is the EMX connection structure.
 - **`colors::Vector{RGBA{Float32}}`** is the associated colors of the connection.
+- **`visible::Observable{Bool}`** indicates whether the system is visible, observed for changes.
+- **`inv_data::ProcInvData`** stores processed investment data.
 - **`plots::Vector{Makie.AbstractPlot}`** is a vector with all Makie object associated with 
   this object.
-- **`invest_data::ProcInvData`** stores processed investment data.
 """
 mutable struct Connection <: AbstractGUIObj
     from::EnergySystemDesign
     to::EnergySystemDesign
     connection::AbstractElement
     colors::Vector{RGBA{Float32}}
+    visible::Observable{Bool}
     inv_data::ProcInvData
     plots::Vector{Makie.AbstractPlot}
 end
@@ -215,9 +221,10 @@ function Connection(
     to::EnergySystemDesign,
     connection::AbstractElement,
     id_to_color_map::Dict{Any,Any},
+    visible::Observable{Bool},
 )
     colors::Vector{RGBA{Float32}} = get_resource_colors(connection, id_to_color_map)
-    return Connection(from, to, connection, colors, ProcInvData(), Any[])
+    return Connection(from, to, connection, colors, visible, ProcInvData(), Any[])
 end
 
 """
@@ -600,6 +607,13 @@ get_inv_data(obj::AbstractGUIObj) = obj.inv_data
 Returns the `plots` field of a `AbstractGUIObj` `obj`.
 """
 get_plots(obj::AbstractGUIObj) = obj.plots
+
+"""
+    get_visible(obj::AbstractGUIObj)
+
+Returns the `visible` field of a `AbstractGUIObj` `obj`.
+"""
+get_visible(obj::AbstractGUIObj) = obj.visible
 
 """
     get_fig(gui::GUI)

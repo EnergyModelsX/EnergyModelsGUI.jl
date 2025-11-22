@@ -10,6 +10,7 @@
 # Adjustments
 
 * Adjusted the calculation of `Connection` plots.
+* Added the field `visible` to `EnergySystemDesign` and `Connection` on which plots can directly rely on for visibility
 
 ## Version 0.5.17 (2025-11-19)
 

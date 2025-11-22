@@ -152,8 +152,8 @@ function plot_design!(
         update_distances!(gui)
     end
     components_and_connections = vcat(get_components(design), get_connections(design))
-    for component ∈ components_and_connections, plot ∈ get_plots(component)
-        plot.visible = visible
+    for component ∈ components_and_connections
+        component.visible[] = visible
     end
 end
 
@@ -283,6 +283,7 @@ function connect!(gui::GUI, connection::Connection, two_way::Bool)
         color = colors,
         inspectable = false,
         depth_shift = get_var(gui, :depth_shift_lines),
+        visible = get_visible(connection),
     )
     sctr.kw[:EMGUI_obj] = connection
     push!(get_plots(connection), sctr)
@@ -298,6 +299,7 @@ function connect!(gui::GUI, connection::Connection, two_way::Bool)
             inspector_label = (self, i, p) -> get_hover_string(connection),
             inspectable = true,
             depth_shift = get_var(gui, :depth_shift_lines),
+            visible = get_visible(connection),
         )
         lns.kw[:EMGUI_obj] = connection
         push!(get_plots(connection), lns)
@@ -395,6 +397,7 @@ function draw_box!(gui::GUI, design::EnergySystemDesign)
             linestyle = linestyle,
             depth_shift = get_var(gui, :depth_shift_components),
             stroke_depth_shift = get_var(gui, :depth_shift_components) - 1.0f-5,
+            visible = get_visible(design),
         ) # Create a white background rectangle to hide lines from connections
 
         add_inspector_to_poly!(white_rect2, (self, i, p) -> get_hover_string(design))
@@ -416,6 +419,7 @@ function draw_box!(gui::GUI, design::EnergySystemDesign)
         linestyle = linestyle,
         depth_shift = get_var(gui, :depth_shift_components),
         stroke_depth_shift = get_var(gui, :depth_shift_components) - 1.0f-5,
+        visible = get_visible(design),
     ) # Create a white background rectangle to hide lines from connections
 
     add_inspector_to_poly!(white_rect, (self, i, p) -> get_hover_string(design))
@@ -498,6 +502,7 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
             inspectable = true,
             depth_shift = get_var(gui, :depth_shift_components),
             stroke_depth_shift = get_var(gui, :depth_shift_components) - 1.0f-5,
+            visible = get_visible(design),
         )
         add_inspector_to_poly!(polys, (self, i, p) -> get_hover_string(design))
         polys.kw[:EMGUI_obj] = design
@@ -520,6 +525,7 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
                 strokewidth = get_var(gui, :linewidth),
                 depth_shift = get_var(gui, :depth_shift_components),
                 stroke_depth_shift = get_var(gui, :depth_shift_components) - 1.0f-5,
+                visible = get_visible(design),
             )
 
             add_inspector_to_poly!(
@@ -543,6 +549,7 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
             inspectable = true,
             inspector_label = (self, i, p) -> get_hover_string(design),
             depth_shift = get_var(gui, :depth_shift_components),
+            visible = get_visible(design),
         )
         icon_image.kw[:EMGUI_obj] = design
         push!(get_plots(design), icon_image)
@@ -623,6 +630,7 @@ function draw_label!(gui::GUI, component::EnergySystemDesign)
         inspectable = false,
         color = has_invested(component) ? RED : BLACK,
         depth_shift = get_var(gui, :depth_shift_components),
+        visible = get_visible(component),
     )
     label_text.kw[:EMGUI_obj] = component
     push!(get_plots(component), label_text)

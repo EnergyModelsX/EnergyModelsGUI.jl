@@ -25,16 +25,14 @@ loaded() = [
 ]
 
 """
-    place_nodes_in_circle(total_nodes::Int64, current_node::Int64, r::Float32, xₒ::Float32, yₒ::Float32)
+    place_nodes_in_circle(total_nodes::Int64, current_node::Int64, r::Float32, c::Point2f)
 
 Return coordinate for point number `i` of a total of `n` points evenly distributed around
-a circle of radius `r` centered at (xₒ, yₒ) from -π/4 to 5π/4.
+a circle of radius `r` centered at `c` from -π/4 to 5π/4.
 """
-function place_nodes_in_circle(n::Int64, i::Int64, r::Float32, xₒ::Float32, yₒ::Float32)
+function place_nodes_in_circle(n::Int64, i::Int64, r::Float32, c::Point2f)
     θ::Float32 = n == 1 ? π32 : -π32 / 4 + 3π32 / 2 * (1 - (i - 1) / (n - 1))
-    x::Float32 = xₒ + r * cos(θ)
-    y::Float32 = yₒ + r * sin(θ)
-    return x, y
+    return c + r * Point2f(cos(θ), sin(θ))
 end
 
 """

@@ -11,11 +11,11 @@ the function initializes the `EnergySystemDesign`.
 - **`design_path::String=""`** is a file path or identifier related to the design.
 - **`id_to_color_map::Dict`** is a dictionary of resources and their assigned colors.
 - **`id_to_icon_map::Dict`** is a dictionary of nodes and their assigned icons.
-- **`x::Float32=0.0f0`** is the initial x-coordinate of the system.
-- **`y::Float32=0.0f0`** is the initial y-coordinate of the system.
+- **`xy_parent::Point2f=Point2f(0.0f0, 0.0f0)`** is the parent coordinate of the system.
 - **`icon::String=""`** is the optional (path to) icons associated with the system, stored as
   a string.
 - **`parent::AbstractGUIObj=NothingDesign()`** is a parent EnergySystemDesign object.
+- **`level::Int64=0`** indicates the hierarchical level of the design in the system.
 
 The function reads system configuration data from a TOML file specified by `design_path`
 (if it exists), initializes various internal fields, and processes connections and wall values.
@@ -27,10 +27,10 @@ function EnergySystemDesign(
     design_path::String = "",
     id_to_color_map::Dict = Dict(),
     id_to_icon_map::Dict = Dict(),
-    x::Float32 = 0.0f0,
-    y::Float32 = 0.0f0,
+    xy_parent::Point2f = Point2f(0.0f0, 0.0f0),
     icon::String = "",
     parent::AbstractGUIObj = NothingDesign(),
+    level::Int64 = 0,
 )
     # Create the path to the file where existing design is stored (if any)
     file::String = design_file(system, design_path)
@@ -52,13 +52,10 @@ function EnergySystemDesign(
     components = EnergySystemDesign[]
     connections = Connection[]
 
-    # Create an observable for the coordinate xy that can be inherited as the coordinate
-    # parent_xy
-    xy = Observable(Point2f(x, y))
-
     # Create an iterator for the current system
     elements = get_children(system)
-    parent_x, parent_y = xy[] # extract parent coordinates
+
+    visible::Observable{Bool} = Observable(level <= 1)
 
     design = EnergySystemDesign(
         system,
@@ -67,11 +64,12 @@ function EnergySystemDesign(
         components,
         connections,
         parent,
-        xy,
+        Observable(xy_parent),
         icon,
         Observable(BLACK),
         Observable(:E),
         file,
+        visible,
     )
 
     # If system contains any components (i.e. !isnothing(elements)) add all components
@@ -88,22 +86,20 @@ function EnergySystemDesign(
 
             # Extract x and y coordinates from file, or from structure or add defaults
             if haskey(system_info, "x") && haskey(system_info, "y")
-                x = Float32(system_info["x"])
-                y = Float32(system_info["y"])
+                xy = Point2f(system_info["x"], system_info["y"])
             elseif isa(system, SystemGeo)
                 if hasproperty(element, :lon) && hasproperty(element, :lat)
                     # assigning longitude and latitude
-                    x = Float32(element.lon)
-                    y = Float32(element.lat)
+                    xy = Point2f(element.lon, element.lat)
                 else
                     @error "Missing lon and/or lat coordinates"
                 end
             else
                 if element == get_ref_element(system)
-                    x, y = parent_x, parent_y
+                    xy = xy_parent
                 else # place nodes in a circle around the parents availability node
-                    x, y = place_nodes_in_circle(
-                        nodes_count, current_node, 1.0f0, parent_x, parent_y,
+                    xy = place_nodes_in_circle(
+                        nodes_count, current_node, 1.0f0, xy_parent,
                     )
                     current_node += 1
                 end
@@ -120,16 +116,16 @@ function EnergySystemDesign(
                     design_path,
                     id_to_color_map,
                     id_to_icon_map,
-                    x,
-                    y,
+                    xy_parent = xy,
                     icon = find_icon(this_sys, id_to_icon_map),
                     parent = design,
+                    level = level + 1,
                 ),
             )
         end
     end
 
-    # Add  `Transmission`s and `Link`s to `connections` as a `Connection`
+    # Add `Transmission`s and `Link`s to `connections` as a `Connection`
     elements = get_connections(system)
     if !isnothing(elements)
         for element ∈ elements
@@ -141,7 +137,10 @@ function EnergySystemDesign(
 
             # If `EnergySystemDesign`s found, create a new `Connection`
             if !isnothing(from) && !isnothing(to)
-                push!(design.connections, Connection(from, to, element, id_to_color_map))
+                push!(
+                    design.connections,
+                    Connection(from, to, element, id_to_color_map, Observable(level == 0)),
+                )
             end
         end
     end
