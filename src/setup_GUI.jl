@@ -160,8 +160,8 @@ function GUI(
 
     # Create iterables for plotting objects in layers (z-direction) such that nodes are
     # neatly placed on top of each other and lines are beneath nodes
-    vars[:z_translate_lines] = 10.0f0
-    vars[:z_translate_components] = 50.0f0
+    vars[:depth_shift_lines] = 0.6f0
+    vars[:depth_shift_components] = 0.2f0
 
     vars[:selected_systems] = []
 
@@ -347,8 +347,9 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
             strokecolor = :gray50,
             strokewidth = 0.5,
             inspectable = false,
+            depth_shift = 1.0f0 - 2f-5,
+            stroke_depth_shift = 1.0f0 - 3f-5,
         )
-        Makie.translate!(countries_plot, 0, 0, -1)
         ocean_coords = [(180, -90), (-180, -90), (-180, 90), (180, 90)]
         ocean = poly!(
             ax,
@@ -357,8 +358,9 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
             strokewidth = 0.5,
             strokecolor = :gray50,
             inspectable = false,
+            depth_shift = 1.0f0,
+            stroke_depth_shift = 1.0f0 - 1f-5,
         )
-        Makie.translate!(ocean, 0, 0, -2)
     else # The design does not use the EnergyModelsGeography package: Create a simple Makie axis
         ax = Axis(
             gridlayout_topology_ax[1, 1];
@@ -435,7 +437,6 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
         labelsize = vars[:fontsize],
         titlesize = vars[:fontsize],
     )
-    Makie.translate!(topo_legend.blockscene, 0, 0, vars[:z_translate_components] + 999)
 
     # Initiate an axis for displaying information about the selected node
     ax_info::Makie.Axis = Axis(
@@ -662,11 +663,6 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
         :results => nothing, :topo => topo_legend,
     )
 
-    # Ensure that menus are on top
-    for menu ∈ values(menus)
-        translate!(menu.blockscene, 0.0f0, 0.0f0, vars[:z_translate_components] + 2000.0f0)
-    end
-
     # Collect all toggles into a dictionary
     toggles::Dict{Symbol,Makie.Toggle} = Dict(:expand_all => expand_all_toggle)
 
@@ -676,18 +672,13 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
     )
 
     # Update the title of the figure
-    topo_title_obj = text!(
+    text!(
         ax,
         vars[:topo_title_loc_x],
         vars[:topo_title_loc_y];
         text = vars[:title],
         fontsize = vars[:fontsize],
-    )
-    Makie.translate!(
-        topo_title_obj,
-        0.0f0,
-        0.0f0,
-        vars[:z_translate_components] + 999.0f0,
+        depth_shift = -1.0f0,
     )
 
     return fig, buttons, menus, toggles, axes, legends

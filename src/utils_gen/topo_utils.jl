@@ -15,47 +15,54 @@ function square_intersection(c::Point2f, x::Point2f, θ::Float32, Δ::Float32)
     ymin, ymax = c[2] - Δ, c[2] + Δ
 
     # Parametric line: X = x[1] + t*dx, Y = x[2] + t*dy
-    ts = Float32[]
-    ts_out = Float32[]
+    ts = Float32[]  # only true edge intersections
 
     # Check intersection with vertical sides (x = xmin and x = xmax)
-    if abs(dx) > eps()
+    if abs(dx) > eps(Float32)
         t1 = (xmin - x[1]) / dx
         y1 = x[2] + t1 * dy
         if ymin <= y1 <= ymax
             push!(ts, t1)
-        else
-            push!(ts_out, t1)
         end
+
         t2 = (xmax - x[1]) / dx
         y2 = x[2] + t2 * dy
         if ymin <= y2 <= ymax
             push!(ts, t2)
-        else
-            push!(ts_out, t2)
         end
     end
+
     # Check intersection with horizontal sides (y = ymin and y = ymax)
-    if abs(dy) > eps()
+    if abs(dy) > eps(Float32)
         t3 = (ymin - x[2]) / dy
         x3 = x[1] + t3 * dx
         if xmin <= x3 <= xmax
             push!(ts, t3)
-        else
-            push!(ts_out, t3)
         end
+
         t4 = (ymax - x[2]) / dy
         x4 = x[1] + t4 * dx
         if xmin <= x4 <= xmax
             push!(ts, t4)
-        else
-            push!(ts_out, t4)
         end
     end
 
-    tmin = isempty(ts) ? minimum(abs.(ts_out)) : minimum(abs.(ts))
-
-    return x + tmin * Point2f(dx, dy)
+    if !isempty(ts)
+        # prefer intersections in the *forward* direction
+        forward = filter(t -> t ≥ 0, ts)
+        if !isempty(forward)
+            tmin = minimum(forward)
+        else
+            # no forward hit, take the nearest edge in either direction
+            tmin = ts[argmin(abs.(ts))]
+        end
+        return x + tmin * Point2f(dx, dy)
+    else
+        # No intersection with the square at all: clamp x to the nearest point on the boundary
+        px = clamp(x[1], xmin, xmax)
+        py = clamp(x[2], ymin, ymax)
+        return Point2f(px, py)
+    end
 end
 
 """
@@ -136,8 +143,8 @@ end
 Compute the difference between two angles.
 """
 function angle_difference(angle1::Float32, angle2::Float32)
-    diff::Float32 = abs(angle1 - angle2) % Float32(2π)
-    return min(diff, Float32(2π) - diff)
+    diff::Float32 = abs(angle1 - angle2) % 2π32
+    return min(diff, 2π32 - diff)
 end
 
 """
@@ -181,7 +188,7 @@ end
         center::Point2f = Point2f(0.0f0, 0.0f0),
         Δ::Float32 = 1.0f0,
         θ₁::Float32 = 0.0f0,
-        θ₂::Float32 = Float32(π / 4),
+        θ₂::Float32 = π32 / 4,
         steps::Int=200,
         geometry::Symbol = :circle)
 
@@ -193,19 +200,19 @@ function get_sector_points(;
     c::Point2f = Point2f(0.0f0, 0.0f0),
     Δ::Float32 = 1.0f0,
     θ₁::Float32 = 0.0f0,
-    θ₂::Float32 = Float32(π / 4),
+    θ₂::Float32 = π32 / 4,
     steps::Int = 200,
     geometry::Symbol = :circle,
 )
     if geometry == :circle
-        θ::Vector{Float32} = LinRange(θ₁, θ₂, Int(round(steps * (θ₂ - θ₁) / (2π))))
+        θ::Vector{Float32} = LinRange(θ₁, θ₂, Int(round(steps * (θ₂ - θ₁) / (2π32))))
         x_coords::Vector{Float32} = Δ * cos.(θ) .+ c[1]
         y_coords::Vector{Float32} = Δ * sin.(θ) .+ c[2]
 
         # Include the center and close the polygon
         return Point2f[c, collect(zip(x_coords, y_coords))..., c]
     elseif geometry == :rect
-        if θ₁ == 0 && θ₂ ≈ 2π
+        if θ₁ == 0 && θ₂ ≈ 2π32
             x_coords, y_coords = box(c[1], c[2], Δ)
             return collect(zip(x_coords, y_coords))
         else
@@ -214,7 +221,7 @@ function get_sector_points(;
             vertices = Point2f[c, xy1]
             xsign = Float32[1, -1, -1, 1]
             ysign = Float32[1, 1, -1, -1]
-            for (i, corner_angle) ∈ enumerate(Float32[π/4, 3π/4, 5π/4, 7π/4])
+            for (i, corner_angle) ∈ enumerate([π32/4, 3π32/4, 5π32/4, 7π32/4])
                 if θ₁ < corner_angle && θ₂ > corner_angle
                     push!(vertices, c .+ (Δ * xsign[i], Δ * ysign[i]))
                 end
@@ -224,11 +231,11 @@ function get_sector_points(;
             return vertices
         end
     elseif geometry == :triangle
-        input::Bool = (θ₁ + θ₂) / 2 > π / 2
+        input::Bool = (θ₁ + θ₂) / 2 > π32 / 2
         if input                      # input resources on a triangle to the left
-            f = θ -> -2Δ * θ / π + 2Δ
+            f = θ -> -2Δ * θ / π32 + 2Δ
         else                          # output resources on a triangle to the right
-            f = θ -> 2Δ * θ / π
+            f = θ -> 2Δ * θ / π32
         end
         d::Float32 = Δ / 2
         x::Point2f = input ? c .- (d / 2, 0) : c .+ (d / 2, 0)

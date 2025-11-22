@@ -1,5 +1,6 @@
 # Define a type for sparse variables to simplify code
 const SparseVars = Union{JuMP.Containers.SparseAxisArray,SparseVariables.IndexedVarArray}
+const π32 = Float32(π)
 
 """
     get_representative_period_indices(T::TS.TimeStructure, sp::Int64)

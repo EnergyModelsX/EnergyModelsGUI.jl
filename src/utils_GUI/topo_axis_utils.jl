@@ -216,76 +216,74 @@ function connect!(gui::GUI, connection::Connection, two_way::Bool)
     Δh = get_var(gui, :Δh)
 
     triple = @lift begin
-        xy_midpoints = Vector{Point2f}(fill(Point2f(0.0f0, 0.0f0), no_colors))
-        θs = Vector{Float32}(fill(0.0f0, no_colors))
-        pts_lines =
-            Vector{Vector{Point2f}}(fill(fill(Point2f(0.0f0, 0.0f0), 2), no_colors))
+        pts_lines = Vector{Vector{Point2f}}(fill(fill(Point2f(0.0f0, 0.0f0), 2), no_colors))
+        markersize_length::Float32 = l2_norm(pixel_to_data(gui, markersize))
+        linewidth_length::Float32 = l2_norm(pixel_to_data(gui, linewidth))
+
+        xy_1::Point2f = $from_xy
+        xy_2::Point2f = $to_xy
+
+        θ::Float32 = atan(xy_2[2] - xy_1[2], xy_2[1] - xy_1[1])
+        cosθ::Float32 = cos(θ)
+        sinθ::Float32 = sin(θ)
+        cosϕ::Float32 = -sinθ # where ϕ = θ+π/2
+        sinϕ::Float32 = cosθ
+
+        # Create directional vectors in the direction of θ and ϕ
+        dirϕ::Point2f = Point2f(cosϕ, sinϕ)
+        dirθ::Point2f = Point2f(cosθ, sinθ)
+
+        Δ::Float32 = $Δh / 2 # half width of a box
+        if !isempty(get_components(connection.from))
+            Δ *= parent_scaling
+        end
+        Δ += linewidth_length / 2
+        lines_shift::Point2f =
+            (linewidth_length + l2_norm(pixel_to_data(gui, line_sep_px))) * dirϕ
+        two_way_sep::Point2f = l2_norm(pixel_to_data(gui, two_way_sep_px)) * dirϕ
+        xy_midpoint::Point2f = xy_2 + (no_colors - 1) / 2 * lines_shift
+        if two_way # separate the opposite directed lines by two_way_sep
+            xy_midpoint += two_way_sep / 2
+        end
+        xy_midpoint = square_intersection(xy_2, xy_midpoint, θ + π32, Δ)
+
         for j ∈ 1:no_colors
-            lines_shift::Point2f =
-                pixel_to_data(gui, linewidth) .+
-                pixel_to_data(gui, line_sep_px)
-            two_way_sep::Point2f = pixel_to_data(gui, two_way_sep_px)
-            markersize_lengths::Point2f = pixel_to_data(gui, markersize)
-
-            xy_1::Point2f = $from_xy
-            xy_2::Point2f = $to_xy
-
-            θ::Float32 = atan(xy_2[2] - xy_1[2], xy_2[1] - xy_1[1])
-            cosθ::Float32 = cos(θ)
-            sinθ::Float32 = sin(θ)
-            cosϕ::Float32 = -sinθ # where ϕ = θ+π/2
-            sinϕ::Float32 = cosθ
-
-            # Create directional vectors in the direction of θ and ϕ
-            dirϕ::Point2f = Point2f(cosϕ, sinϕ)
-            dirθ::Point2f = Point2f(cosθ, sinθ)
-
-            Δ::Float32 = $Δh / 2 # half width of a box
-            if !isempty(get_components(connection.from))
-                Δ *= parent_scaling
-            end
-
-            xy_start::Point2f = xy_1 + (j - 1) * lines_shift .* dirϕ
-            xy_end::Point2f = xy_2 + (j - 1) * lines_shift .* dirϕ
-            xy_midpoint::Point2f = xy_2 + (no_colors - 1) / 2 * lines_shift .* dirϕ # The midpoint of the end of all lines (for arrow head)
+            xy_start::Point2f = xy_1 + (j - 1) * lines_shift
+            xy_end::Point2f = xy_2 + (j - 1) * lines_shift
 
             if two_way # separate the opposite directed lines by two_way_sep
-                xy_start += two_way_sep / 2 .* dirϕ
-                xy_end += two_way_sep / 2 .* dirϕ
-                xy_midpoint += two_way_sep / 2 .* dirϕ
+                xy_start += two_way_sep / 2
+                xy_end += two_way_sep / 2
             end
             xy_start = square_intersection(xy_1, xy_start, θ, Δ)
-            xy_end = square_intersection(xy_2, xy_end, θ + π, Δ)
-            xy_midpoint = square_intersection(xy_2, xy_midpoint, θ + π, Δ)
+            xy_end = square_intersection(xy_2, xy_end, θ + π32, Δ)
             parm::Float32 =
                 -xy_start[1] * cosθ - xy_start[2] * sinθ +
                 xy_midpoint[1] * cosθ +
-                xy_midpoint[2] * sinθ - minimum(markersize_lengths)
+                xy_midpoint[2] * sinθ - markersize_length / 2
 
-            xy_midpoints[j] = xy_midpoint
-            θs[j] = θ
             pts_lines[j] = Point2f[xy_start, parm*dirθ+xy_start]
         end
 
         # return the objects into a tuple Observable
-        (xy_midpoints, θs, pts_lines)
+        (xy_midpoint, θ, pts_lines)
     end
 
     # Extract observables from the tuple
-    xy_midpoints = @lift $triple[1]
-    θs = @lift $triple[2]
+    xy_midpoints = @lift fill($triple[1], no_colors)
+    θs = @lift fill($triple[2], no_colors)
 
     ax = get_ax(gui, :topo)
     sctr = scatter!(
         ax,
         xy_midpoints;
         marker = arrow_parts,
-        markersize = get_var(gui, :markersize),
+        markersize = markersize,
         rotation = θs,
         color = colors,
         inspectable = false,
+        depth_shift = get_var(gui, :depth_shift_lines),
     )
-    Makie.translate!(sctr, 0, 0, get_var(gui, :z_translate_lines))
     sctr.kw[:EMGUI_obj] = connection
     push!(get_plots(connection), sctr)
 
@@ -299,13 +297,13 @@ function connect!(gui::GUI, connection::Connection, two_way::Bool)
             linestyle = linestyle[j],
             inspector_label = (self, i, p) -> get_hover_string(connection),
             inspectable = true,
+            depth_shift = get_var(gui, :depth_shift_lines),
         )
-        Makie.translate!(lns, 0, 0, get_var(gui, :z_translate_lines))
         lns.kw[:EMGUI_obj] = connection
         push!(get_plots(connection), lns)
     end
 
-    get_vars(gui)[:z_translate_lines] += 0.0001f0
+    get_vars(gui)[:depth_shift_lines] -= 1f-5
 end
 
 """
@@ -377,7 +375,7 @@ function draw_box!(gui::GUI, design::EnergySystemDesign)
     linestyle::Union{Symbol,Makie.Linestyle} = get_linestyle(gui, design)
 
     Δh = get_var(gui, :Δh)
-    xy = design.xy
+    xy = get_xy(design)
 
     # if the design has components, draw an enlarged box around it.
     if !isempty(get_components(design))
@@ -395,13 +393,14 @@ function draw_box!(gui::GUI, design::EnergySystemDesign)
             strokewidth = get_var(gui, :linewidth),
             strokecolor = design.color,
             linestyle = linestyle,
+            depth_shift = get_var(gui, :depth_shift_components),
+            stroke_depth_shift = get_var(gui, :depth_shift_components) - 1f-5,
         ) # Create a white background rectangle to hide lines from connections
 
         add_inspector_to_poly!(white_rect2, (self, i, p) -> get_hover_string(design))
-        Makie.translate!(white_rect2, 0.0f0, 0.0f0, get_var(gui, :z_translate_components))
-        get_vars(gui)[:z_translate_components] += 0.0001f0
-        push!(design.plots, white_rect2)
         white_rect2.kw[:EMGUI_obj] = design
+        push!(get_plots(design), white_rect2)
+        get_vars(gui)[:depth_shift_components] -= 2f-5
     end
 
     # Build the rectangle path from the observables
@@ -415,14 +414,15 @@ function draw_box!(gui::GUI, design::EnergySystemDesign)
         strokewidth = get_var(gui, :linewidth),
         strokecolor = design.color,
         linestyle = linestyle,
+        depth_shift = get_var(gui, :depth_shift_components),
+        stroke_depth_shift = get_var(gui, :depth_shift_components) - 1f-5,
     ) # Create a white background rectangle to hide lines from connections
 
     add_inspector_to_poly!(white_rect, (self, i, p) -> get_hover_string(design))
-    Makie.translate!(white_rect, 0.0f0, 0.0f0, get_var(gui, :z_translate_components))
-    get_vars(gui)[:z_translate_components] += 0.0001f0
 
-    push!(design.plots, white_rect)
+    push!(get_plots(design), white_rect)
     white_rect.kw[:EMGUI_obj] = design
+    get_vars(gui)[:depth_shift_components] -= 2f-5
 end
 
 """
@@ -471,11 +471,11 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
                     # Check if node is a NetworkNode (if so, devide disc into two where
                     # left side is for input and right side is for output)
                     if node_isa_networknode
-                        θᵢ = (-1)^(j + 1) * π / 2 + π * (i - 1) / no_colors
-                        θᵢ₊₁ = (-1)^(j + 1) * π / 2 + π * i / no_colors
+                        θᵢ = (-1)^(j + 1) * π32 / 2 + π32 * (i - 1) / no_colors
+                        θᵢ₊₁ = (-1)^(j + 1) * π32 / 2 + π32 * i / no_colors
                     else
-                        θᵢ = 2π * (i - 1) / no_colors
-                        θᵢ₊₁ = 2π * i / no_colors
+                        θᵢ = 2π32 * (i - 1) / no_colors
+                        θᵢ₊₁ = 2π32 * i / no_colors
                     end
                     poly_points[idx] = get_sector_points(;
                         c = $xy,
@@ -491,16 +491,17 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
             poly_points
         end
 
-        polys = poly!(ax, poly_points_obs; color = all_colors, inspectable = true)
-        add_inspector_to_poly!(polys, (self, i, p) -> get_hover_string(design))
-        Makie.translate!(
-            polys,
-            0.0f0,
-            0.0f0,
-            get_var(gui, :z_translate_components),
+        polys = poly!(
+            ax,
+            poly_points_obs;
+            color = all_colors,
+            inspectable = true,
+            depth_shift = get_var(gui, :depth_shift_components),
+            stroke_depth_shift = get_var(gui, :depth_shift_components) - 1f-5,
         )
+        add_inspector_to_poly!(polys, (self, i, p) -> get_hover_string(design))
         polys.kw[:EMGUI_obj] = design
-        push!(design.plots, polys)
+        push!(get_plots(design), polys)
 
         if node_isa_networknode
             # Add a center box to separate input resources from output resources
@@ -517,18 +518,14 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
                 color = WHITE,
                 inspectable = true,
                 strokewidth = get_var(gui, :linewidth),
+                depth_shift = get_var(gui, :depth_shift_components),
+                stroke_depth_shift = get_var(gui, :depth_shift_components) - 1f-5,
             )
 
             add_inspector_to_poly!(
                 center_box, (self, i, p) -> get_hover_string(design),
             )
 
-            Makie.translate!(
-                center_box,
-                0.0f0,
-                0.0f0,
-                get_var(gui, :z_translate_components),
-            )
             center_box.kw[:EMGUI_obj] = design
             push!(get_plots(design), center_box)
         end
@@ -545,12 +542,12 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
             rotr90(FileIO.load(design.icon));
             inspectable = true,
             inspector_label = (self, i, p) -> get_hover_string(design),
+            depth_shift = get_var(gui, :depth_shift_components),
         )
-        Makie.translate!(icon_image, 0.0f0, 0.0f0, get_var(gui, :z_translate_components))
         icon_image.kw[:EMGUI_obj] = design
-        push!(design.plots, icon_image)
+        push!(get_plots(design), icon_image)
     end
-    get_vars(gui)[:z_translate_components] += 0.0001f0
+    get_vars(gui)[:depth_shift_components] -= 2f-5
 end
 
 """
@@ -590,7 +587,7 @@ function draw_label!(gui::GUI, component::EnergySystemDesign)
         min_angle_diff::Vector{Float32} = fill(Inf32, 4)
         for i ∈ eachindex(min_angle_diff)
             for angle ∈ angles
-                Δθ::Float32 = angle_difference(angle, (i - 1) * Float32(π) / 2)
+                Δθ::Float32 = angle_difference(angle, (i - 1) * π32 / 2)
                 if min_angle_diff[i] > Δθ
                     min_angle_diff[i] = Δθ
                 end
@@ -625,11 +622,11 @@ function draw_label!(gui::GUI, component::EnergySystemDesign)
         fontsize = get_var(gui, :fontsize),
         inspectable = false,
         color = has_invested(component) ? RED : BLACK,
+        depth_shift = get_var(gui, :depth_shift_components),
     )
-    Makie.translate!(label_text, 0.0f0, 0.0f0, get_var(gui, :z_translate_components))
-    get_vars(gui)[:z_translate_components] += 0.0001f0
     label_text.kw[:EMGUI_obj] = component
     push!(get_plots(component), label_text)
+    get_vars(gui)[:depth_shift_components] -= 2f-5
 end
 
 """
@@ -686,8 +683,7 @@ function adjust_limits!(gui::GUI)
     end
     vars[:xlimits] = [min_x, max_x]
     vars[:ylimits] = [min_y, max_y]
-    ax = get_ax(gui, :topo)
-    limits!(ax, vars[:xlimits], vars[:ylimits])
+    limits!(get_ax(gui, :topo), vars[:xlimits], vars[:ylimits])
 end
 
 """
