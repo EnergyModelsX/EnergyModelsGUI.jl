@@ -520,7 +520,6 @@ technologies.
 The example is partly based on the provided example `network.jl` in `EnergyModelsGeography`.
 It will be repalced in the near future with a simplified example.
 """
-
 function generate_example_data_geo()
     @info "Generate data coded dummy model for now (Investment Model)"
 

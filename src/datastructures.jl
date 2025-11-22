@@ -316,10 +316,10 @@ const YELLOW = RGBA{Float32}(1.0, 1.0, 0.0, 1.0)
 const MAGENTA = RGBA{Float32}(1.0, 0.0, 1.0, 1.0)
 const CYAN = RGBA{Float32}(0.0, 1.0, 1.0, 1.0)
 
-Base.show(io::IO, obj::AbstractGUIObj) = dump(io, obj; maxdepth = 1)
+Base.show(io::IO, obj::AbstractGUIObj) = Base.show(io, get_element(obj))
 Base.show(io::IO, ::NothingDesign) = print(io, "NothingDesign()")
 Base.show(io::IO, obj::ProcInvData) = dump(io, obj; maxdepth = 1)
-Base.show(io::IO, system::AbstractSystem) = dump(io, system; maxdepth = 1)
+Base.show(io::IO, system::AbstractSystem) = Base.show(io, get_element(system))
 Base.show(io::IO, gui::GUI) = dump(io, gui; maxdepth = 1)
 Base.show(io::IO, ::NothingElement) = print(io, "top_level")
 
@@ -426,11 +426,11 @@ Returns the nodes of a `AbstractSystem` `system`.
 EMB.get_nodes(system::AbstractSystem) = get_children(system)
 
 """
-    get_element(system::System)
+    get_element(system::AbstractSystem)
 
-Returns the `element` assosiated of a `System` `system`.
+Returns the `element` assosiated of a `AbstractSystem` `system`.
 """
-get_element(system::System) = get_parent(system)
+get_element(system::AbstractSystem) = get_parent(system)
 
 """
     get_plotables(system::System)

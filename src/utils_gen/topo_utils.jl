@@ -58,10 +58,37 @@ function square_intersection(c::Point2f, x::Point2f, θ::Float32, Δ::Float32)
         end
         return x + tmin * Point2f(dx, dy)
     else
-        # No intersection with the square at all: clamp x to the nearest point on the boundary
-        px = clamp(x[1], xmin, xmax)
-        py = clamp(x[2], ymin, ymax)
-        return Point2f(px, py)
+        # No intersection with the square: extend the two facing sides and intersect
+        # Determine which corner is closest to the line direction from x
+        # The line points in direction (dx, dy) from x
+
+        # Find which quadrant the direction points to relative to square center
+        cx_relative = c[1] - x[1]
+        cy_relative = c[2] - x[2]
+
+        # Determine the corner by the signs of dx and dy
+        corner_x = dx > 0 ? xmax : xmin
+        corner_y = dy > 0 ? ymax : ymin
+
+        # Extend the two sides meeting at this corner
+        if abs(dy) > 1/sqrt(2.0f0) # First side: parallel to x-axis through corner_y
+            t_horizontal = (corner_y - x[2]) / dy
+            x_on_horizontal = x[1] + t_horizontal * dx
+            # Check if this is in the right direction and on the extended side
+            if t_horizontal ≥ 0
+                return Point2f(x_on_horizontal, corner_y)
+            end
+        else # Second side: parallel to y-axis through corner_x
+            t_vertical = (corner_x - x[1]) / dx
+            y_on_vertical = x[2] + t_vertical * dy
+            # Check if this is in the right direction and on the extended side
+            if t_vertical ≥ 0
+                return Point2f(corner_x, y_on_vertical)
+            end
+        end
+
+        # Fallback
+        return Point2f(corner_x, corner_y)
     end
 end
 

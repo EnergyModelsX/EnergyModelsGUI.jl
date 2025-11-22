@@ -93,16 +93,16 @@ function pick_component!(gui::GUI, element::Dict, ::Symbol)
     toggle_selection_color!(gui, element, true)
 end
 function pick_component!(gui::GUI, ::Nothing, ax_type::Symbol)
-    clear_selection(gui, ax_type)
+    clear_selection!(gui, ax_type)
 end
 
 """
-    clear_selection(gui::GUI, ax_type::Symbol)
+    clear_selection!(gui::GUI, ax_type::Symbol)
 
 Clear the color selection of the topology axis if `ax_type = :topo`, and of the results axis 
 if `ax_type = :results`.
 """
-function clear_selection(gui::GUI, ax_type::Symbol)
+function clear_selection!(gui::GUI, ax_type::Symbol)
     if ax_type == :topo
         selected_systems = get_selected_systems(gui)
         for selection ∈ selected_systems
@@ -117,6 +117,7 @@ function clear_selection(gui::GUI, ax_type::Symbol)
             toggle_selection_color!(gui, selection, false)
         end
     end
+    return nothing
 end
 
 """

@@ -160,8 +160,8 @@ function GUI(
 
     # Create iterables for plotting objects in layers (z-direction) such that nodes are
     # neatly placed on top of each other and lines are beneath nodes
-    vars[:depth_shift_lines] = 0.6f0
-    vars[:depth_shift_components] = 0.2f0
+    vars[:depth_shift_lines] = 0.006f0
+    vars[:depth_shift_components] = 0.002f0
 
     vars[:selected_systems] = []
 

@@ -134,7 +134,7 @@ function define_event_functions(gui::GUI)
                 ctrl_is_pressed = get_var(gui, :ctrl_is_pressed)[]
                 if mouse_within_axis(ax_topo, mouse_pos)
                     if !ctrl_is_pressed && !isempty(get_selected_systems(gui))
-                        clear_selection(gui, :topo)
+                        clear_selection!(gui, :topo)
                     end
 
                     pick_component!(gui, :topo)
@@ -151,7 +151,7 @@ function define_event_functions(gui::GUI)
                 if mouse_within_axis(ax_results, mouse_pos)
                     time_axis = time_menu.selection[]
                     if !ctrl_is_pressed && !isempty(get_selected_plots(gui, time_axis))
-                        clear_selection(gui, :results)
+                        clear_selection!(gui, :results)
                     end
                     pick_component!(gui, :results)
                     gui.vars[:autolimits][time_axis] = false
@@ -254,7 +254,7 @@ function define_event_functions(gui::GUI)
                     expand_all,
                 )
                 update_title!(gui)
-                clear_selection(gui, :topo)
+                clear_selection!(gui, :topo)
                 notify(get_button(gui, :reset_view).clicks)
             end
         end
@@ -330,7 +330,7 @@ function define_event_functions(gui::GUI)
             selection[:visible] = false
             selection[:pinned] = false
         end
-        clear_selection(gui, :results)
+        clear_selection!(gui, :results)
         update_legend!(gui)
         return Consume(false)
     end

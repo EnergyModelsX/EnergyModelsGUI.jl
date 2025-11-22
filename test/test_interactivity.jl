@@ -83,41 +83,41 @@ pin_plot_button = get_button(gui, :pin_plot)
 
     # Test color toggling
     @testset "Toggle colors" begin
-        pick_component!(gui, get_plots(area1)[1], :topo)
-        update!(gui)
-        @test area1.color[] == get_selection_color(gui)
-        pick_component!(gui, nothing, :topo) # deselect
-        @test area1.color[] == EMGUI.BLACK
+        _, _, _, gui_2 = run_case_EMI_geography_2()
+        design_2 = get_root_design(gui_2)
+        oslo = get_component(design_2, 1)
+        pick_component!(gui_2, get_plots(oslo)[1], :topo)
+        update!(gui_2)
+        @test oslo.color[] == get_selection_color(gui_2)
+        pick_component!(gui_2, nothing, :topo) # deselect
+        @test oslo.color[] == EMGUI.BLACK
 
-        node2 = get_component(area1, "El 1") # fetch node El 1
-        pick_component!(gui, get_plots(node2)[1], :topo)
-        update!(gui)
-        @test node2.color[] == get_selection_color(gui)
-        pick_component!(gui, nothing, :topo) # deselect
+        pick_component!(gui_2, get_plots(oslo)[1], :topo)
+        notify(get_button(gui_2, :open).clicks) # Open Oslo
+        node2 = get_component(oslo, 1) # fetch node n_1
+        pick_component!(gui_2, get_plots(node2)[1], :topo)
+        update!(gui_2)
+        @test node2.color[] == get_selection_color(gui_2)
+        pick_component!(gui_2, nothing, :topo) # deselect
         @test node2.color[] == EMGUI.BLACK
+        notify(get_button(gui_2, :up).clicks) # Go back to the top level
 
-        connection1 = connections[1] # fetch the Area 1 - Area 2 transmission
-        plt_connection1 = get_plots(connection1)[1]
-        pick_component!(gui, plt_connection1, :topo)
-        update!(gui)
-        @test plt_connection1.color[][1] == get_selection_color(gui)
-        pick_component!(gui, nothing, :topo) # deselect
-        update!(gui)
-        @test plt_connection1.color[][1] == connection1.colors[1]
-
-        link1 = get_connections(area1)[5] # fetch the link to heat pump
-        plt_link1_sctr = get_plots(link1)[1]
-        pick_component!(gui, plt_link1_sctr, :topo)
-        update!(gui)
-        @test plt_link1_sctr.color[][1] == get_selection_color(gui)
-        pick_component!(gui, nothing, :topo) # deselect
+        connection1 = get_connections(design_2)[5] # fetch the Oslo - Trondheim transmission
+        plt_connection1 = get_plots(connection1)
+        pick_component!(gui_2, plt_connection1[2], :topo)
+        update!(gui_2)
+        @test all(
+            all(plot.color[] .== get_selection_color(gui_2)) for plot ∈ plt_connection1
+        )
+        pick_component!(gui_2, nothing, :topo) # deselect
+        update!(gui_2)
         i::Int64 = 1
-        no_colors::Int64 = length(link1.colors)
-        for plot ∈ get_plots(link1) # This only tests one color (should probably add a test with more colors/`Resource`s)
+        no_colors::Int64 = length(connection1.colors)
+        for plot ∈ plt_connection1
             if isa(plot.color[], Vector)
-                @test plot.color[] == link1.colors
+                @test plot.color[] == connection1.colors
             else
-                @test plot.color[] == link1.colors[((i-1)%no_colors)+1]
+                @test plot.color[] == connection1.colors[((i-1)%no_colors)+1]
                 i += 1
             end
         end
@@ -145,7 +145,7 @@ pin_plot_button = get_button(gui, :pin_plot)
     end
 
     # Test the align vert. button (aligning nodes horizontally)
-    clear_selection(gui, :topo)
+    clear_selection!(gui, :topo)
     @testset "get_button(gui,:align_vertical).clicks" begin
         pick_component!(gui, area2, :topo) # Select Area 2
         pick_component!(gui, area3, :topo) # Select Area 3
@@ -195,7 +195,7 @@ pin_plot_button = get_button(gui, :pin_plot)
     end
 
     @testset "get_menu(gui,:period).i_selected" begin
-        clear_selection(gui, :topo)
+        clear_selection!(gui, :topo)
         sub_component = get_component(area2, "Power supply") # fetch the n_Power supply node
         pick_component!(gui, sub_component, :topo)
         update!(gui)
@@ -216,7 +216,7 @@ pin_plot_button = get_button(gui, :pin_plot)
     end
 
     @testset "get_menu(gui,:representative_period).i_selected" begin
-        clear_selection(gui, :topo)
+        clear_selection!(gui, :topo)
         heating1 = get_component(area1, "Heating 1") # fetch the Heating 1 node
         pick_component!(gui, heating1, :topo)
         update!(gui)
@@ -278,7 +278,7 @@ pin_plot_button = get_button(gui, :pin_plot)
     end
 
     @testset "pin_plot_button.clicks" begin
-        clear_selection(gui, :topo)
+        clear_selection!(gui, :topo)
         sub_component = get_component(area4, "Solar Power") # fetch the Solar Power node
         pick_component!(gui, sub_component, :topo)
         update!(gui)
@@ -359,7 +359,7 @@ pin_plot_button = get_button(gui, :pin_plot)
     end
 
     @testset "get_button(gui,:clear_all).clicks" begin
-        clear_selection(gui, :topo)
+        clear_selection!(gui, :topo)
         update_available_data_menu!(gui, nothing) # Make sure the menu is updated
         select_data!(gui, "emissions_strategic")
         notify(pin_plot_button.clicks)

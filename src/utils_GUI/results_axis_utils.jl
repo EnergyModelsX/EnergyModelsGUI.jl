@@ -585,6 +585,7 @@ function update_legend!(gui::GUI)
         )
         legend.entrygroups[] = entry_groups
     end
+    return nothing
 end
 
 """

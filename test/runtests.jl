@@ -19,6 +19,7 @@ ENV["EMX_TEST"] = true # Set flag for example scripts to check if they are run a
 include(joinpath(exdir, "generate_examples.jl"))
 Pkg.activate(env)
 include(joinpath(testdir, "case7.jl"))
+include(joinpath(testdir, "EMI_geography_2.jl"))
 include(joinpath(testdir, "example_test.jl"))
 
 # Add utilities needed for examples

@@ -11,6 +11,8 @@
 
 * Adjusted the calculation of `Connection` plots.
 * Added the field `visible` to `EnergySystemDesign` and `Connection` on which plots can directly rely on for visibility
+* Adjust behaviour of `Base.show` on the types `EnergySystemDesign`, `Connection` and `AbstractSystem` to correspond to `Base.show` of their corresponding `AbstractElement`.
+* Change tests of toggling of colors to be based on a new case having more transmission modes (the case in the new `test/EMI_geography_2.jl` file).
 
 ## Version 0.5.17 (2025-11-19)
 

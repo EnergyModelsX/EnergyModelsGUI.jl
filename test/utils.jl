@@ -6,7 +6,7 @@ import EnergyModelsGUI:
     get_button,
     update!,
     pick_component!,
-    clear_selection
+    clear_selection!
 
 """
     run_through_all(gui::GUI)
@@ -46,7 +46,7 @@ function run_through_all(
     for component ∈ get_components(design)
         @info indent_spacing^level *
               "Running through component $(get_ref_element(component))"
-        clear_selection(gui, :topo)
+        clear_selection!(gui, :topo)
         pick_component!(gui, component, :topo)
         update!(gui)
         run_through_menu(
@@ -68,7 +68,7 @@ function run_through_all(
     for connection ∈ get_connections(design)
         @info indent_spacing^level *
               "Running through connection $(get_element(connection))"
-        clear_selection(gui, :topo)
+        clear_selection!(gui, :topo)
         pick_component!(gui, connection, :topo)
         update!(gui)
         run_through_menu(

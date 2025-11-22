@@ -7,16 +7,18 @@ gui = GUI(case)
     @testset "Test Base.show() functions" begin
         design = EMGUI.get_design(gui)
         component = EMGUI.get_components(design)[1]
+        component_element = EMGUI.get_element(component)
         connection = EMGUI.get_connections(design)[1]
+        connection_element = EMGUI.get_element(connection)
         @test Base.show(gui) == dump(gui; maxdepth = 1)
-        @test Base.show(design) == dump(design; maxdepth = 1)
-        @test Base.show(component) == dump(component; maxdepth = 1)
-        @test Base.show(connection) == dump(connection; maxdepth = 1)
+        @test Base.show(design) == Base.show(gui)
+        @test Base.show(component) == Base.show(component_element)
+        @test Base.show(connection) == Base.show(connection_element)
 
         inv_data = EMGUI.get_inv_data(design)
         @test Base.show(inv_data) == dump(inv_data; maxdepth = 1)
 
         system = EMGUI.parse_case(case)
-        @test Base.show(system) == dump(system; maxdepth = 1)
+        @test Base.show(system) == Base.show(design)
     end
 end
