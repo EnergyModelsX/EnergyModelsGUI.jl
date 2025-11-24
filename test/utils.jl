@@ -1,12 +1,36 @@
 import EnergyModelsGUI:
     get_root_design,
+    get_component,
     get_components,
     get_connections,
+    get_selection_color,
+    get_ref_element,
+    get_element,
     get_menu,
     get_button,
     update!,
+    BLACK,
+    Connection,
     pick_component!,
-    clear_selection!
+    clear_selection!,
+    toggle_selection_color!,
+    get_plots,
+    get_selected_systems,
+    get_selected_plots,
+    get_visible_data,
+    get_simplified_plots,
+    get_vars,
+    get_var,
+    get_xy,
+    get_toggle,
+    get_ax,
+    update_info_box!,
+    update_available_data_menu!,
+    update_sub_system_locations!,
+    get_design,
+    get_vis_plots,
+    get_plotted_data,
+    select_data!
 
 """
     run_through_all(gui::GUI)
@@ -97,5 +121,54 @@ function run_through_menu(
         if break_after_first
             break
         end
+    end
+end
+
+function test_connection_colors(gui::GUI, connection::Connection, type::Symbol)
+    plt_connection = get_plots(connection)
+    if type == :black || type == :selection_color
+        expected_color = type == :black ? BLACK : get_selection_color(gui)
+
+        @test all(
+            all(plot.color[] .== expected_color) for plot ∈ plt_connection
+        )
+    elseif type == :regular_colors
+        i::Int64 = 1
+        no_colors::Int64 = length(connection.colors)
+        for plot ∈ plt_connection
+            if isa(plot.color[], Vector)
+                @test plot.color[] == connection.colors
+            else
+                @test plot.color[] == connection.colors[((i-1)%no_colors)+1]
+                i += 1
+            end
+        end
+    end
+end
+
+function test_connections_colors(gui::GUI, connections::Vector{Connection}, type::Symbol)
+    for connection ∈ connections
+        test_connection_colors(gui, connection, type)
+    end
+end
+
+function test_connections_colors(
+    gui::GUI,
+    components::Vector{EnergySystemDesign},
+    type::Symbol,
+)
+    for component ∈ components
+        test_connections_colors(gui, get_connections(component), type)
+    end
+end
+
+function test_all_connection_colors(gui::GUI, type::Symbol)
+    design = get_root_design(gui)
+    components = get_components(design)
+    connections = get_connections(design)
+
+    test_connections_colors(gui, connections, type)
+    for component ∈ components
+        test_connections_colors(gui, get_connections(component), type)
     end
 end

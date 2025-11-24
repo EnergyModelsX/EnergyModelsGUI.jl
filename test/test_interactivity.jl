@@ -1,23 +1,3 @@
-import EnergyModelsGUI:
-    get_component,
-    toggle_selection_color!,
-    get_plots,
-    get_selection_color,
-    get_selected_systems,
-    get_selected_plots,
-    get_visible_data,
-    get_var,
-    get_xy,
-    get_toggle,
-    get_ax,
-    update_info_box!,
-    update_available_data_menu!,
-    update_sub_system_locations!,
-    get_design,
-    get_vis_plots,
-    get_plotted_data,
-    select_data!
-
 # Load case 7 for testing
 case, model, m, gui = run_case()
 
@@ -38,6 +18,9 @@ export_type_menu = get_menu(gui, :export_type)
 axes_menu = get_menu(gui, :axes)
 
 pin_plot_button = get_button(gui, :pin_plot)
+
+expand_all_toggle = get_toggle(gui, :expand_all)
+simplified_toggle = get_toggle(gui, :simplified)
 
 # Test specific GUI functionalities
 @testset "Test interactivity" verbose = true begin
@@ -64,27 +47,92 @@ pin_plot_button = get_button(gui, :pin_plot)
     @testset "get_toggle(gui,:expand_all).active" begin
         # Check that sub-components are initially not plotted (as pre_plot_sub_components = false)
         @test all(isempty(get_plots(component)) for component ∈ get_components(area1))
-        get_toggle(gui, :expand_all).active = true
+        expand_all_toggle.active = true
 
         # Test if node n_El 1 became invisible
-        get_toggle(gui, :expand_all).active = false
+        expand_all_toggle.active = false
         n_el_1 = get_component(area1, "El 1") # fetch the n_El 1 node
 
         # Test if node n_El 1 became invisible
         @test !get_plots(n_el_1)[1].visible[]
 
         # Test if node n_El 1 became visible again
-        get_toggle(gui, :expand_all).active = true
+        expand_all_toggle.active = true
         @test get_plots(n_el_1)[1].visible[]
 
         # Check that that sub-components are now plotted
         @test all(!isempty(get_plots(component)) for component ∈ get_components(area1))
     end
 
+    # Test simplified toggle functionality
+    @testset "get_toggle(gui,:simplified).active" begin
+        # Check that simplified plots are initially not plotted
+        @test all(isempty(get_simplified_plots(connection)) for connection ∈ connections)
+        @test all(
+            isempty(get_simplified_plots(connection)) for component ∈ components for
+            connection ∈ get_connections(component)
+        )
+
+        # Also check that all colors are regular colors
+        test_all_connection_colors(gui, :regular_colors)
+
+        # Activate simplified view (for expanded view - simplified for all levels)
+        simplified_toggle.active = true
+        test_all_connection_colors(gui, :black)
+
+        # Deactivate simplified view
+        simplified_toggle.active = false
+        test_all_connection_colors(gui, :regular_colors)
+
+        # deexpand
+        expand_all_toggle.active = false
+        pick_component!(gui, connections[1], :topo)
+        update!(gui)
+        simplified_toggle.active = true
+
+        # Check that simplified plots are used only on the current level
+        test_connections_colors(gui, connections, :black)
+        test_connections_colors(gui, components, :regular_colors)
+
+        pick_component!(gui, area1, :topo)
+        notify(get_button(gui, :open).clicks)
+        test_connections_colors(gui, get_connections(area1), :regular_colors)
+        simplified_toggle.active = true
+        test_connections_colors(gui, get_connections(area1), :black)
+
+        # Test thta the previous toggling did not affect other areas
+        for area ∈ [area2, area3, area4]
+            notify(get_button(gui, :up).clicks)
+            pick_component!(gui, area, :topo)
+            notify(get_button(gui, :open).clicks)
+            test_connections_colors(gui, get_connections(area), :regular_colors)
+            update!(gui)
+        end
+    end
+
+    _, _, _, gui_2 = run_case_EMI_geography_2()
+    design_2 = get_root_design(gui_2)
+    components_2 = get_components(design_2)
+    connections_2 = get_connections(design_2)
+    simplified_toggle_2 = get_toggle(gui_2, :simplified)
+
+    # Test simplify_all_levels=true functionality
+    @testset "Test simplify_all_levels=true functionality" begin
+        # Check that simplified plots are used on all levels
+        test_all_connection_colors(gui_2, :black)
+        for area ∈ components_2
+            pick_component!(gui_2, area, :topo)
+            notify(get_button(gui_2, :open).clicks)
+            test_connections_colors(gui_2, get_connections(area), :black)
+            simplified_toggle_2.active = false
+            test_connections_colors(gui_2, get_connections(area), :regular_colors)
+            notify(get_button(gui_2, :up).clicks)
+        end
+        simplified_toggle_2.active = false
+    end
+
     # Test color toggling
     @testset "Toggle colors" begin
-        _, _, _, gui_2 = run_case_EMI_geography_2()
-        design_2 = get_root_design(gui_2)
         oslo = get_component(design_2, 1)
         pick_component!(gui_2, get_plots(oslo)[1], :topo)
         update!(gui_2)
@@ -103,24 +151,12 @@ pin_plot_button = get_button(gui, :pin_plot)
         notify(get_button(gui_2, :up).clicks) # Go back to the top level
 
         connection1 = get_connections(design_2)[5] # fetch the Oslo - Trondheim transmission
-        plt_connection1 = get_plots(connection1)
-        pick_component!(gui_2, plt_connection1[2], :topo)
+        pick_component!(gui_2, get_plots(connection1)[2], :topo)
         update!(gui_2)
-        @test all(
-            all(plot.color[] .== get_selection_color(gui_2)) for plot ∈ plt_connection1
-        )
+        test_connection_colors(gui_2, connection1, :selection_color)
         pick_component!(gui_2, nothing, :topo) # deselect
         update!(gui_2)
-        i::Int64 = 1
-        no_colors::Int64 = length(connection1.colors)
-        for plot ∈ plt_connection1
-            if isa(plot.color[], Vector)
-                @test plot.color[] == connection1.colors
-            else
-                @test plot.color[] == connection1.colors[((i-1)%no_colors)+1]
-                i += 1
-            end
-        end
+        test_connection_colors(gui_2, connection1, :regular_colors)
     end
 
     # Test the open button functionality
@@ -315,6 +351,8 @@ pin_plot_button = get_button(gui, :pin_plot)
         "Topo" => ["svg", "lp", "mps"],
     )
     @testset "get_button(gui,:export).clicks" begin
+        tmpdir = mktempdir(testdir; prefix = "exported_files_")
+        get_vars(gui)[:path_to_results] = tmpdir
         path = get_var(gui, :path_to_results)
 
         # Loop through all combinations of export options

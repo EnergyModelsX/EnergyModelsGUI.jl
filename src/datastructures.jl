@@ -1,7 +1,7 @@
 """
     AbstractGUIObj
 
-Supertype for EnergyModelsGUI objects representing `Node`s/`Link`s/`Area`s/`Transmission`s.
+Supertype for `EnergyModelsGUI` objects representing `Node`s/`Link`s/`Area`s/`Transmission`s.
 """
 abstract type AbstractGUIObj end
 
@@ -15,14 +15,14 @@ struct NothingDesign <: AbstractGUIObj end
 """
     AbstractSystem
 
-Supertype for EnergyModelsGUI objects representing a sub system of a Case.
+Supertype for `EnergyModelsGUI` objects representing a sub system of a `Case`.
 """
 abstract type AbstractSystem <: AbstractCase end
 
 """
     NothingElement <: AbstractElement
 
-Type for representing an empty Element (the "nothing" element).
+Type for representing an empty `AbstractElement` (the "nothing" element).
 """
 struct NothingElement <: AbstractElement end
 
@@ -139,6 +139,8 @@ energy system designs in Julia.
 - **`inv_data::ProcInvData`** stores processed investment data.
 - **`plots::Vector{Makie.AbstractPlot}`** is a vector with all Makie object associated with 
   this object.
+- **`simplified::Observable{Bool}`** indicates whether the system uses a simplified 
+  representation of its plotted connections, observed for changes.
 """
 mutable struct EnergySystemDesign <: AbstractGUIObj
     system::AbstractSystem
@@ -155,6 +157,7 @@ mutable struct EnergySystemDesign <: AbstractGUIObj
     visible::Observable{Bool}
     inv_data::ProcInvData
     plots::Vector{Makie.AbstractPlot}
+    simplified::Observable{Bool}
 end
 function EnergySystemDesign(
     system::AbstractSystem,
@@ -184,7 +187,8 @@ function EnergySystemDesign(
         file,
         visible,
         ProcInvData(),
-        Any[],
+        Makie.AbstractPlot[],
+        Observable(false),
     )
 end
 
@@ -201,30 +205,42 @@ Mutable type for providing a flexible data structure for connections between
 - **`to::EnergySystemDesign`** is the `EnergySystemDesign` to which the connection is
   linked to.
 - **`connection::AbstractElement`** is the EMX connection structure.
+- **`parent::EnergySystemDesign`** is the parent EnergySystemDesign of the connection.
 - **`colors::Vector{RGBA{Float32}}`** is the associated colors of the connection.
-- **`visible::Observable{Bool}`** indicates whether the system is visible, observed for changes.
 - **`inv_data::ProcInvData`** stores processed investment data.
-- **`plots::Vector{Makie.AbstractPlot}`** is a vector with all Makie object associated with 
-  this object.
+- **`regular_plots::Vector{Makie.AbstractPlot}`** is a vector with 
+  all regular plots associated with the connection.
+- **`simplified_plots::Vector{Makie.AbstractPlot}`** is a vector with 
+  all simplified plots associated with the connection.
 """
 mutable struct Connection <: AbstractGUIObj
     from::EnergySystemDesign
     to::EnergySystemDesign
     connection::AbstractElement
+    parent::EnergySystemDesign
     colors::Vector{RGBA{Float32}}
-    visible::Observable{Bool}
     inv_data::ProcInvData
-    plots::Vector{Makie.AbstractPlot}
+    regular_plots::Vector{Makie.AbstractPlot}
+    simplified_plots::Vector{Makie.AbstractPlot}
 end
 function Connection(
     from::EnergySystemDesign,
     to::EnergySystemDesign,
     connection::AbstractElement,
+    parent::EnergySystemDesign,
     id_to_color_map::Dict{Any,Any},
-    visible::Observable{Bool},
 )
     colors::Vector{RGBA{Float32}} = get_resource_colors(connection, id_to_color_map)
-    return Connection(from, to, connection, colors, visible, ProcInvData(), Any[])
+    return Connection(
+        from,
+        to,
+        connection,
+        parent,
+        colors,
+        ProcInvData(),
+        Makie.AbstractPlot[],
+        Makie.AbstractPlot[],
+    )
 end
 
 """
@@ -447,13 +463,6 @@ Returns the `system` field of a `EnergySystemDesign` `design`.
 get_system(design::EnergySystemDesign) = design.system
 
 """
-    get_parent(design::EnergySystemDesign)
-
-Returns the `parent` field of a `EnergySystemDesign` `design`.
-"""
-get_parent(design::EnergySystemDesign) = design.parent
-
-"""
     get_element(design::EnergySystemDesign)
 
 Returns the system node (*i.e.*, availability node for areas) of a `EnergySystemDesign` `design`.
@@ -535,9 +544,23 @@ EMB.get_time_struct(design::EnergySystemDesign) = EMB.get_time_struct(get_system
 """
     get_ref_element(design::EnergySystemDesign)
 
-Returns the `ref_element` field of a `EnergySystemDesign` `design`.
+Returns the `ref_element` field in the `system` field of a `EnergySystemDesign` `design`.
 """
 get_ref_element(design::EnergySystemDesign) = get_ref_element(get_system(design))
+
+"""
+    get_plots(design::EnergySystemDesign)
+
+Returns the `plots` field of a `EnergySystemDesign` `design`.
+"""
+get_plots(design::EnergySystemDesign) = design.plots
+
+"""
+    get_simplified(design::EnergySystemDesign)
+
+Returns the `simplified` field of a `EnergySystemDesign` `design`.
+"""
+get_simplified(design::EnergySystemDesign) = design.simplified
 
 """
     get_from(conn::Connection)
@@ -566,6 +589,43 @@ get_element(conn::Connection) = conn.connection
 Returns the `colors` field of a `Connection` `conn`.
 """
 get_colors(conn::Connection) = conn.colors
+
+"""
+    get_pregular_plots(conn::Connection)
+
+Returns the `regular_plots` field of a `Connection` `conn`.
+"""
+get_regular_plots(conn::Connection) = conn.regular_plots
+
+"""
+    get_simplified_plots(conn::Connection)
+
+Returns the `simplified_plots` field of a `Connection` `conn`.
+"""
+get_simplified_plots(conn::Connection) = conn.simplified_plots
+
+"""
+    get_simplified(conn::Connection)
+
+Returns the `simplified` field of the parent `EnergySystemDesign` of a `Connection` `conn`.
+"""
+get_simplified(conn::Connection) = get_simplified(get_parent(conn))
+
+"""
+    get_plots(conn::Connection)
+
+Returns the active `plots` field of a `Connection` `conn`.
+"""
+get_plots(conn::Connection) =
+    get_simplified(conn)[] ? get_simplified_plots(conn) : get_regular_plots(conn)
+
+"""
+    get_plots(conn::Connection, simplified::Bool)
+
+Returns the `plots` field of a `Connection` `conn` based on the `simplified` flag.
+"""
+get_plots(conn::Connection, simplified::Bool) =
+    simplified ? get_simplified_plots(conn) : get_regular_plots(conn)
 
 """
     get_inv_times(data::ProcInvData)
@@ -602,18 +662,18 @@ Returns the `inv_data` field of a `AbstractGUIObj` `obj`.
 get_inv_data(obj::AbstractGUIObj) = obj.inv_data
 
 """
-    get_plots(obj::AbstractGUIObj)
-
-Returns the `plots` field of a `AbstractGUIObj` `obj`.
-"""
-get_plots(obj::AbstractGUIObj) = obj.plots
-
-"""
     get_visible(obj::AbstractGUIObj)
 
 Returns the `visible` field of a `AbstractGUIObj` `obj`.
 """
 get_visible(obj::AbstractGUIObj) = obj.visible
+
+"""
+    get_parent(obj::AbstractGUIObj)
+
+Returns the `parent` field of a `AbstractGUIObj` `obj`.
+"""
+get_parent(obj::AbstractGUIObj) = obj.parent
 
 """
     get_fig(gui::GUI)

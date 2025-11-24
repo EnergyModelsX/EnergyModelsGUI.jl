@@ -11,6 +11,7 @@ function define_event_functions(gui::GUI)
 
     expand_all_toggle = get_toggle(gui, :expand_all)
     expand_all = get_var(gui, :expand_all)
+    simplified_toggle = get_toggle(gui, :simplified)
 
     # On zooming, make sure all graphics are adjusted acordingly
     on(ax_topo.finallimits; priority = 10) do finallimits
@@ -220,19 +221,19 @@ function define_event_functions(gui::GUI)
     end
 
     # Align horizontally button: Handle click on the align horizontal button
-    on(get_button(gui, :align_horizontal).clicks; priority = 10) do clicks
+    on(get_button(gui, :align_horizontal).clicks; priority = 10) do _
         align(gui, :horizontal)
         return Consume(false)
     end
 
     # Align vertically button: Handle click on the align vertical button
-    on(get_button(gui, :align_vertical).clicks; priority = 10) do clicks
+    on(get_button(gui, :align_vertical).clicks; priority = 10) do _
         align(gui, :vertical)
         return Consume(false)
     end
 
     # Open button: Handle click on the open button (open a sub system)
-    on(get_button(gui, :open).clicks; priority = 10) do clicks
+    on(get_button(gui, :open).clicks; priority = 10) do _
         if !isempty(get_selected_systems(gui))
             get_vars(gui)[:expand_all] = false
             component = get_selected_systems(gui)[end] # Choose the last selected node
@@ -243,10 +244,11 @@ function define_event_functions(gui::GUI)
                     visible = false,
                     expand_all,
                 )
-                if isa(component, EnergySystemDesign) && sub_plots_empty(component)
+                if sub_plots_empty(component)
                     initialize_plot!(gui, component)
                 end
                 gui.design = component
+                simplified_toggle.active[] = get_simplified(component)[]
                 plot_design!(
                     gui,
                     get_design(gui);
@@ -262,11 +264,12 @@ function define_event_functions(gui::GUI)
     end
 
     # Navigate up button: Handle click on the navigate up button (go back to the root_design)
-    on(get_button(gui, :up).clicks; priority = 10) do clicks
+    on(get_button(gui, :up).clicks; priority = 10) do _
         if !isa(get_parent(get_system(gui)), NothingElement)
             get_vars(gui)[:expand_all] = expand_all_toggle.active[]
             plot_design!(gui, get_design(gui); visible = false, expand_all)
             gui.design = get_root_design(gui)
+            simplified_toggle.active[] = get_simplified(get_design(gui))[]
             plot_design!(gui, get_design(gui); visible = true, expand_all)
             update_title!(gui)
             adjust_limits!(gui)
@@ -351,14 +354,21 @@ function define_event_functions(gui::GUI)
         return Consume(false)
     end
 
+    # Toggle simplified connection plotting
+    on(simplified_toggle.active; priority = 10) do val
+        design = get_design(gui)
+        toggle_simplified!(gui, design, val)
+        return Consume(false)
+    end
+
     # Save button: Handle click on the save button (save the altered coordinates)
-    on(get_button(gui, :save).clicks; priority = 10) do clicks
+    on(get_button(gui, :save).clicks; priority = 10) do _
         save_design(get_design(gui))
         return Consume(false)
     end
 
     # Reset button: Reset view to the original view
-    on(get_button(gui, :reset_view).clicks; priority = 10) do clicks
+    on(get_button(gui, :reset_view).clicks; priority = 10) do _
         adjust_limits!(gui)
         notify(ax_topo.finallimits)
         return Consume(false)

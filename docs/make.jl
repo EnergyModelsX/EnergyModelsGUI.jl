@@ -7,14 +7,16 @@ const EMB = EnergyModelsBase
 const EMGUI = EnergyModelsGUI
 
 # Copy the NEWS.md file
-news = "docs/src/manual/NEWS.md"
+pkg_dir = pkgdir(EnergyModelsGUI)
+docsdir = joinpath(pkg_dir, "docs")
+news = joinpath(docsdir, "src", "manual", "NEWS.md")
 if isfile(news)
     rm(news)
 end
-cp("NEWS.md", news)
+cp(joinpath(pkg_dir, "NEWS.md"), news)
 
 ENV["EMX_TEST"] = true # Set flag for example scripts to check if they are run as part CI
-include("generate_images.jl")
+include(joinpath(docsdir, "generate_images.jl"))
 
 DocMeta.setdocmeta!(
     EnergyModelsGUI, :DocTestSetup, :(using EnergyModelsGUI); recursive = true,

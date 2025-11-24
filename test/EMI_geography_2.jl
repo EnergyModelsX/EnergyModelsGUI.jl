@@ -279,6 +279,8 @@ function run_case_EMI_geography_2()
         scale_tot_opex = true,
         scale_tot_capex = false,
         pre_plot_sub_components = false,
+        simplified_connection_plotting = true,
+        simplify_all_levels = true,
     )
 
     return case, model, m, gui

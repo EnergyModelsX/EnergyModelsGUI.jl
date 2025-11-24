@@ -6,6 +6,7 @@
 
 * Added the option `pre_plot_sub_components` to the `GUI`-constructor to skip preplotting hidden sub components of an area (the option is by default `true`). The components of an `Area` are then plotted on demand (on the `open` functionality). This greatly enhances performance for large cases.
 * Improved general performance.
+* Added two new options to the `GUI` constructor: `simplified_connection_plotting` (default `false`) for controlling connection visualization detail, and `simplify_all_levels` (default `false`) for applying simplification across hierarchical levels.
 
 ### Adjustments
 
@@ -13,6 +14,8 @@
 * Added the field `visible` to `EnergySystemDesign` and `Connection` on which plots can directly rely on for visibility
 * Adjust behaviour of `Base.show` on the types `EnergySystemDesign`, `Connection` and `AbstractSystem` to correspond to `Base.show` of their corresponding `AbstractElement`.
 * Change tests of toggling of colors to be based on a new case having more transmission modes (the case in the new `test/EMI_geography_2.jl` file).
+* Make the distance between two way connection linearly dependent on `Δh` instead of a fixed width based on `gui.vars[:two_way_sep_px]`.
+* Make the markersize (arrow heads for connections) linearly dependent on `Δh` instead of a fixed size based on `gui.vars[:markersize]`
 
 ## Version 0.5.17 (2025-11-19)
 
