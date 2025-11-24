@@ -1,5 +1,19 @@
 # Release notes
 
+## Unversioned updates
+
+### Enhancements
+
+* Added the option `pre_plot_sub_components` to the `GUI`-constructor to skip preplotting hidden sub components of an area (the option is by default `true`). The components of an `Area` are then plotted on demand (on the `open` functionality). This greatly enhances performance for large cases.
+* Improved general performance.
+
+### Adjustments
+
+* Adjusted the calculation of `Connection` plots.
+* Added the field `visible` to `EnergySystemDesign` and `Connection` on which plots can directly rely on for visibility
+* Adjust behaviour of `Base.show` on the types `EnergySystemDesign`, `Connection` and `AbstractSystem` to correspond to `Base.show` of their corresponding `AbstractElement`.
+* Change tests of toggling of colors to be based on a new case having more transmission modes (the case in the new `test/EMI_geography_2.jl` file).
+
 ## Version 0.5.17 (2025-11-19)
 
 ### Bugfix

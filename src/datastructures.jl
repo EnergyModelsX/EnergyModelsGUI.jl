@@ -135,9 +135,10 @@ energy system designs in Julia.
 - **`wall::Observable{Symbol}`** represents an aspect of the system's state, observed
   for changes and represented as a Symbol.
 - **`file::String`** is the filename or path associated with the `EnergySystemDesign`.
-- **`plots::Vector{Any}`** is a vector with all Makie object associated with this object.
-  The value does not have to be provided.
-- **`invest_data::ProcInvData`** stores processed investment data.
+- **`visible::Observable{Bool}`** indicates whether the system is visible, observed for changes.
+- **`inv_data::ProcInvData`** stores processed investment data.
+- **`plots::Vector{Makie.AbstractPlot}`** is a vector with all Makie object associated with 
+  this object.
 """
 mutable struct EnergySystemDesign <: AbstractGUIObj
     system::AbstractSystem
@@ -151,8 +152,9 @@ mutable struct EnergySystemDesign <: AbstractGUIObj
     color::Observable{RGBA{Float32}}
     wall::Observable{Symbol}
     file::String
+    visible::Observable{Bool}
     inv_data::ProcInvData
-    plots::Vector{Any}
+    plots::Vector{Makie.AbstractPlot}
 end
 function EnergySystemDesign(
     system::AbstractSystem,
@@ -166,6 +168,7 @@ function EnergySystemDesign(
     color::Observable{RGBA{Float32}},
     wall::Observable{Symbol},
     file::String,
+    visible::Observable{Bool},
 )
     return EnergySystemDesign(
         system,
@@ -179,6 +182,7 @@ function EnergySystemDesign(
         color,
         wall,
         file,
+        visible,
         ProcInvData(),
         Any[],
     )
@@ -198,25 +202,29 @@ Mutable type for providing a flexible data structure for connections between
   linked to.
 - **`connection::AbstractElement`** is the EMX connection structure.
 - **`colors::Vector{RGBA{Float32}}`** is the associated colors of the connection.
-- **`plots::Vector{Any}`** is a vector with all Makie object associated with this object.
-- **`invest_data::ProcInvData`** stores processed investment data.
+- **`visible::Observable{Bool}`** indicates whether the system is visible, observed for changes.
+- **`inv_data::ProcInvData`** stores processed investment data.
+- **`plots::Vector{Makie.AbstractPlot}`** is a vector with all Makie object associated with 
+  this object.
 """
 mutable struct Connection <: AbstractGUIObj
     from::EnergySystemDesign
     to::EnergySystemDesign
     connection::AbstractElement
     colors::Vector{RGBA{Float32}}
+    visible::Observable{Bool}
     inv_data::ProcInvData
-    plots::Vector{Any}
+    plots::Vector{Makie.AbstractPlot}
 end
 function Connection(
     from::EnergySystemDesign,
     to::EnergySystemDesign,
     connection::AbstractElement,
     id_to_color_map::Dict{Any,Any},
+    visible::Observable{Bool},
 )
     colors::Vector{RGBA{Float32}} = get_resource_colors(connection, id_to_color_map)
-    return Connection(from, to, connection, colors, ProcInvData(), Any[])
+    return Connection(from, to, connection, colors, visible, ProcInvData(), Any[])
 end
 
 """
@@ -308,10 +316,10 @@ const YELLOW = RGBA{Float32}(1.0, 1.0, 0.0, 1.0)
 const MAGENTA = RGBA{Float32}(1.0, 0.0, 1.0, 1.0)
 const CYAN = RGBA{Float32}(0.0, 1.0, 1.0, 1.0)
 
-Base.show(io::IO, obj::AbstractGUIObj) = dump(io, obj; maxdepth = 1)
+Base.show(io::IO, obj::AbstractGUIObj) = Base.show(io, get_element(obj))
 Base.show(io::IO, ::NothingDesign) = print(io, "NothingDesign()")
 Base.show(io::IO, obj::ProcInvData) = dump(io, obj; maxdepth = 1)
-Base.show(io::IO, system::AbstractSystem) = dump(io, system; maxdepth = 1)
+Base.show(io::IO, system::AbstractSystem) = Base.show(io, get_element(system))
 Base.show(io::IO, gui::GUI) = dump(io, gui; maxdepth = 1)
 Base.show(io::IO, ::NothingElement) = print(io, "top_level")
 
@@ -418,11 +426,11 @@ Returns the nodes of a `AbstractSystem` `system`.
 EMB.get_nodes(system::AbstractSystem) = get_children(system)
 
 """
-    get_element(system::System)
+    get_element(system::AbstractSystem)
 
-Returns the `element` assosiated of a `System` `system`.
+Returns the `element` assosiated of a `AbstractSystem` `system`.
 """
-get_element(system::System) = get_parent(system)
+get_element(system::AbstractSystem) = get_parent(system)
 
 """
     get_plotables(system::System)
@@ -599,6 +607,13 @@ get_inv_data(obj::AbstractGUIObj) = obj.inv_data
 Returns the `plots` field of a `AbstractGUIObj` `obj`.
 """
 get_plots(obj::AbstractGUIObj) = obj.plots
+
+"""
+    get_visible(obj::AbstractGUIObj)
+
+Returns the `visible` field of a `AbstractGUIObj` `obj`.
+"""
+get_visible(obj::AbstractGUIObj) = obj.visible
 
 """
     get_fig(gui::GUI)

@@ -300,29 +300,32 @@ end
 Return a label for a given `selection` to be used in the get_menus(gui)[:available_data] menu.
 """
 function create_label(selection::PlotContainer)
-    label::String = isa(selection, CaseDataContainer) ? "Case data: " : ""
+    io = IOBuffer()
+    if isa(selection, CaseDataContainer)
+        print(io, "Case data: ")
+    end
     if isempty(get_name(selection))
-        label *= get_description(selection)
+        print(io, get_description(selection))
     else
-        label *= get_description(selection) * " ($(get_name(selection)))"
+        print(io, get_description(selection), " (", get_name(selection), ")")
     end
     otherRes::Bool = false
     for select ∈ get_selection(selection)
         if isa(select, Resource)
             if !otherRes
-                label *= " ("
+                print(io, " (")
                 otherRes = true
             end
-            label *= "$(select)"
+            print(io, string(select))
             if select != get_selection(selection)[end]
-                label *= ", "
+                print(io, ", ")
             end
         end
     end
     if otherRes
-        label *= ")"
+        print(io, ")")
     end
-    return label
+    return String(take!(io))
 end
 
 """
@@ -582,6 +585,7 @@ function update_legend!(gui::GUI)
         )
         legend.entrygroups[] = entry_groups
     end
+    return nothing
 end
 
 """

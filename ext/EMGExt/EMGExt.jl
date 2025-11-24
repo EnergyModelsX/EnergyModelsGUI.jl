@@ -4,13 +4,7 @@ using TimeStruct
 using EnergyModelsBase
 using EnergyModelsInvestments
 using EnergyModelsGeography
-
-# Use GLMakie to get the GridLayout type
-using GLMakie
-
 using EnergyModelsGUI
-
-using DataFrames
 
 const TS = TimeStruct
 const EMG = EnergyModelsGeography
@@ -38,7 +32,7 @@ EMG.get_transmissions(system::EMGUI.SystemGeo) = EMGUI.get_connections(system)
 Get all transmission modes of a `SystemGeo` `system`.
 """
 function get_modes(system::EMGUI.SystemGeo)
-    transmission_modes = Vector{TransmissionMode}()
+    transmission_modes = TransmissionMode[]
     for t ∈ get_transmissions(system)
         append!(transmission_modes, modes(t))
     end
@@ -70,7 +64,6 @@ Initialize a `SystemGeo` from a `Case`.
 """
 function EMGUI.SystemGeo(case::Case)
     areas = get_areas(case)
-    ref_element = areas[1]
     return EMGUI.SystemGeo(
         get_time_struct(case),
         get_products(case),
@@ -78,7 +71,7 @@ function EMGUI.SystemGeo(case::Case)
         areas,
         get_transmissions(case),
         EMGUI.NothingElement(),
-        ref_element,
+        areas[1],
     )
 end
 

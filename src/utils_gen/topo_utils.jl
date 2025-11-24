@@ -15,47 +15,81 @@ function square_intersection(c::Point2f, x::Point2f, θ::Float32, Δ::Float32)
     ymin, ymax = c[2] - Δ, c[2] + Δ
 
     # Parametric line: X = x[1] + t*dx, Y = x[2] + t*dy
-    ts = Float32[]
-    ts_out = Float32[]
+    ts = Float32[]  # only true edge intersections
 
     # Check intersection with vertical sides (x = xmin and x = xmax)
-    if abs(dx) > eps()
+    if abs(dx) > eps(Float32)
         t1 = (xmin - x[1]) / dx
         y1 = x[2] + t1 * dy
         if ymin <= y1 <= ymax
             push!(ts, t1)
-        else
-            push!(ts_out, t1)
         end
+
         t2 = (xmax - x[1]) / dx
         y2 = x[2] + t2 * dy
         if ymin <= y2 <= ymax
             push!(ts, t2)
-        else
-            push!(ts_out, t2)
         end
     end
+
     # Check intersection with horizontal sides (y = ymin and y = ymax)
-    if abs(dy) > eps()
+    if abs(dy) > eps(Float32)
         t3 = (ymin - x[2]) / dy
         x3 = x[1] + t3 * dx
         if xmin <= x3 <= xmax
             push!(ts, t3)
-        else
-            push!(ts_out, t3)
         end
+
         t4 = (ymax - x[2]) / dy
         x4 = x[1] + t4 * dx
         if xmin <= x4 <= xmax
             push!(ts, t4)
-        else
-            push!(ts_out, t4)
         end
     end
 
-    tmin = isempty(ts) ? minimum(abs.(ts_out)) : minimum(abs.(ts))
+    if !isempty(ts)
+        # prefer intersections in the *forward* direction
+        forward = filter(t -> t ≥ 0, ts)
+        if !isempty(forward)
+            tmin = minimum(forward)
+        else
+            # no forward hit, take the nearest edge in either direction
+            tmin = ts[argmin(abs.(ts))]
+        end
+        return x + tmin * Point2f(dx, dy)
+    else
+        # No intersection with the square: extend the two facing sides and intersect
+        # Determine which corner is closest to the line direction from x
+        # The line points in direction (dx, dy) from x
 
-    return x + tmin * Point2f(dx, dy)
+        # Find which quadrant the direction points to relative to square center
+        cx_relative = c[1] - x[1]
+        cy_relative = c[2] - x[2]
+
+        # Determine the corner by the signs of dx and dy
+        corner_x = dx > 0 ? xmax : xmin
+        corner_y = dy > 0 ? ymax : ymin
+
+        # Extend the two sides meeting at this corner
+        if abs(dy) > 1/sqrt(2.0f0) # First side: parallel to x-axis through corner_y
+            t_horizontal = (corner_y - x[2]) / dy
+            x_on_horizontal = x[1] + t_horizontal * dx
+            # Check if this is in the right direction and on the extended side
+            if t_horizontal ≥ 0
+                return Point2f(x_on_horizontal, corner_y)
+            end
+        else # Second side: parallel to y-axis through corner_x
+            t_vertical = (corner_x - x[1]) / dx
+            y_on_vertical = x[2] + t_vertical * dy
+            # Check if this is in the right direction and on the extended side
+            if t_vertical ≥ 0
+                return Point2f(corner_x, y_on_vertical)
+            end
+        end
+
+        # Fallback
+        return Point2f(corner_x, corner_y)
+    end
 end
 
 """
@@ -69,11 +103,11 @@ function square_intersection(c::Point2f, θ::Float32, Δ::Float32)
 end
 
 """
-    l2_norm(x::Vector{<:Real})
+    l2_norm(x::Point2f)
 
 Compute the l2-norm of a vector.
 """
-function l2_norm(x::Vector{<:Real})
+function l2_norm(x::Point2f)
     return sqrt(sum(x .^ 2))
 end
 
@@ -93,7 +127,7 @@ function find_min_max_coordinates(
     design::EnergySystemDesign, min_x::Number, max_x::Number, min_y::Number, max_y::Number,
 )
     if !isa(get_parent(get_system(design)), NothingElement)
-        x, y = design.xy[][1], design.xy[][2]
+        x, y = get_xy(design)[][1], get_xy(design)[][2]
         min_x = min(min_x, x)
         max_x = max(max_x, x)
         min_y = min(min_y, y)
@@ -125,7 +159,9 @@ Based on the location of `node_1` and `node_2`, return the angle between the x-a
 `node_2` with `node_1` being the origin.
 """
 function angle(node_1::EnergySystemDesign, node_2::EnergySystemDesign)
-    return atan(node_2.xy[][2] - node_1.xy[][2], node_2.xy[][1] - node_1.xy[][1])
+    xy_1 = get_xy(node_1)[]
+    xy_2 = get_xy(node_2)[]
+    return atan(xy_2[2] - xy_1[2], xy_2[1] - xy_1[1])
 end
 
 """
@@ -134,8 +170,8 @@ end
 Compute the difference between two angles.
 """
 function angle_difference(angle1::Float32, angle2::Float32)
-    diff::Float32 = abs(angle1 - angle2) % Float32(2π)
-    return min(diff, Float32(2π) - diff)
+    diff::Float32 = abs(angle1 - angle2) % 2π32
+    return min(diff, 2π32 - diff)
 end
 
 """
@@ -179,7 +215,7 @@ end
         center::Point2f = Point2f(0.0f0, 0.0f0),
         Δ::Float32 = 1.0f0,
         θ₁::Float32 = 0.0f0,
-        θ₂::Float32 = Float32(π / 4),
+        θ₂::Float32 = π32 / 4,
         steps::Int=200,
         geometry::Symbol = :circle)
 
@@ -191,28 +227,28 @@ function get_sector_points(;
     c::Point2f = Point2f(0.0f0, 0.0f0),
     Δ::Float32 = 1.0f0,
     θ₁::Float32 = 0.0f0,
-    θ₂::Float32 = Float32(π / 4),
+    θ₂::Float32 = π32 / 4,
     steps::Int = 200,
     geometry::Symbol = :circle,
 )
     if geometry == :circle
-        θ::Vector{Float32} = LinRange(θ₁, θ₂, Int(round(steps * (θ₂ - θ₁) / (2π))))
+        θ::Vector{Float32} = LinRange(θ₁, θ₂, Int(round(steps * (θ₂ - θ₁) / (2π32))))
         x_coords::Vector{Float32} = Δ * cos.(θ) .+ c[1]
         y_coords::Vector{Float32} = Δ * sin.(θ) .+ c[2]
 
         # Include the center and close the polygon
         return Point2f[c, collect(zip(x_coords, y_coords))..., c]
     elseif geometry == :rect
-        if θ₁ == 0 && θ₂ ≈ 2π
+        if θ₁ == 0 && θ₂ ≈ 2π32
             x_coords, y_coords = box(c[1], c[2], Δ)
             return collect(zip(x_coords, y_coords))
         else
             xy1 = square_intersection(c, θ₁, Δ)
             xy2 = square_intersection(c, θ₂, Δ)
             vertices = Point2f[c, xy1]
-            xsign = [1, -1, -1, 1]
-            ysign = [1, 1, -1, -1]
-            for (i, corner_angle) ∈ enumerate(Float32[π/4, 3π/4, 5π/4, 7π/4])
+            xsign = Float32[1, -1, -1, 1]
+            ysign = Float32[1, 1, -1, -1]
+            for (i, corner_angle) ∈ enumerate([π32/4, 3π32/4, 5π32/4, 7π32/4])
                 if θ₁ < corner_angle && θ₂ > corner_angle
                     push!(vertices, c .+ (Δ * xsign[i], Δ * ysign[i]))
                 end
@@ -222,11 +258,11 @@ function get_sector_points(;
             return vertices
         end
     elseif geometry == :triangle
-        input::Bool = (θ₁ + θ₂) / 2 > π / 2
+        input::Bool = (θ₁ + θ₂) / 2 > π32 / 2
         if input                      # input resources on a triangle to the left
-            f = θ -> -2Δ * θ / π + 2Δ
+            f = θ -> -2Δ * θ / π32 + 2Δ
         else                          # output resources on a triangle to the right
-            f = θ -> 2Δ * θ / π
+            f = θ -> 2Δ * θ / π32
         end
         d::Float32 = Δ / 2
         x::Point2f = input ? c .- (d / 2, 0) : c .+ (d / 2, 0)

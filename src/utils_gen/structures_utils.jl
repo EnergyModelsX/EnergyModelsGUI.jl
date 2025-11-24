@@ -25,16 +25,14 @@ loaded() = [
 ]
 
 """
-    place_nodes_in_circle(total_nodes::Int64, current_node::Int64, r::Float32, xₒ::Float32, yₒ::Float32)
+    place_nodes_in_circle(total_nodes::Int64, current_node::Int64, r::Float32, c::Point2f)
 
 Return coordinate for point number `i` of a total of `n` points evenly distributed around
-a circle of radius `r` centered at (xₒ, yₒ) from -π/4 to 5π/4.
+a circle of radius `r` centered at `c` from -π/4 to 5π/4.
 """
-function place_nodes_in_circle(n::Int64, i::Int64, r::Float32, xₒ::Float32, yₒ::Float32)
-    θ::Float32 = n == 1 ? π : -π / 4 + 3π / 2 * (1 - (i - 1) / (n - 1))
-    x::Float32 = xₒ + r * cos(θ)
-    y::Float32 = yₒ + r * sin(θ)
-    return x, y
+function place_nodes_in_circle(n::Int64, i::Int64, r::Float32, c::Point2f)
+    θ::Float32 = n == 1 ? π32 : -π32 / 4 + 3π32 / 2 * (1 - (i - 1) / (n - 1))
+    return c + r * Point2f(cos(θ), sin(θ))
 end
 
 """
@@ -220,7 +218,7 @@ function save_design(design::EnergySystemDesign)
 
     for component ∈ get_components(design)
         # Extract x,y-coordinates
-        x, y = component.xy[]
+        x, y = get_xy(component)[]
 
         design_dict[string(get_parent(get_system(component)))] = Dict(
             :x => round(x; digits = 5), :y => round(y; digits = 5),
@@ -232,8 +230,8 @@ function save_design(design::EnergySystemDesign)
         end
     end
 
-    @info "Saving design coordinates to file $(design.file)"
-    return save_design(design_dict, design.file)
+    @info "Saving design coordinates to file $(get_file(design))"
+    return save_design(design_dict, get_file(design))
 end
 
 """

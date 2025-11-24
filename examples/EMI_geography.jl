@@ -26,4 +26,5 @@ gui = GUI(
     coarse_coast_lines = false,
     scale_tot_opex = true,
     scale_tot_capex = false,
+    pre_plot_sub_components = false,
 )

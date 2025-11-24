@@ -39,32 +39,12 @@ axes_menu = get_menu(gui, :axes)
 
 pin_plot_button = get_button(gui, :pin_plot)
 
-# Test specific miscellaneous functionalities
-@testset "Test functionality" verbose = true begin
-    # Test print functionalities of GUI structures to the REPL
-    @testset "Test Base.show() functions" begin
-        design = EMGUI.get_design(gui)
-        component = EMGUI.get_components(design)[1]
-        connection = EMGUI.get_connections(design)[1]
-        @test Base.show(gui) == dump(gui; maxdepth = 1)
-        @test Base.show(design) == dump(design; maxdepth = 1)
-        @test Base.show(component) == dump(component; maxdepth = 1)
-        @test Base.show(connection) == dump(connection; maxdepth = 1)
-
-        inv_data = EMGUI.get_inv_data(design)
-        @test Base.show(inv_data) == dump(inv_data; maxdepth = 1)
-
-        system = EMGUI.parse_case(case)
-        @test Base.show(system) == dump(system; maxdepth = 1)
-    end
-end
-
 # Test specific GUI functionalities
 @testset "Test interactivity" verbose = true begin
     op_cost = [3371970.00359, 5382390.00598, 2010420.00219]
     inv_cost = [0.0, 0.0, 29536224.881975]
     @testset "Compare with Integrate results" begin
-        T = EMGUI.get_time_struct(gui)
+        T = get_time_struct(gui)
         m = EMGUI.get_model(gui)
         for (i, t) ∈ enumerate(strategic_periods(T))
             if haskey(m, :cap_capex)
@@ -80,45 +60,65 @@ end
         end
     end
 
+    # Test Expand all toggle functionality
+    @testset "get_toggle(gui,:expand_all).active" begin
+        # Check that sub-components are initially not plotted (as pre_plot_sub_components = false)
+        @test all(isempty(get_plots(component)) for component ∈ get_components(area1))
+        get_toggle(gui, :expand_all).active = true
+
+        # Test if node n_El 1 became invisible
+        get_toggle(gui, :expand_all).active = false
+        n_el_1 = get_component(area1, "El 1") # fetch the n_El 1 node
+
+        # Test if node n_El 1 became invisible
+        @test !get_plots(n_el_1)[1].visible[]
+
+        # Test if node n_El 1 became visible again
+        get_toggle(gui, :expand_all).active = true
+        @test get_plots(n_el_1)[1].visible[]
+
+        # Check that that sub-components are now plotted
+        @test all(!isempty(get_plots(component)) for component ∈ get_components(area1))
+    end
+
     # Test color toggling
     @testset "Toggle colors" begin
-        pick_component!(gui, get_plots(area1)[1], :topo)
-        update!(gui)
-        @test area1.color[] == get_selection_color(gui)
-        pick_component!(gui, nothing, :topo) # deselect
-        @test area1.color[] == EMGUI.BLACK
+        _, _, _, gui_2 = run_case_EMI_geography_2()
+        design_2 = get_root_design(gui_2)
+        oslo = get_component(design_2, 1)
+        pick_component!(gui_2, get_plots(oslo)[1], :topo)
+        update!(gui_2)
+        @test oslo.color[] == get_selection_color(gui_2)
+        pick_component!(gui_2, nothing, :topo) # deselect
+        @test oslo.color[] == EMGUI.BLACK
 
-        node2 = get_component(area1, "El 1") # fetch node El 1
-        pick_component!(gui, get_plots(node2)[1], :topo)
-        update!(gui)
-        @test node2.color[] == get_selection_color(gui)
-        pick_component!(gui, nothing, :topo) # deselect
+        pick_component!(gui_2, get_plots(oslo)[1], :topo)
+        notify(get_button(gui_2, :open).clicks) # Open Oslo
+        node2 = get_component(oslo, 1) # fetch node n_1
+        pick_component!(gui_2, get_plots(node2)[1], :topo)
+        update!(gui_2)
+        @test node2.color[] == get_selection_color(gui_2)
+        pick_component!(gui_2, nothing, :topo) # deselect
         @test node2.color[] == EMGUI.BLACK
+        notify(get_button(gui_2, :up).clicks) # Go back to the top level
 
-        connection1 = connections[1] # fetch the Area 1 - Area 2 transmission
-        plt_connection1 = get_plots(connection1)[1]
-        pick_component!(gui, plt_connection1, :topo)
-        update!(gui)
-        @test plt_connection1.color[][1] == get_selection_color(gui)
-        pick_component!(gui, nothing, :topo) # deselect
-        update!(gui)
-        @test plt_connection1.color[][1] == connection1.colors[1]
-
-        link1 = get_connections(area1)[5] # fetch the link to heat pump
-        plt_link1_sctr = get_plots(link1)[1]
-        pick_component!(gui, plt_link1_sctr, :topo)
-        update!(gui)
-        @test plt_link1_sctr.color[][1] == get_selection_color(gui)
-        pick_component!(gui, nothing, :topo) # deselect
-        for plot ∈ get_plots(link1) # This only tests one color (should probably add a test with more colors/`Resource`s)
-            for (i, color) ∈ enumerate(link1.colors)
-                if isa(plot, EMGUI.AbstractPlot)
-                    @test plot.color[][i] == color
-                else
-                    for plot_sub ∈ plot
-                        @test plot_sub.color[] == color
-                    end
-                end
+        connection1 = get_connections(design_2)[5] # fetch the Oslo - Trondheim transmission
+        plt_connection1 = get_plots(connection1)
+        pick_component!(gui_2, plt_connection1[2], :topo)
+        update!(gui_2)
+        @test all(
+            all(plot.color[] .== get_selection_color(gui_2)) for plot ∈ plt_connection1
+        )
+        pick_component!(gui_2, nothing, :topo) # deselect
+        update!(gui_2)
+        i::Int64 = 1
+        no_colors::Int64 = length(connection1.colors)
+        for plot ∈ plt_connection1
+            if isa(plot.color[], Vector)
+                @test plot.color[] == connection1.colors
+            else
+                @test plot.color[] == connection1.colors[((i-1)%no_colors)+1]
+                i += 1
             end
         end
     end
@@ -145,7 +145,7 @@ end
     end
 
     # Test the align vert. button (aligning nodes horizontally)
-    clear_selection(gui, :topo)
+    clear_selection!(gui, :topo)
     @testset "get_button(gui,:align_vertical).clicks" begin
         pick_component!(gui, area2, :topo) # Select Area 2
         pick_component!(gui, area3, :topo) # Select Area 3
@@ -188,19 +188,6 @@ end
         @test true # Hard to have a test here that works on CI
     end
 
-    # Test Expand all toggle functionality
-    @testset "get_toggle(gui,:expand_all).active" begin
-        # Test if node n_El 1 became invisible
-        get_toggle(gui, :expand_all).active = false
-        n_el_1 = get_component(area1, "El 1") # fetch the n_El 1 node
-
-        @test !get_plots(n_el_1)[1].visible[]
-
-        # Test if node n_El 1 became visible
-        get_toggle(gui, :expand_all).active = true
-        @test get_plots(n_el_1)[1].visible[]
-    end
-
     # Run through all components
     @testset "Run through all components" begin
         run_through_all(gui; break_after_first = false)
@@ -208,7 +195,7 @@ end
     end
 
     @testset "get_menu(gui,:period).i_selected" begin
-        clear_selection(gui, :topo)
+        clear_selection!(gui, :topo)
         sub_component = get_component(area2, "Power supply") # fetch the n_Power supply node
         pick_component!(gui, sub_component, :topo)
         update!(gui)
@@ -229,7 +216,7 @@ end
     end
 
     @testset "get_menu(gui,:representative_period).i_selected" begin
-        clear_selection(gui, :topo)
+        clear_selection!(gui, :topo)
         heating1 = get_component(area1, "Heating 1") # fetch the Heating 1 node
         pick_component!(gui, heating1, :topo)
         update!(gui)
@@ -291,7 +278,7 @@ end
     end
 
     @testset "pin_plot_button.clicks" begin
-        clear_selection(gui, :topo)
+        clear_selection!(gui, :topo)
         sub_component = get_component(area4, "Solar Power") # fetch the Solar Power node
         pick_component!(gui, sub_component, :topo)
         update!(gui)
@@ -372,7 +359,7 @@ end
     end
 
     @testset "get_button(gui,:clear_all).clicks" begin
-        clear_selection(gui, :topo)
+        clear_selection!(gui, :topo)
         update_available_data_menu!(gui, nothing) # Make sure the menu is updated
         select_data!(gui, "emissions_strategic")
         notify(pin_plot_button.clicks)

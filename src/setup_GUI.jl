@@ -42,6 +42,10 @@ to the old EnergyModelsX `case` dictionary.
   hovering objects to show information.
 - **`use_geomakie::Bool=true`** toggles the use of GeoMakie for plotting geographical
   designs when the `case` contains geographical information.
+- **`pre_plot_sub_components::Bool=true`** toggles whether or not to pre-plot all
+  sub-components of areas in the topology design. Setting this to `false` greatly
+  enhances performance for large cases, as the components of an `Area` are then
+  plotted on demand (on the `open` functionality).
 
 !!! warning "Reading model results from CSV-files"
     Reading model results from a directory (*i.e.*, `model::String` implying that the results
@@ -72,6 +76,7 @@ function GUI(
     tol::Float64 = 1e-8,
     enable_data_inspector::Bool = true,
     use_geomakie::Bool = true,
+    pre_plot_sub_components::Bool = true,
 )
     # Generate the system topology:
     @info raw"Setting up the topology design structure"
@@ -82,6 +87,11 @@ function GUI(
     @info raw"Setting up the GUI"
     design::EnergySystemDesign = root_design # variable to store current system (inkluding sub systems)
 
+    if expand_all && !pre_plot_sub_components
+        expand_all = false
+        @warn "Incompatible EMGUI settings: `expand_all` is set to true but " *
+              "`pre_plot_sub_components` is set to false. Setting `expand_all` to false."
+    end
     # Set variables
     vars::Dict{Symbol,Any} = Dict(
         :title => Observable("top_level"),
@@ -111,6 +121,7 @@ function GUI(
         :colormap => colormap,
         :tol => tol,
         :use_geomakie => use_geomakie,
+        :pre_plot_sub_components => pre_plot_sub_components,
         :autolimits => Dict(
             :results_op => true,
             :results_sc => true,
@@ -137,7 +148,7 @@ function GUI(
     vars[:path_to_descriptive_names] = path_to_descriptive_names
     vars[:descriptive_names_dict] = descriptive_names_dict
 
-    vars[:plot_widths] = plot_widths
+    vars[:plot_widths] = Vec{2,Int64}(plot_widths)
     vars[:hide_topo_ax_decorations] = hide_topo_ax_decorations
     vars[:expand_all] = expand_all
 
@@ -149,30 +160,42 @@ function GUI(
 
     # Create iterables for plotting objects in layers (z-direction) such that nodes are
     # neatly placed on top of each other and lines are beneath nodes
-    vars[:z_translate_lines] = 10.0f0
-    vars[:z_translate_components] = 50.0f0
+    vars[:depth_shift_lines] = 0.006f0
+    vars[:depth_shift_components] = 0.002f0
 
     vars[:selected_systems] = []
 
     # Default text for the text area
-    vars[:default_text] = string(
-        "Tips:\n",
-        "Keyboard shortcuts:\n",
-        "\tctrl+left-click: Select multiple nodes.\n",
-        "\tright-click and drag: to pan\n",
-        "\tscroll wheel: zoom in or out\n",
-        "\tspace: Enter the selected system\n",
-        "\tctrl+s: Save\n",
-        "\tctrl+r: Reset view\n",
-        "\tctrl+w: Close window\n",
-        "\tEsc (or MouseButton4): Exit the current system and into the parent system\n",
-        "\tholding x while scrolling over plots will zoom in/out in the x-direction.\n",
-        "\tholding y while scrolling over plots will zoom in/out in the y-direction.\n\n",
-        "Left-clicking a component will put information about this component here.\n\n",
-        "Clicking a plot below enables you to pin this plot (hitting the `pin\n",
-        "current plot` button) for comparison with other plots.\n",
-        "Use the `Delete` button to unpin a selected plot.",
+    io = IOBuffer()
+    println(io, "Tips:")
+    println(io, "Keyboard shortcuts:")
+    println(io, "\tctrl+left-click: Select multiple nodes.")
+    println(io, "\tright-click and drag: to pan")
+    println(io, "\tscroll wheel: zoom in or out")
+    println(io, "\tspace: Enter the selected system")
+    println(io, "\tctrl+s: Save")
+    println(io, "\tctrl+r: Reset view")
+    println(io, "\tctrl+w: Close window")
+    println(
+        io,
+        "\tEsc (or MouseButton4): Exit the current system and into the parent system",
     )
+    println(
+        io,
+        "\tholding x while scrolling over plots will zoom in/out in the x-direction.",
+    )
+    println(
+        io,
+        "\tholding y while scrolling over plots will zoom in/out in the y-direction.\n",
+    )
+    println(
+        io,
+        "Left-clicking a component will put information about this component here.\n",
+    )
+    println(io, "Clicking a plot below enables you to pin this plot (hitting the `pin")
+    println(io, "current plot` button) for comparison with other plots.")
+    print(io, "Use the `Delete` button to unpin a selected plot.")
+    vars[:default_text] = String(take!(io))
     vars[:info_text] = Observable(vars[:default_text])
     vars[:summary_text] = Observable("No model results")
     vars[:dragging] = Ref(false)
@@ -219,7 +242,9 @@ function GUI(
     notify(axes[:topo].finallimits)
 
     # make sure all graphics is adapted to the spawned figure sizes
-    notify(get_toggle(gui, :expand_all).active)
+    if get_var(gui, :expand_all)
+        notify(get_toggle(gui, :expand_all).active)
+    end
 
     # Enable inspector (such that hovering objects shows information)
     # Linewidth set to zero as this boundary is slightly laggy on movement
@@ -305,7 +330,6 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
 
             # Download the file if it doesn't exist in the temporary directory
             if !isfile(local_file_path)
-                @debug "Trying to download file $url to $local_file_path"
                 HTTP.download(url, local_file_path)
             end
 
@@ -323,8 +347,9 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
             strokecolor = :gray50,
             strokewidth = 0.5,
             inspectable = false,
+            depth_shift = 1.0f0 - 2.0f-5,
+            stroke_depth_shift = 1.0f0 - 3.0f-5,
         )
-        Makie.translate!(countries_plot, 0, 0, -1)
         ocean_coords = [(180, -90), (-180, -90), (-180, 90), (180, 90)]
         ocean = poly!(
             ax,
@@ -333,8 +358,9 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
             strokewidth = 0.5,
             strokecolor = :gray50,
             inspectable = false,
+            depth_shift = 1.0f0,
+            stroke_depth_shift = 1.0f0 - 1.0f-5,
         )
-        Makie.translate!(ocean, 0, 0, -2)
     else # The design does not use the EnergyModelsGeography package: Create a simple Makie axis
         ax = Axis(
             gridlayout_topology_ax[1, 1];
@@ -411,7 +437,6 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
         labelsize = vars[:fontsize],
         titlesize = vars[:fontsize],
     )
-    Makie.translate!(topo_legend.blockscene, 0, 0, vars[:z_translate_components] + 999)
 
     # Initiate an axis for displaying information about the selected node
     ax_info::Makie.Axis = Axis(
@@ -638,11 +663,6 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
         :results => nothing, :topo => topo_legend,
     )
 
-    # Ensure that menus are on top
-    for menu ∈ values(menus)
-        translate!(menu.blockscene, 0.0f0, 0.0f0, vars[:z_translate_components] + 2000.0f0)
-    end
-
     # Collect all toggles into a dictionary
     toggles::Dict{Symbol,Makie.Toggle} = Dict(:expand_all => expand_all_toggle)
 
@@ -652,18 +672,13 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
     )
 
     # Update the title of the figure
-    topo_title_obj = text!(
+    text!(
         ax,
         vars[:topo_title_loc_x],
         vars[:topo_title_loc_y];
         text = vars[:title],
         fontsize = vars[:fontsize],
-    )
-    Makie.translate!(
-        topo_title_obj,
-        0.0f0,
-        0.0f0,
-        vars[:z_translate_components] + 999.0f0,
+        depth_shift = -1.0f0,
     )
 
     return fig, buttons, menus, toggles, axes, legends
