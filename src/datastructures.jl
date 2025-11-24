@@ -591,7 +591,7 @@ Returns the `colors` field of a `Connection` `conn`.
 get_colors(conn::Connection) = conn.colors
 
 """
-    get_pregular_plots(conn::Connection)
+    get_regular_plots(conn::Connection)
 
 Returns the `regular_plots` field of a `Connection` `conn`.
 """

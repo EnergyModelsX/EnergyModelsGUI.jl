@@ -100,7 +100,7 @@ simplified_toggle = get_toggle(gui, :simplified)
         simplified_toggle.active = true
         test_connections_colors(gui, get_connections(area1), :black)
 
-        # Test thta the previous toggling did not affect other areas
+        # Test that the previous toggling did not affect other areas
         for area ∈ [area2, area3, area4]
             notify(get_button(gui, :up).clicks)
             pick_component!(gui, area, :topo)
