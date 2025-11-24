@@ -15,7 +15,6 @@ import EnergyModelsGUI:
     toggle_selection_color!,
     select_data!
 
-
 include(joinpath(@__DIR__, "..", "examples", "generate_examples.jl"))
 
 """

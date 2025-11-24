@@ -1,6 +1,6 @@
 # Release notes
 
-## Unversioned updates
+## Version 0.5.18 (2025-11-24)
 
 ### Enhancements
 
