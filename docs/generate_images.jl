@@ -124,8 +124,6 @@ function create_EMI_geography_images()
     pick_component!(gui, sub_component, :topo)
     update!(gui)
     select_data!(gui, "cap_add")
-    simplified_toggle = get_toggle(gui, :simplified)
-    simplified_toggle.active = false
     notify(export_button.clicks)
     mv(
         joinpath(path_to_results, "All.png"),
