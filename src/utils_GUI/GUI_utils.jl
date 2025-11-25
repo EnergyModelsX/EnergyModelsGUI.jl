@@ -23,13 +23,22 @@ function toggle_selection_color!(gui::GUI, selection::Connection, selected::Bool
     else
         colors = get_colors(selection)
         no_colors = length(colors)
+        simplified = get_simplified(selection)[]
         i::Int64 = 1
         for plot ∈ plots
-            if isa(plot.color[], Vector)
-                plot.color = colors
+            if simplified
+                if isa(plot.color[], Vector)
+                    plot.color = [BLACK]
+                else
+                    plot.color = BLACK
+                end
             else
-                plot.color = colors[((i-1)%no_colors)+1]
-                i += 1
+                if isa(plot.color[], Vector)
+                    plot.color = colors
+                else
+                    plot.color = colors[((i-1)%no_colors)+1]
+                    i += 1
+                end
             end
         end
     end

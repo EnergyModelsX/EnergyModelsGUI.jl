@@ -9,6 +9,8 @@ import EnergyModelsGUI:
     get_component,
     get_selected_systems,
     get_name,
+    get_toggle,
+    pick_component!,
     update!,
     toggle_selection_color!,
     select_data!
@@ -77,7 +79,7 @@ function create_EMI_geography_images()
     solution_summary(m)
 
     # Set folder where visualization info is saved and retrieved
-    design_path = joinpath(@__DIR__, "design", "EMI", "geography")
+    design_path = joinpath(docsdir, "design", "EMI", "geography")
 
     # Run the GUI
     gui = GUI(
@@ -90,7 +92,7 @@ function create_EMI_geography_images()
     )
 
     # Create examples.png image
-    path_to_results = joinpath(@__DIR__, "src", "figures")
+    path_to_results = joinpath(docsdir, "src", "figures")
     get_vars(gui)[:path_to_results] = path_to_results
     get_menu(gui, :axes).selection[] = "All"
     get_menu(gui, :export_type).selection[] = "png"
@@ -105,9 +107,8 @@ function create_EMI_geography_images()
 
     # Create EMI_geography.png image
     oslo_area = get_component(get_root_design(gui), 1)
-    push!(get_selected_systems(gui), oslo_area) # Manually add to :selected_systems
+    pick_component!(gui, oslo_area, :topo)
     update!(gui)
-    toggle_selection_color!(gui, oslo_area, true)
     select_data!(gui, "area_exchange")
     notify(export_button.clicks)
     mv(
@@ -119,11 +120,8 @@ function create_EMI_geography_images()
     # Create EMI_geography_Oslo.png image
     notify(open_button.clicks)
     sub_component = get_component(oslo_area, 5) # fetch node id 5 in Oslo area
-    selected_systems = get_selected_systems(gui)
-    empty!(selected_systems)
-    push!(selected_systems, sub_component) # Manually add to :selected_systems
+    pick_component!(gui, sub_component, :topo)
     update!(gui)
-    toggle_selection_color!(gui, sub_component, true)
     select_data!(gui, "cap_add")
     notify(export_button.clicks)
     mv(

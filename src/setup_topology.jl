@@ -55,8 +55,6 @@ function EnergySystemDesign(
     # Create an iterator for the current system
     elements = get_children(system)
 
-    visible::Observable{Bool} = Observable(level <= 1)
-
     design = EnergySystemDesign(
         system,
         id_to_color_map,
@@ -69,7 +67,7 @@ function EnergySystemDesign(
         Observable(BLACK),
         Observable(:E),
         file,
-        visible,
+        Observable(level == 0),
     )
 
     # If system contains any components (i.e. !isnothing(elements)) add all components
@@ -139,7 +137,7 @@ function EnergySystemDesign(
             if !isnothing(from) && !isnothing(to)
                 push!(
                     design.connections,
-                    Connection(from, to, element, id_to_color_map, Observable(level == 0)),
+                    Connection(from, to, element, design, id_to_color_map),
                 )
             end
         end

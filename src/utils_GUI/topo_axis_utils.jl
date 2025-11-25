@@ -21,6 +21,15 @@ function pixel_to_data(gui::GUI, pixel_size::Real)
 end
 
 """
+    data_to_pixel(gui::GUI, data_size::Real)
+
+Convert `data_size` (in x- and y-direction) to pixel sizes in design object `gui`.
+"""
+function data_to_pixel(gui::GUI, data_size::Real)
+    return data_size / l2_norm(pixel_to_data(gui, 1.0))
+end
+
+"""
     update_distances!(gui::GUI)
 
 Find the minimum distance between the elements in the design object `gui` and update `Δh` such
@@ -124,6 +133,9 @@ Initialize the plot of the topology of design object `gui` given an EnergySystem
 `design`.
 """
 function initialize_plot!(gui::GUI, design::EnergySystemDesign)
+    simplified = get_var(gui, :simplified_connection_plotting)
+    simplify = get_var(gui, :simplify_all_levels) || (design == get_root_design(gui))
+    get_simplified(design)[] = simplified && simplify
     for component ∈ get_components(design)
         if get_var(gui, :pre_plot_sub_components)
             initialize_plot!(gui, component)
@@ -151,9 +163,26 @@ function plot_design!(
     if get_design(gui) == design
         update_distances!(gui)
     end
-    components_and_connections = vcat(get_components(design), get_connections(design))
-    for component ∈ components_and_connections
-        component.visible[] = visible
+    get_visible(design)[] = visible
+end
+
+"""
+    toggle_simplified!(gui::GUI, design::EnergySystemDesign, val::Bool)
+
+Toggle simplified connection plotting for EnergySystemDesign `design` in GUI `gui`.
+"""
+function toggle_simplified!(gui::GUI, design::EnergySystemDesign, val::Bool)
+    get_vars(gui)[:simplified_connection_plotting] = val
+    clear_selection!(gui, :topo)
+    get_simplified(design)[] = val
+    connections = get_connections(design)
+    if !isempty(connections) && isempty(get_plots(connections[1], val)) # create alternative plots
+        connect!(gui, design)
+    end
+    if get_vars(gui)[:expand_all]
+        for component ∈ get_components(design)
+            toggle_simplified!(gui, component, val)
+        end
     end
 end
 
@@ -187,8 +216,22 @@ end
 When a boolean argument `two_way` is specified, draw the lines in both directions.
 """
 function connect!(gui::GUI, connection::Connection, two_way::Bool)
-    colors = get_colors(connection)
-    no_colors = length(colors)
+    linestyles = get_linestyle(gui, connection)
+    simplified = get_simplified(connection)
+    parent = get_parent(connection)
+    if simplified[]
+        colors = [BLACK]
+        no_colors = 1
+
+        # If any of the modes contains investments, use investment linestyle
+        inv_linestyle = get_var(gui, :investment_linestyle)
+        linestyle =
+            any(style == inv_linestyle for style ∈ linestyles) ? [inv_linestyle] : [:solid]
+    else
+        colors = get_colors(connection)
+        no_colors = length(colors)
+        linestyle = linestyles
+    end
 
     # Create an arrow to highlight the direction of the energy flow
     l::Float32 = 1.0f0 # length of the arrow
@@ -204,20 +247,18 @@ function connect!(gui::GUI, connection::Connection, two_way::Bool)
     end
 
     # Allocate and store objects
-    linestyle = get_linestyle(gui, connection)
     linewidth = get_var(gui, :connection_linewidth)
-    markersize = get_var(gui, :markersize)
-    two_way_sep_px = get_var(gui, :two_way_sep_px)
     line_sep_px = get_var(gui, :line_sep_px)
     parent_scaling = get_var(gui, :parent_scaling)
+    marker_to_box_ratio = get_var(gui, :marker_to_box_ratio)
 
-    from_xy = connection.from.xy
-    to_xy = connection.to.xy
+    from_xy = get_xy(get_from(connection))
+    to_xy = get_xy(get_to(connection))
     Δh = get_var(gui, :Δh)
 
     triple = @lift begin
         pts_lines = Vector{Vector{Point2f}}(fill(fill(Point2f(0.0f0, 0.0f0), 2), no_colors))
-        markersize_length::Float32 = l2_norm(pixel_to_data(gui, markersize))
+        markersize_length::Float32 = marker_to_box_ratio * $Δh
         linewidth_length::Float32 = l2_norm(pixel_to_data(gui, linewidth))
 
         xy_1::Point2f = $from_xy
@@ -234,13 +275,13 @@ function connect!(gui::GUI, connection::Connection, two_way::Bool)
         dirθ::Point2f = Point2f(cosθ, sinθ)
 
         Δ::Float32 = $Δh / 2 # half width of a box
-        if !isempty(get_components(connection.from))
+        if !isempty(get_components(get_from(connection)))
             Δ *= parent_scaling
         end
         Δ += linewidth_length / 2
         lines_shift::Point2f =
             (linewidth_length + l2_norm(pixel_to_data(gui, line_sep_px))) * dirϕ
-        two_way_sep::Point2f = l2_norm(pixel_to_data(gui, two_way_sep_px)) * dirϕ
+        two_way_sep::Point2f = Δ / 2 * dirϕ
         xy_midpoint::Point2f = xy_2 + (no_colors - 1) / 2 * lines_shift
         if two_way # separate the opposite directed lines by two_way_sep
             xy_midpoint += two_way_sep / 2
@@ -274,6 +315,10 @@ function connect!(gui::GUI, connection::Connection, two_way::Bool)
     θs = @lift fill($triple[2], no_colors)
 
     ax = get_ax(gui, :topo)
+    visible = get_visible(parent)
+    simplified_initial::Bool = simplified[]
+    visible_plot = @lift $visible && ($simplified == simplified_initial)
+    markersize = @lift data_to_pixel(gui, marker_to_box_ratio * $Δh)
     sctr = scatter!(
         ax,
         xy_midpoints;
@@ -283,7 +328,7 @@ function connect!(gui::GUI, connection::Connection, two_way::Bool)
         color = colors,
         inspectable = false,
         depth_shift = get_var(gui, :depth_shift_lines),
-        visible = get_visible(connection),
+        visible = visible_plot,
     )
     sctr.kw[:EMGUI_obj] = connection
     push!(get_plots(connection), sctr)
@@ -299,7 +344,7 @@ function connect!(gui::GUI, connection::Connection, two_way::Bool)
             inspector_label = (self, i, p) -> get_hover_string(connection),
             inspectable = true,
             depth_shift = get_var(gui, :depth_shift_lines),
-            visible = get_visible(connection),
+            visible = visible_plot,
         )
         lns.kw[:EMGUI_obj] = connection
         push!(get_plots(connection), lns)
@@ -329,7 +374,7 @@ get_linestyle(gui::GUI, design::EnergySystemDesign) = get_linestyle(gui, design.
 function get_linestyle(gui::GUI, system::AbstractSystem)
     node = get_parent(system)
     if isa(node, EMB.Node) && EMI.has_investment(node)
-        return get_var(gui, :investment_lineStyle)
+        return get_var(gui, :investment_linestyle)
     end
     return :solid
 end
@@ -349,11 +394,11 @@ function get_linestyle(gui::GUI, connection::Connection)
     # For Links, simply use dashed style if from or to node has investments
     no_lines = length(get_colors(connection))
     linestyle::Union{Symbol,Makie.Linestyle} = get_linestyle(gui, connection.from)
-    if linestyle == get_var(gui, :investment_lineStyle)
+    if linestyle == get_var(gui, :investment_linestyle)
         return fill(linestyle, no_lines)
     end
     linestyle = get_linestyle(gui, connection.to)
-    if linestyle == get_var(gui, :investment_lineStyle)
+    if linestyle == get_var(gui, :investment_linestyle)
         return fill(linestyle, no_lines)
     end
     return fill(:solid, no_lines)
@@ -397,7 +442,7 @@ function draw_box!(gui::GUI, design::EnergySystemDesign)
             linestyle = linestyle,
             depth_shift = get_var(gui, :depth_shift_components),
             stroke_depth_shift = get_var(gui, :depth_shift_components) - 1.0f-5,
-            visible = get_visible(design),
+            visible = get_visible(get_parent(design)),
         ) # Create a white background rectangle to hide lines from connections
 
         add_inspector_to_poly!(white_rect2, (self, i, p) -> get_hover_string(design))
@@ -419,7 +464,7 @@ function draw_box!(gui::GUI, design::EnergySystemDesign)
         linestyle = linestyle,
         depth_shift = get_var(gui, :depth_shift_components),
         stroke_depth_shift = get_var(gui, :depth_shift_components) - 1.0f-5,
-        visible = get_visible(design),
+        visible = get_visible(get_parent(design)),
     ) # Create a white background rectangle to hide lines from connections
 
     add_inspector_to_poly!(white_rect, (self, i, p) -> get_hover_string(design))
@@ -502,7 +547,7 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
             inspectable = true,
             depth_shift = get_var(gui, :depth_shift_components),
             stroke_depth_shift = get_var(gui, :depth_shift_components) - 1.0f-5,
-            visible = get_visible(design),
+            visible = get_visible(get_parent(design)),
         )
         add_inspector_to_poly!(polys, (self, i, p) -> get_hover_string(design))
         polys.kw[:EMGUI_obj] = design
@@ -525,7 +570,7 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
                 strokewidth = get_var(gui, :linewidth),
                 depth_shift = get_var(gui, :depth_shift_components),
                 stroke_depth_shift = get_var(gui, :depth_shift_components) - 1.0f-5,
-                visible = get_visible(design),
+                visible = get_visible(get_parent(design)),
             )
 
             add_inspector_to_poly!(
@@ -549,7 +594,7 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
             inspectable = true,
             inspector_label = (self, i, p) -> get_hover_string(design),
             depth_shift = get_var(gui, :depth_shift_components),
-            visible = get_visible(design),
+            visible = get_visible(get_parent(design)),
         )
         icon_image.kw[:EMGUI_obj] = design
         push!(get_plots(design), icon_image)
@@ -630,7 +675,7 @@ function draw_label!(gui::GUI, component::EnergySystemDesign)
         inspectable = false,
         color = has_invested(component) ? RED : BLACK,
         depth_shift = get_var(gui, :depth_shift_components),
-        visible = get_visible(component),
+        visible = get_visible(get_parent(component)),
     )
     label_text.kw[:EMGUI_obj] = component
     push!(get_plots(component), label_text)

@@ -46,6 +46,11 @@ to the old EnergyModelsX `case` dictionary.
   sub-components of areas in the topology design. Setting this to `false` greatly
   enhances performance for large cases, as the components of an `Area` are then
   plotted on demand (on the `open` functionality).
+- **`simplified_connection_plotting::Bool=false`** toggles whether or not to use a
+  simplified representation of the connections with a single line for each connection
+  (instead of multiple lines for multiple transmission modes) in the topology design.
+- **`simplify_all_levels::Bool=false`** toggles whether or not to use simplified connection 
+  plotting for all hierarchical levels.
 
 !!! warning "Reading model results from CSV-files"
     Reading model results from a directory (*i.e.*, `model::String` implying that the results
@@ -77,6 +82,8 @@ function GUI(
     enable_data_inspector::Bool = true,
     use_geomakie::Bool = true,
     pre_plot_sub_components::Bool = true,
+    simplified_connection_plotting::Bool = false,
+    simplify_all_levels::Bool = false,
 )
     # Generate the system topology:
     @info raw"Setting up the topology design structure"
@@ -98,7 +105,6 @@ function GUI(
         :Δh => Observable(0.05f0),  # Sidelength of main box
         :coarse_coast_lines => coarse_coast_lines,
         :Δh_px => 50,               # Pixel size of a box for nodes
-        :markersize => 15,          # Marker size for arrows in connections
         :boundary_add => 0.2f0,     # Relative to the xlim/ylim-dimensions, expand the axis
         :line_sep_px => 2,          # Separation (in px) between lines for connections
         :connection_linewidth => 2, # line width of connection lines
@@ -107,9 +113,8 @@ function GUI(
         :linewidth => 1.2,          # Width of the line around boxes
         :parent_scaling => 1.1,     # Scale for enlargement of boxes around main boxes for nodes for parent systems
         :icon_scale => 0.9f0,       # scale icons w.r.t. the surrounding box in fraction of Δh
-        :two_way_sep_px => 10,      # No pixels between set of lines for nodes having connections both ways
         :selection_color => GREEN2, # Colors for box boundaries when selection objects
-        :investment_lineStyle => Linestyle([1.0, 1.5, 2.0, 2.5] .* 5), # linestyle for investment connections and box boundaries for nodes
+        :investment_linestyle => Linestyle([1.0, 1.5, 2.0, 2.5] .* 5), # linestyle for investment connections and box boundaries for nodes
         :path_to_results => path_to_results, # Path to the location where axes[:results] can be exported
         :plotted_data => [],
         :periods_labels => periods_labels,
@@ -122,6 +127,9 @@ function GUI(
         :tol => tol,
         :use_geomakie => use_geomakie,
         :pre_plot_sub_components => pre_plot_sub_components,
+        :simplified_connection_plotting => simplified_connection_plotting,
+        :simplify_all_levels => simplify_all_levels,
+        :marker_to_box_ratio => 0.4, # Ratio between marker size and `Node` box size
         :autolimits => Dict(
             :results_op => true,
             :results_sc => true,
@@ -501,9 +509,20 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
         justification = :right,
     )
     expand_all_toggle = Makie.Toggle(gridlayout_taskbar[1, 8]; active = vars[:expand_all])
+    Makie.Label(
+        gridlayout_taskbar[1, 9],
+        "Simplified:";
+        halign = :right,
+        fontsize = vars[:fontsize],
+        justification = :right,
+    )
+    simplified_toggle = Makie.Toggle(
+        gridlayout_taskbar[1, 10];
+        active = vars[:simplified_connection_plotting],
+    )
 
     # Add the following to add flexibility
-    Makie.Label(gridlayout_taskbar[1, 9], " "; tellwidth = false)
+    Makie.Label(gridlayout_taskbar[1, 11], " "; tellwidth = false)
 
     # Add buttons related to the ax_results object (where the optimization results are plotted)
     Makie.Label(
@@ -664,7 +683,8 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
     )
 
     # Collect all toggles into a dictionary
-    toggles::Dict{Symbol,Makie.Toggle} = Dict(:expand_all => expand_all_toggle)
+    toggles::Dict{Symbol,Makie.Toggle} =
+        Dict(:expand_all => expand_all_toggle, :simplified => simplified_toggle)
 
     # Collect all axes into a dictionary
     axes::Dict{Symbol,Makie.Block} = Dict(

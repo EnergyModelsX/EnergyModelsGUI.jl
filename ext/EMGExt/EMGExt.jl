@@ -166,7 +166,7 @@ Get the line style for an Transmission `transmission` based on its properties.
 """
 function EMGUI.get_linestyle(gui::GUI, transmission::Transmission)
     return [
-        EMI.has_investment(m) ? EMGUI.get_var(gui, :investment_lineStyle) : :solid for
+        EMI.has_investment(m) ? EMGUI.get_var(gui, :investment_linestyle) : :solid for
         m ∈ modes(transmission)
     ]
 end
