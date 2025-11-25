@@ -4,7 +4,7 @@
 
 ### Bugfix
 
-* Fix missing distinction between different `TransmissionMode`s in the "data"-menu by including the `id` field in parantheses.
+* Fix missing distinction between different `TransmissionMode`s in the "data"-menu by including the `id` field in parentheses.
 
 ### Enhancements
 
