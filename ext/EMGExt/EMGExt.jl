@@ -27,17 +27,11 @@ Returns the `Transmission`s of a `SystemGeo` `system`.
 EMG.get_transmissions(system::EMGUI.SystemGeo) = EMGUI.get_connections(system)
 
 """
-    get_modes(system::EMGUI.SystemGeo)
+    EMG.modes(conn::EMGUI.Connection)
 
-Get all transmission modes of a `SystemGeo` `system`.
+Returns an array of the transmission modes for a `Connection` `conn`.
 """
-function get_modes(system::EMGUI.SystemGeo)
-    transmission_modes = TransmissionMode[]
-    for t ∈ get_transmissions(system)
-        append!(transmission_modes, modes(t))
-    end
-    return transmission_modes
-end
+EMG.modes(conn::EMGUI.Connection) = EMG.modes(EMGUI.get_element(conn))
 
 ############################################################################################
 ## From datastructures.jl
@@ -85,7 +79,7 @@ function EMGUI.get_plotables(system::EMGUI.SystemGeo)
         get_nodes(system),
         get_links(system),
         get_areas(system),
-        get_modes(system),
+        modes(get_transmissions(system)),
     )
 end
 
@@ -194,4 +188,47 @@ end
 Map types to header symbols for saving results.
 """
 EMGUI._type_to_header(::Type{<:TransmissionMode}) = :element
+
+############################################################################################
+## From info_axis_utils.jl
+"""
+    print_nested_structure!(
+        element::Vector{<:TransmissionMode},
+        io::IOBuffer,
+        indent::Int64,
+        vector_limit::Int64,
+        show_the_n_last_elements::Int64,
+    )
+
+Appends the nested structure of element in a nice format to the `io` buffer for `element`. 
+The parameter `indent` tracks the indentation level, the parameter `vector_limit` is used 
+to truncate large vectors and `show_the_n_last_elements` specifies how many of the last elements to show.
+"""
+function EMGUI.print_nested_structure!(
+    element::Vector{<:TransmissionMode},
+    io::IOBuffer,
+    indent::Int64,
+    vector_limit::Int64,
+    show_the_n_last_elements::Int64,
+)
+    indent += 1
+    indent_str::String = EMGUI.create_indent_string(indent)
+    for (i, field1) ∈ enumerate(element)
+        if i == vector_limit + 1
+            println(io, indent_str, "...")
+            continue
+        end
+        if i <= vector_limit || i > length(element) - show_the_n_last_elements
+            type = typeof(field1)
+            println(io, indent_str, i, " (", type, "):")
+            EMGUI.print_nested_structure!(
+                field1,
+                io,
+                indent,
+                vector_limit,
+                show_the_n_last_elements,
+            )
+        end
+    end
+end
 end

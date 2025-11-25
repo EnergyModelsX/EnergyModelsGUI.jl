@@ -172,3 +172,17 @@ function test_all_connection_colors(gui::GUI, type::Symbol)
         test_connections_colors(gui, get_connections(component), type)
     end
 end
+
+"""
+    fetch_element(elements::Vector, id)
+
+Fetch the element with the given `id` from the `elements` array.
+"""
+function fetch_element(elements::Vector, id)
+    for element ∈ elements
+        if element.id == id
+            return element
+        end
+    end
+    error("Element with id $id not found")
+end

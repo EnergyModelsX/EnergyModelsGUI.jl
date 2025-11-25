@@ -264,7 +264,7 @@ end
 Get the colors linked to the resources in the link `l` based on the mapping `id_to_color_map`.
 """
 function get_resource_colors(l::Link, id_to_color_map::Dict{Any,Any})
-    resources::Vector{Resource} = EMB.link_res(l)
+    resources::Vector{Resource} = unique(vcat(inputs(l), outputs(l)))
     return get_resource_colors(resources, id_to_color_map)
 end
 
