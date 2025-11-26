@@ -226,6 +226,7 @@ _type_to_header(::Type{<:TS.TimePeriod}) = :t
 _type_to_header(::Type{<:TS.TimeStructure}) = :t
 _type_to_header(::Type{<:Resource}) = :res
 _type_to_header(::Type{<:AbstractElement}) = :element
+_type_to_header(::Type{<:Int}) = :nr
 
 """
     save_results(model::Model; directory=joinpath(pwd(),"csv_files"))
