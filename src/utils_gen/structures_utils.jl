@@ -15,16 +15,6 @@ function installed()
 end
 
 """
-    function loaded()
-
-Get a list of loaded packages.
-"""
-loaded() = [
-    String(n) for n ∈ names(Main, imported = true) if
-    isdefined(Main, n) && getfield(Main, n) isa Module
-]
-
-"""
     place_nodes_in_circle(total_nodes::Int64, current_node::Int64, r::Float32, c::Point2f)
 
 Return coordinate for point number `i` of a total of `n` points evenly distributed around

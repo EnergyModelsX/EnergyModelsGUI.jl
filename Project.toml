@@ -1,7 +1,7 @@
 name = "EnergyModelsGUI"
 uuid = "737a7361-d3b7-40e9-b1ac-59bee4c5ea2d"
-version = "0.5.18"
-authors = ["Jon Vegard Venås <JonVegard.Venas@sintef.no>", "Magnus Askeland <Magnus.Askeland@sintef.no>", "Shweta Tiwari <Shweta.Tiwari@sintef.no>"]
+version = "0.6.0"
+authors = ["Jon Vegard Venås <JonVegard.Venas@sintef.no>", "Dimitri Pinel <Dimitri.Pinel@sintef.no>", "Magnus Askeland <Magnus.Askeland@sintef.no>", "Shweta Tiwari <Shweta.Tiwari@sintef.no>"]
 
 [deps]
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"

@@ -158,7 +158,8 @@ function add_description!(
         name_field_type = nameof(field_type)
         name_field = "$name.$sub_field_name"
         pre_desc_sub = "$pre_desc$name_field_type: "
-        key_str = "structures.$name_field_type.$sub_field_name"
+        parent_module = String(nameof(parentmodule(field_type)))
+        key_str = "structures.$parent_module.$name_field_type.$sub_field_name"
         add_description!(
             sub_field, name_field, key_str, pre_desc_sub, selection, available_data, gui,
         )

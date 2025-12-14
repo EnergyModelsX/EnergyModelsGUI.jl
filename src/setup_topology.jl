@@ -1,5 +1,6 @@
 """
-    EnergySystemDesign(system::AbstractSystem)
+    EnergySystemDesign(system::AbstractSystem; kwargs...)
+    EnergySystemDesign(case::Case; kwargs...)
 
 Create and initialize an instance of the `EnergySystemDesign` struct, representing energy
 system designs. If the argument is a `Case` instance, the function converts the case to a

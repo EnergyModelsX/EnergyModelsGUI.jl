@@ -152,7 +152,6 @@ function GUI(
     vars[:box_text_sep_px] = 5                     # Separation between rectangles for colors and text
 
     vars[:taskbar_height] = 30
-    vars[:descriptive_names] = Dict()
     vars[:path_to_descriptive_names] = path_to_descriptive_names
     vars[:descriptive_names_dict] = descriptive_names_dict
 
@@ -230,7 +229,7 @@ function GUI(
     )
 
     # Create complete Dict of descriptive names
-    update_descriptive_names!(gui)
+    gui.vars[:descriptive_names] = create_descriptive_names(get_vars(gui))
 
     # Pre calculate the available fields for each node
     initialize_available_data!(gui)

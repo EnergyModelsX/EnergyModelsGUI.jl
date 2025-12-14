@@ -87,5 +87,6 @@ export EnergySystemDesign
 export set_colors
 export set_icons
 export save_results
+export create_descriptive_names, get_descriptive_names
 
 end # module

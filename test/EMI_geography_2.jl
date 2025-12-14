@@ -180,17 +180,6 @@ function generate_example_data_geo_all_resources()
         2,
     )
 
-    H2_Transport_50MW_OT = RefDynamic(
-        "H2_Transport_50_OT",
-        H2,
-        FixedProfile(50.0),
-        FixedProfile(0.05),
-        FixedProfile(0),
-        FixedProfile(0),
-        2,
-        [],
-    )
-
     Waste_Transport_50MW_OT = RefDynamic(
         "Waste_Transport_50_OT",
         Waste,
