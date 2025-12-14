@@ -197,7 +197,7 @@ function export_to_file(gui::GUI)
         valid_combinations = Dict(
             "All" => ["jpg", "jpeg", "svg", "xlsx", "png"],
             "Plots" => ["bmp", "tif", "tiff", "jpg", "jpeg", "svg", "xlsx", "png"],
-            "Topo" => ["svg"],
+            "Topo" => ["bmp", "tif", "tiff", "jpg", "jpeg", "svg", "png"],
         )
         if !(file_ending ∈ valid_combinations[axes_str])
             @info "Exporting $axes_str to a $file_ending file is not supported"
@@ -220,17 +220,14 @@ function export_to_file(gui::GUI)
             elseif axes_str == "Topo"
                 ax_sym = :topo
             end
+            ax = get_ax(gui, ax_sym)
             if file_ending == "svg"
                 if axes_str == "Plots"
-                    flag = export_svg(
-                        get_ax(gui, ax_sym), filename; legend = get_results_legend(gui),
-                    )
+                    flag = export_svg(ax, filename; legend = get_results_legend(gui))
                 elseif axes_str == "Topo"
-                    flag = export_svg(
-                        get_ax(gui, ax_sym), filename; legend = get_topo_legend(gui),
-                    )
+                    flag = export_svg(ax, filename; legend = get_topo_legend(gui))
                 else
-                    flag = export_svg(get_ax(gui, ax_sym), filename)
+                    flag = export_svg(ax, filename)
                 end
             elseif file_ending == "xlsx"
                 if axes_str == "Plots"
@@ -247,7 +244,7 @@ function export_to_file(gui::GUI)
                 end
             else
                 try
-                    save(filename, colorbuffer(get_ax(gui, ax_sym)))
+                    save(filename, colorbuffer(ax.scene))
                     flag = 0
                 catch
                     flag = 2
