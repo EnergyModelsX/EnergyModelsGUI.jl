@@ -9,6 +9,7 @@
 ### Enhancements
 
 * Enabled exporting topo axis to bmp, tif, tiff, jpg, jpeg, and png file format.
+* Enable custom boundary background map instead of the default coastlines (through a `.geojson` file location provided by the keyword argument `map_boundary_file` in the `GUI`-function).
 
 ### Adjustments
 
