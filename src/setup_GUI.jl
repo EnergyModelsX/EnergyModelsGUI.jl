@@ -358,7 +358,7 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
         end
         poly!(
             ax,
-            countries;
+            boundary;
             color = :honeydew,
             colormap = :dense,
             strokecolor = :gray50,

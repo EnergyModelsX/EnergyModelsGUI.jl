@@ -579,9 +579,7 @@ function update_available_data_menu!(gui::GUI, element)
     available_data = get_available_data(gui)
     container = available_data[element]
     container_strings = create_label.(container)
-    if !isempty(container) # needed to resolve bug introduced in Makie
-        get_menu(gui, :available_data).options = zip(container_strings, container)
-    end
+    get_menu(gui, :available_data).options = zip(container_strings, container)
 end
 
 """
