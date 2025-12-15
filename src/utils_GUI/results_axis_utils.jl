@@ -309,21 +309,10 @@ function create_label(selection::PlotContainer)
     else
         print(io, get_description(selection), " (", get_name(selection), ")")
     end
-    otherRes::Bool = false
-    for select ∈ get_selection(selection)
-        if isa(select, Resource)
-            if !otherRes
-                print(io, " (")
-                otherRes = true
-            end
-            print(io, string(select))
-            if select != get_selection(selection)[end]
-                print(io, ", ")
-            end
-        end
-    end
-    if otherRes
-        print(io, ")")
+    other_indices =
+        filter(x -> !isa(x, AbstractElement) && !isnothing(x), get_selection(selection))
+    if !isempty(other_indices)
+        print(io, " [", join(string.(other_indices), ", "), "]")
     end
     return String(take!(io))
 end

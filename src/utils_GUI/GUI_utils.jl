@@ -644,22 +644,30 @@ function update_descriptive_names!(gui::GUI)
 end
 
 """
-    select_data!(gui::GUI, name::String)
+    select_data!(gui::GUI, name::String; selection::Vector = Any[])
 
-Select the data with name `name` from the `available_data` menu.
+Select the data with name `name` from the `available_data` menu. If `selection` is provided, 
+it is used to further specify which data to select.
 """
-function select_data!(gui::GUI, name::String)
+function select_data!(gui::GUI, name::String; selection::Vector = Any[])
     # Fetch the available data menu object
     menu = get_menu(gui, :available_data)
 
-    # Fetch all menu options
-    available_data = [get_name(x[2]) for x ∈ collect(menu.options[])]
+    items = collect(menu.options[])
 
     # Find menu number for data with name `name`
-    i_selected = findfirst(x -> x == name, available_data)
+    if isempty(selection)
+        i_selected = findfirst(x -> get_name(x[2]) == name, items)
+    else
+        i_selected = findfirst(
+            x -> get_name(x[2]) == name && issubset(selection, get_selection(x[2])),
+            items,
+        )
+    end
 
     # Select data
     menu.i_selected = i_selected
+    return nothing
 end
 
 """

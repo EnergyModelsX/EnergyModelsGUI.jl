@@ -115,6 +115,7 @@ simplified_toggle = get_toggle(gui, :simplified)
     components_2 = get_components(design_2)
     connections_2 = get_connections(design_2)
     simplified_toggle_2 = get_toggle(gui_2, :simplified)
+    available_data_menu_2 = get_menu(gui_2, :available_data)
 
     # Test simplify_all_levels=true functionality
     @testset "Test simplify_all_levels=true functionality" begin
@@ -158,6 +159,27 @@ simplified_toggle = get_toggle(gui, :simplified)
         update!(gui_2)
         test_connection_colors(gui_2, connection1, :regular_colors)
     end
+
+    # Test data-menu labeling
+    @testset "Test data-menu labeling" begin
+        Oslo_Trondheim = connections_2[5]
+        pick_component!(gui_2, Oslo_Trondheim, :topo) # Select Oslo - Trondheim transmission
+        modes_OT = modes(Oslo_Trondheim)
+        update!(gui_2)
+        options = collect(available_data_menu_2.options[])
+        for name ∈ ["trans_out", "trans_in", "trans_neg", "trans_pos", "trans_loss"]
+            for trans_mode ∈ ["PowerLine_50_OT", "Coal_Transport_50_OT"]
+                element = fetch_element(modes_OT, trans_mode)
+
+                select_data!(gui_2, name; selection = [element])
+
+                i_selected = available_data_menu_2.i_selected[]
+                str = options[i_selected][2].description * " ($name) [$trans_mode]"
+                @test options[i_selected][1] == str
+            end
+        end
+    end
+    EMGUI.close(gui_2)
 
     # Test the open button functionality
     @testset "get_button(gui,:open).clicks" begin

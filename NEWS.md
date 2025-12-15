@@ -2,6 +2,10 @@
 
 ## Version 0.5.18 (2025-11-24)
 
+### Bugfix
+
+* Fix missing distinction between different `TransmissionMode`s in the "data"-menu by including the `id` field in parentheses.
+
 ### Enhancements
 
 * Added the option `pre_plot_sub_components` to the `GUI`-constructor to skip preplotting hidden sub components of an area (the option is by default `true`). The components of an `Area` are then plotted on demand (on the `open` functionality). This greatly enhances performance for large cases.
@@ -16,6 +20,8 @@
 * Change tests of toggling of colors to be based on a new case having more transmission modes (the case in the new `test/EMI_geography_2.jl` file).
 * Make the distance between two way connection linearly dependent on `Δh` instead of a fixed width based on `gui.vars[:two_way_sep_px]`.
 * Make the markersize (arrow heads for connections) linearly dependent on `Δh` instead of a fixed size based on `gui.vars[:markersize]`
+* Also expand `TransmissionMode`s in the info-box.
+* For the labeling, use square brackets around indices in the string construction.
 
 ## Version 0.5.17 (2025-11-19)
 

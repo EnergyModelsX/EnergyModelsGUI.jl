@@ -172,6 +172,17 @@ function generate_example_data_geo_all_resources()
         [],
     )
 
+    H2_Transport_50MW_OT = RefDynamic(
+        "H2_Transport_50_OT",
+        H2,
+        FixedProfile(50.0),
+        FixedProfile(0.05),
+        FixedProfile(0),
+        FixedProfile(0),
+        2,
+        [],
+    )
+
     Waste_Transport_50MW_OT = RefDynamic(
         "Waste_Transport_50_OT",
         Waste,
@@ -219,6 +230,7 @@ function generate_example_data_geo_all_resources()
                 Coal_Transport_50MW_OT,
                 CO2_Pipeline_100MW_OT,
                 H2_Pipeline_100MW_OT,
+                H2_Transport_50MW_OT,
                 Waste_Transport_50MW_OT,
             ],
         ),
