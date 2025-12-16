@@ -89,6 +89,8 @@ function get_nested_value(dict::Dict, keys_str::String)
     for key ∈ keys
         if haskey(current_value, Symbol(key))
             current_value = current_value[Symbol(key)]
+        else
+            error("Key $(key) not found in dictionary (full key: $(keys_str)).")
         end
     end
     return current_value
@@ -340,12 +342,6 @@ Retrieves the supertypes of all defined types from modules or packages.
 - `get_supertypes(moduls::Vector{Module})`:
   Merges and returns supertypes from multiple modules.
 
-- `get_supertypes(pkg::Union{String, Symbol})`:
-  Converts the package name to a module (via `Main`) and returns its type supertypes.
-
-- `get_supertypes(pkgs::Union{Vector{<:Union{String, Symbol}}, Set{<:Union{String, Symbol}}})`:
-  Merges and returns supertypes from multiple packages via their names.
-
 # Arguments
 - `input`: Can be a single module, a vector of modules, a single package name (as `String` or `Symbol`), or a collection of package names.
 
@@ -373,9 +369,6 @@ end
 
 get_supertypes(moduls::Vector{Module}) =
     merge!(Dict(), (get_supertypes(m) for m ∈ moduls)...)
-get_supertypes(pkg::Union{String,Symbol}) = get_supertypes(getfield(Main, Symbol(pkg)))
-get_supertypes(pkgs::Union{Vector{<:Union{String,Symbol}},Set{<:Union{String,Symbol}}}) =
-    merge!(Dict(), (get_supertypes(pkg) for pkg ∈ pkgs)...)
 
 """
     has_fields(type::Type) -> Bool
@@ -484,40 +477,42 @@ If a descriptive name exists for a field in a supertype but not in the subtype,
 - Updates `descriptive_names` in-place by inheriting missing descriptive names from supertypes.
 """
 function inherit_descriptive_names_from_supertypes!(descriptive_names, emx_supertypes_dict)
+    structures = descriptive_names[:structures]
     for (emx_type_id, emx_supertypes) ∈ emx_supertypes_dict
         emx_type = emx_supertypes[1]
         # check if emx_type has field names and if so retrieve them, otherwise continue
         if !has_fields(emx_type)
             continue
         end
+
+        # If parent module does not exist in structures, create it
+        emx_type_parent_module_sym = Symbol(parentmodule(emx_type))
+        if !haskey(structures, emx_type_parent_module_sym)
+            structures[emx_type_parent_module_sym] = Dict{Symbol,Any}()
+        end
+
+        emx_type_parent_module_dict = structures[emx_type_parent_module_sym]
         emx_type_fieldnames = fieldnames(emx_type)
         for fname ∈ emx_type_fieldnames
             for emx_supertype ∈ emx_supertypes[2:end] # skip first element as it is the type itself
-                #check if the supertype has an entry in descriptive names for fname
+                # check if the supertype has an entry in descriptive names for fname
                 # Extract only what is after the dot in emx_supertype, if any
-                supertype_str = string(emx_supertype)
-                supertype_key =
-                    occursin(r"\.", supertype_str) ?
-                    match(r"\.([^.]+)$", supertype_str).captures[1] : supertype_str
-                if haskey(descriptive_names[:structures], Symbol(supertype_key)) &&
-                   haskey(
-                    descriptive_names[:structures][Symbol(supertype_key)],
-                    Symbol(fname),
-                )
-                    # if so, and if the emx_type does not have an entry for fname, copy it
-                    if !haskey(descriptive_names[:structures], Symbol(emx_type)) ||
-                       !haskey(
-                        descriptive_names[:structures][Symbol(emx_type)],
-                        Symbol(fname),
-                    )
-                        if !haskey(descriptive_names[:structures], Symbol(emx_type))
-                            descriptive_names[:structures][Symbol(emx_type)] =
-                                Dict{Symbol,Any}()
+                parent_module_str = Symbol(parentmodule(emx_supertype))
+                supertype_key = nameof(emx_supertype)
+                if haskey(structures, parent_module_str)
+                    module_dict = structures[parent_module_str]
+                    if haskey(module_dict, supertype_key) &&
+                       haskey(module_dict[supertype_key], fname)
+                        # if so, and if the emx_type does not have an entry for fname, copy it
+                        if !haskey(emx_type_parent_module_dict, emx_type_id) ||
+                           !haskey(emx_type_parent_module_dict[emx_type_id], fname)
+                            if !haskey(emx_type_parent_module_dict, emx_type_id)
+                                emx_type_parent_module_dict[emx_type_id] =
+                                    Dict{Symbol,Any}()
+                            end
+                            emx_type_parent_module_dict[emx_type_id][fname] =
+                                module_dict[supertype_key][fname]
                         end
-                        descriptive_names[:structures][Symbol(emx_type)][Symbol(fname)] =
-                            descriptive_names[:structures][Symbol(supertype_key)][Symbol(
-                                fname,
-                            )]
                     end
                 end
             end

@@ -51,6 +51,8 @@ to the old EnergyModelsX `case` dictionary.
   (instead of multiple lines for multiple transmission modes) in the topology design.
 - **`simplify_all_levels::Bool=false`** toggles whether or not to use simplified connection 
   plotting for all hierarchical levels.
+- **`map_boundary_file::String=""`** is the path to a .geojson file containing
+  geographical boundary data for plotting to be used instead of the default coastlines.
 
 !!! warning "Reading model results from CSV-files"
     Reading model results from a directory (*i.e.*, `model::String` implying that the results
@@ -84,6 +86,7 @@ function GUI(
     pre_plot_sub_components::Bool = true,
     simplified_connection_plotting::Bool = false,
     simplify_all_levels::Bool = false,
+    map_boundary_file::String = "",
 )
     # Generate the system topology:
     @info raw"Setting up the topology design structure"
@@ -130,6 +133,7 @@ function GUI(
         :simplified_connection_plotting => simplified_connection_plotting,
         :simplify_all_levels => simplify_all_levels,
         :marker_to_box_ratio => 0.4, # Ratio between marker size and `Node` box size
+        :map_boundary_file => map_boundary_file,
         :autolimits => Dict(
             :results_op => true,
             :results_sc => true,
@@ -152,7 +156,6 @@ function GUI(
     vars[:box_text_sep_px] = 5                     # Separation between rectangles for colors and text
 
     vars[:taskbar_height] = 30
-    vars[:descriptive_names] = Dict()
     vars[:path_to_descriptive_names] = path_to_descriptive_names
     vars[:descriptive_names_dict] = descriptive_names_dict
 
@@ -230,7 +233,7 @@ function GUI(
     )
 
     # Create complete Dict of descriptive names
-    update_descriptive_names!(gui)
+    gui.vars[:descriptive_names] = create_descriptive_names(get_vars(gui))
 
     # Pre calculate the available fields for each node
     initialize_available_data!(gui)
@@ -326,30 +329,36 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
             alignmode = Inside(),
         )
 
-        if vars[:coarse_coast_lines] # Use low resolution coast lines
-            countries = GeoMakie.land()
-        else # Use high resolution coast lines
-            # Define the URL and the local file path
-            resolution::String = "10m" # "10m", "50m", "110m"
-            url::String = "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_$(resolution)_land.geojson"
-            temp_dir::String = tempdir()  # Get the system's temporary directory
-            filename_countries::String = "EnergyModelsGUI_countries.geojson"
-            local_file_path::String = joinpath(temp_dir, filename_countries)
+        if isempty(vars[:map_boundary_file])
+            # Plot coast lines
+            if vars[:coarse_coast_lines] # Use low resolution coast lines
+                boundary = GeoMakie.land()
+            else # Use high resolution coast lines
+                # Define the URL and the local file path
+                resolution::String = "10m" # "10m", "50m", "110m"
+                url::String = "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_$(resolution)_land.geojson"
+                temp_dir::String = tempdir()  # Get the system's temporary directory
+                filename_countries::String = "EnergyModelsGUI_countries.geojson"
+                local_file_path::String = joinpath(temp_dir, filename_countries)
 
-            # Download the file if it doesn't exist in the temporary directory
-            if !isfile(local_file_path)
-                HTTP.download(url, local_file_path)
+                # Download the file if it doesn't exist in the temporary directory
+                if !isfile(local_file_path)
+                    HTTP.download(url, local_file_path)
+                end
+
+                # Now read the data from the file
+                boundary_geo_json = GeoJSON.read(read(local_file_path, String))
+
+                # Create GeoMakie plotable object
+                boundary = GeoMakie.to_multipoly(boundary_geo_json.geometry)
             end
-
-            # Now read the data from the file
-            countries_geo_json = GeoJSON.read(read(local_file_path, String))
-
-            # Create GeoMakie plotable object
-            countries = GeoMakie.to_multipoly(countries_geo_json.geometry)
+        else
+            boundary_geo_json = GeoJSON.read(read(vars[:map_boundary_file], String))
+            boundary = GeoMakie.to_multipoly(boundary_geo_json.geometry)
         end
-        countries_plot = poly!(
+        poly!(
             ax,
-            countries;
+            boundary;
             color = :honeydew,
             colormap = :dense,
             strokecolor = :gray50,
@@ -359,7 +368,7 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
             stroke_depth_shift = 1.0f0 - 3.0f-5,
         )
         ocean_coords = [(180, -90), (-180, -90), (-180, 90), (180, 90)]
-        ocean = poly!(
+        poly!(
             ax,
             ocean_coords,
             color = :lightblue1,

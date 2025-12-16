@@ -1,5 +1,20 @@
 # Release notes
 
+## Version 0.6.0 (2025-12-15)
+
+### Bugfix
+
+* Added missing descriptive names for the variables `emissions_link`, `link_opex_var`, `link_opex_fixed` and `emissions_trans`.
+
+### Enhancements
+
+* Enabled exporting topo axis to bmp, tif, tiff, jpg, jpeg, and png file format.
+* Enable custom boundary background map instead of the default coastlines (through a `.geojson` file location provided by the keyword argument `map_boundary_file` in the `GUI`-function).
+
+### Adjustments
+
+* Adjusted `descriptive_names` to be more robust to available packages. Introduced module names as intermediate `Dict`s in the `structures` field of `descriptive_names` (this is a breaking change).
+
 ## Version 0.5.18 (2025-11-24)
 
 ### Bugfix

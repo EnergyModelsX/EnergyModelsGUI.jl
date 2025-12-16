@@ -1,3 +1,8 @@
+const EMB = EnergyModelsBase
+const EMI = EnergyModelsInvestments
+const EMG = EnergyModelsGeography
+const EMRP = EnergyModelsRenewableProducers
+
 case, model, m, gui = run_case()
 
 # Test specific miscellaneous descriptive names
@@ -11,9 +16,11 @@ case, model, m, gui = run_case()
         str5 = "<a test description 5>"
         str6 = "<a test description 6>"
         descriptive_names_dict = Dict(
-            :structures => Dict( # Input parameter from the case Dict
-                :RefStatic => Dict(:trans_cap => str1, :opex_fixed => str2),
-                :RefDynamic => Dict(:opex_var => str3, :directions => str4),
+            :structures => Dict(
+                :EnergyModelsGeography => Dict( # Input parameter from the case Dict
+                    :RefStatic => Dict(:trans_cap => str1, :opex_fixed => str2),
+                    :RefDynamic => Dict(:opex_var => str3, :directions => str4),
+                ),
             ),
             :variables => Dict( # variables from the JuMP model
                 :stor_discharge_use => str5,
@@ -26,10 +33,11 @@ case, model, m, gui = run_case()
             descriptive_names_dict = descriptive_names_dict,
         )
         descriptive_names = EMGUI.get_var(gui2, :descriptive_names)
-        @test descriptive_names[:structures][:RefStatic][:trans_cap] == str1
-        @test descriptive_names[:structures][:RefStatic][:opex_fixed] == str2
-        @test descriptive_names[:structures][:RefDynamic][:opex_var] == str3
-        @test descriptive_names[:structures][:RefDynamic][:directions] == str4
+        descriptive_names_EMG = descriptive_names[:structures][:EnergyModelsGeography]
+        @test descriptive_names_EMG[:RefStatic][:trans_cap] == str1
+        @test descriptive_names_EMG[:RefStatic][:opex_fixed] == str2
+        @test descriptive_names_EMG[:RefDynamic][:opex_var] == str3
+        @test descriptive_names_EMG[:RefDynamic][:directions] == str4
         @test descriptive_names[:variables][:stor_discharge_use] == str5
         @test descriptive_names[:variables][:trans_cap_rem] == str6
         EMGUI.close(gui2)
@@ -46,21 +54,46 @@ case, model, m, gui = run_case()
             path_to_descriptive_names = path_to_descriptive_names,
         )
 
-        @test descriptive_names_raw[:structures][:Node][:opex_fixed] == str1
-        @test :StorCapOpexFixed ∉ keys(descriptive_names_raw[:structures])
-        @test :RefNetworkNode ∉ keys(descriptive_names_raw[:structures])
+        desc_raw_EMB = descriptive_names_raw[:structures][:EnergyModelsBase]
+        @test desc_raw_EMB[:Node][:opex_fixed] == str1
+        @test :StorCapOpexFixed ∉ keys(desc_raw_EMB)
+        @test :RefNetworkNode ∉ keys(desc_raw_EMB)
 
-        @test descriptive_names_raw[:structures][:HydroStorage][:level_init] == str2
-        @test :HydroStor ∉ keys(descriptive_names_raw[:structures])
-        @test :PumpedHydroStor ∉ keys(descriptive_names_raw[:structures])
+        desc_raw_EMRP = descriptive_names_raw[:structures][:EnergyModelsRenewableProducers]
+        @test desc_raw_EMRP[:HydroStorage][:level_init] == str2
+        @test :HydroStor ∉ keys(desc_raw_EMRP)
+        @test :PumpedHydroStor ∉ keys(desc_raw_EMRP)
 
         descriptive_names = EMGUI.get_var(gui3, :descriptive_names)
-        @test descriptive_names[:structures][:StorCapOpexFixed][:opex_fixed] == str1
-        @test descriptive_names[:structures][:RefNetworkNode][:opex_fixed] == str1
+        desc_EMB = descriptive_names[:structures][:EnergyModelsBase]
+        @test desc_EMB[:StorCapOpexFixed][:opex_fixed] == str1
+        @test desc_EMB[:RefNetworkNode][:opex_fixed] == str1
 
-        @test descriptive_names[:structures][:HydroStor][:level_init] == str2
-        @test descriptive_names[:structures][:PumpedHydroStor][:level_init] == str2
+        desc_EMRP = descriptive_names[:structures][:EnergyModelsRenewableProducers]
+        @test desc_EMRP[:HydroStorage][:level_init] == str2
+        @test desc_EMRP[:PumpedHydroStor][:level_init] == str2
         EMGUI.close(gui3)
+    end
+
+    @testset "Test existence of descriptive names for all available EMX-packages" begin
+        # Check that no descriptive names are empty for types
+        descriptive_names = create_descriptive_names()
+        types_map = get_descriptive_names([EMB, EMI, EMG, EMRP], descriptive_names)
+        @test !any(any(isempty.(values(a))) for a ∈ values(types_map))
+
+        case, model = generate_example_data_geo()
+        m = create_model(case, model)
+
+        # Check that no descriptive names are empty for variables
+        variables_map = get_descriptive_names(m, descriptive_names)
+        @test !any(any(isempty.(values(a))) for a ∈ values(variables_map))
+
+        case, model = generate_example_hp()
+        m = create_model(case, model)
+
+        # Check that no descriptive names are empty for variables for EMRP
+        variables_map_EMRP = get_descriptive_names(m, descriptive_names)
+        @test !any(any(isempty.(values(a))) for a ∈ values(variables_map_EMRP))
     end
 end
 EMGUI.close(gui)

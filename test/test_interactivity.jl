@@ -370,7 +370,7 @@ simplified_toggle = get_toggle(gui, :simplified)
         "All" => ["jpg", "jpeg", "svg", "xlsx", "png", "lp", "mps"],
         "Plots" =>
             ["bmp", "tif", "tiff", "jpg", "jpeg", "svg", "xlsx", "png", "lp", "mps"],
-        "Topo" => ["svg", "lp", "mps"],
+        "Topo" => ["bmp", "tif", "tiff", "jpg", "jpeg", "svg", "png", "lp", "mps"],
     )
     @testset "get_button(gui,:export).clicks" begin
         tmpdir = mktempdir(testdir; prefix = "exported_files_")

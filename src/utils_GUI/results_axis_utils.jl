@@ -119,8 +119,12 @@ function add_description!(
         data_type = nameof(typeof(data))
         name_field = "$name.$data_type"
         key_str_field = "$key_str.$data_type"
+        ext_selection = deepcopy(selection)
+        if isa(data, Resource)
+            push!(ext_selection, data)
+        end
         add_description!(
-            data, name_field, key_str_field, pre_desc, selection, available_data, gui,
+            data, name_field, key_str_field, pre_desc, ext_selection, available_data, gui,
         )
     end
 end
@@ -148,7 +152,7 @@ function add_description!(
     available_data::Vector{PlotContainer},
     gui::GUI,
 )
-    structure = get_nth_field(key_str, '.', 3)
+    structure = get_nth_field(key_str, '.', 4)
     if structure == "to" || structure == "from" # don't add `to` and `from` fields
         return nothing
     end
@@ -158,7 +162,8 @@ function add_description!(
         name_field_type = nameof(field_type)
         name_field = "$name.$sub_field_name"
         pre_desc_sub = "$pre_desc$name_field_type: "
-        key_str = "structures.$name_field_type.$sub_field_name"
+        parent_module = String(nameof(parentmodule(field_type)))
+        key_str = "structures.$parent_module.$name_field_type.$sub_field_name"
         add_description!(
             sub_field, name_field, key_str, pre_desc_sub, selection, available_data, gui,
         )

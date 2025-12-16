@@ -20,4 +20,6 @@ GUI
 save_results
 set_colors
 set_icons
+create_descriptive_names
+get_descriptive_names
 ```

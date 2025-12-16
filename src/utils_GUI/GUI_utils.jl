@@ -390,7 +390,8 @@ function initialize_available_data!(gui)
                 field = getfield(element, field_name)
                 structure = String(nameof(typeof(element)))
                 name = "$field_name"
-                key_str = "structures.$structure.$name"
+                parent_module = String(nameof(parentmodule(typeof(element))))
+                key_str = "structures.$parent_module.$structure.$name"
                 selection = Vector{Any}([element])
                 add_description!(field, name, key_str, "", selection, available_data, gui)
             end
@@ -578,38 +579,36 @@ function update_available_data_menu!(gui::GUI, element)
     available_data = get_available_data(gui)
     container = available_data[element]
     container_strings = create_label.(container)
-    if !isempty(container) # needed to resolve bug introduced in Makie
-        get_menu(gui, :available_data).options = zip(container_strings, container)
-    end
+    get_menu(gui, :available_data).options = zip(container_strings, container)
 end
 
 """
-    update_descriptive_names!(gui::GUI)
+    create_descriptive_names(vars::Dict{Symbol,Any})
 
-Update the dictionary of `descriptive_names` where the Dict is appended/overwritten in the
+Return the dictionary of `descriptive_names` where the `Dict` is appended/overwritten in the
 following order:
 
 - The default descriptive names found in `src/descriptive_names.yml`.
-- Any descriptive_names.yml file found in the ext/EMGUIExt folder of any other EMX package.
+- Any descriptive_names.yml file found in the ext/EMGUIExt folder of available EMX packages.
 - Descriptive names from a user defined file (from the GUI input argument `path_to_descriptive_names`).
 - Descriptive names from a user defined Dict (from the GUI input argument `descriptive_names_dict`).
 """
-function update_descriptive_names!(gui::GUI)
+function create_descriptive_names(vars::Dict{Symbol,Any})
     descriptive_names = YAML.load_file(
         joinpath(@__DIR__, "..", "descriptive_names.yml"); dicttype = Dict{Symbol,Any},
     )
 
     # Get a dictionary of loaded packages
-    loaded_packages = loaded()
+    loaded_packages = collect(values(Base.loaded_modules))
 
     # Filter packages with names matching the pattern "EnergyModels*"
-    emx_packages = filter(pkg -> occursin(r"EnergyModels", pkg), loaded_packages)
+    emx_packages = filter(pkg -> occursin(r"EnergyModels", string(pkg)), loaded_packages)
     # apply inheritances for fetching descriptive names
     # create a dictionary were the keys are all the types defined in emx_packages and the values are the types they inherit from
     emx_supertypes_dict = get_supertypes(emx_packages)
     inherit_descriptive_names_from_supertypes!(descriptive_names, emx_supertypes_dict)
     for package ∈ emx_packages
-        package_path::Union{String,Nothing} = dirname(dirname(Base.find_package(package)))
+        package_path::Union{String,Nothing} = dirname(dirname(Base.pathof(package)))
         if !isnothing(package_path)
             # check for presence of file to extend descriptive names
             path_to_descriptive_names_ext = joinpath(
@@ -627,7 +626,7 @@ function update_descriptive_names!(gui::GUI)
     end
 
     # Update the Dict of descriptive names with user defined names from file
-    path_to_descriptive_names = get_var(gui, :path_to_descriptive_names)
+    path_to_descriptive_names = vars[:path_to_descriptive_names]
     if !isempty(path_to_descriptive_names)
         descriptive_names_dict_user_file = YAML.load_file(
             path_to_descriptive_names; dicttype = Dict{Symbol,Any},
@@ -636,11 +635,65 @@ function update_descriptive_names!(gui::GUI)
     end
 
     # Update the Dict of descriptive names with user defined names from Dict
-    descriptive_names_dict = get_var(gui, :descriptive_names_dict)
+    descriptive_names_dict = vars[:descriptive_names_dict]
     if !isempty(descriptive_names_dict)
         descriptive_names = merge_dicts(descriptive_names, descriptive_names_dict)
     end
-    get_vars(gui)[:descriptive_names] = descriptive_names
+    return descriptive_names
+end
+create_descriptive_names() = create_descriptive_names(
+    Dict{Symbol,Any}(
+        :path_to_descriptive_names => "",
+        :descriptive_names_dict => Dict{Symbol,Any}(),
+    ),
+)
+
+"""
+    get_descriptive_names(modules::Union{Module, Vector{Module}}, descriptive_names::Dict{Symbol,Any})
+    get_descriptive_names(model::Model, descriptive_names::Dict{Symbol,Any})
+
+Get a mapping between EMX types and their descriptive names for fields of type `TimeProfile`.
+"""
+function get_descriptive_names(
+    modules::Union{Module,Vector{Module}},
+    descriptive_names::Dict{Symbol,Any},
+)
+    emx_supertypes_dict = get_supertypes(modules)
+
+    descriptive_names_map = Dict{Type,Dict{Symbol,Any}}()
+    for (_, emx_supertypes) ∈ emx_supertypes_dict
+        emx_type = emx_supertypes[1]
+        if !has_fields(emx_type)
+            continue
+        end
+        if !any(fieldtypes(emx_type) .<: TimeProfile)
+            continue
+        end
+        structure = String(nameof(emx_type))
+        descriptive_names_map[emx_type] = Dict{Symbol,Any}()
+        for (field_name, field_type) ∈ zip(fieldnames(emx_type), fieldtypes(emx_type))
+            if field_type <: TimeProfile
+                parent_module = String(nameof(parentmodule(emx_type)))
+                name = "$field_name"
+                key_str = "structures.$parent_module.$structure.$name"
+                descriptive_names_map[emx_type][field_name] =
+                    get_nested_value(descriptive_names, key_str)
+            end
+        end
+    end
+    return descriptive_names_map
+end
+function get_descriptive_names(model::Model, descriptive_names::Dict{Symbol,Any})
+    descriptive_names_map = Dict{Symbol,String}()
+    ignore_names = Symbol.(descriptive_names[:ignore])
+    for sym ∈ collect(keys(object_dictionary(model)))
+        if sym ∈ ignore_names
+            continue
+        end
+        key_str = "variables.$(String(sym))"
+        descriptive_names_map[sym] = get_nested_value(descriptive_names, key_str)
+    end
+    return descriptive_names_map
 end
 
 """
