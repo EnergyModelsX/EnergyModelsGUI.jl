@@ -147,7 +147,6 @@ function generate_example_data_geo_all_resources()
         FixedProfile(0),
         FixedProfile(0),
         2,
-        [],
     )
 
     CO2_Pipeline_100MW_OT = RefStatic(
@@ -169,7 +168,6 @@ function generate_example_data_geo_all_resources()
         FixedProfile(0),
         FixedProfile(0),
         2,
-        [],
     )
 
     H2_Transport_50MW_OT = RefDynamic(
@@ -180,7 +178,6 @@ function generate_example_data_geo_all_resources()
         FixedProfile(0),
         FixedProfile(0),
         2,
-        [],
     )
 
     Waste_Transport_50MW_OT = RefDynamic(
@@ -191,7 +188,6 @@ function generate_example_data_geo_all_resources()
         FixedProfile(0),
         FixedProfile(0),
         2,
-        [],
     )
 
     Biomass_Transport_50MW_OT = RefDynamic(
@@ -202,7 +198,6 @@ function generate_example_data_geo_all_resources()
         FixedProfile(0),
         FixedProfile(0),
         2,
-        [],
     )
 
     Oil_Pipeline_100MW_OT = RefStatic(
