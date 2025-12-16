@@ -640,7 +640,6 @@ function generate_example_data_geo()
         FixedProfile(0),
         FixedProfile(0),
         2,
-        [],
     )
 
     transmissions = [
