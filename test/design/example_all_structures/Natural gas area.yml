@@ -1,0 +1,129 @@
+n_CO2_storage_big:
+  y: 45.76981
+  x: 8.47282
+n_Reg_2-NG_source:
+  y: 44.80648
+  x: 8.57883
+n_heat_demand:
+  y: 46.08825
+  x: 10.21651
+"n_hydrogen storage":
+  y: 45.4147
+  x: 8.44048
+n_CO2_storage_small:
+  y: 46.27751
+  x: 9.99404
+n_ss_inv_electricity_demand:
+  y: 46.1934
+  x: 10.11129
+"n_reserve down demand":
+  y: 46.42308
+  x: 10.07954
+n_market_buy:
+  y: 45.46697
+  x: 9.71667
+n_hydro_pump:
+  y: 44.64628
+  x: 10.23688
+n_balancing_source:
+  y: 46.04724
+  x: 8.55851
+n_hydro_generator_down:
+  y: 44.32898
+  x: 10.13109
+n_water_source:
+  y: 45.57435
+  x: 10.76056
+n_hydro_av:
+  y: 45.53768
+  x: 9.8735
+n_heat_pump:
+  y: 46.3376
+  x: 9.41381
+n_hydro_generator_up:
+  y: 45.1698
+  x: 10.21044
+n_wind_simple:
+  y: 46.2075
+  x: 8.45478
+n_ss_electricity_demand:
+  y: 45.7621
+  x: 10.07954
+n_hub-h2_demand:
+  y: 45.86594
+  x: 10.2105
+n_battery:
+  y: 46.42614
+  x: 9.93808
+n_CCGT_retrofittable:
+  y: 45.60759
+  x: 8.69229
+n_PEM:
+  y: 45.21135
+  x: 8.43592
+n_ocean:
+  y: 43.95617
+  x: 10.14167
+n_TES:
+  y: 46.49982
+  x: 9.57916
+n_market_sale:
+  y: 45.4147
+  x: 10.22099
+n_ss_electricity_source:
+  y: 45.94354
+  x: 8.45164
+n_hub-electricity_source:
+  y: 45.00822
+  x: 8.48167
+n_district_heat_source:
+  y: 46.50915
+  x: 9.30152
+n_NG_source_for_CCGT:
+  y: 45.59557
+  x: 8.45479
+n_hub:
+  y: 45.57898
+  x: 9.28942
+n_ss_inv_electricity_source:
+  y: 46.33006
+  x: 8.52708
+n_h2_demand_reformer:
+  y: 45.65866
+  x: 10.20449
+n_Reg_2-Availability:
+  y: 45.3385
+  x: 9.42555
+n_CCS_unit:
+  y: 45.73977
+  x: 8.69229
+n_CO2_source_negative:
+  y: 46.44946
+  x: 8.67481
+n_hydro_reservoir_up:
+  y: 45.17244
+  x: 10.54897
+n_reformer:
+  y: 46.58908
+  x: 9.83352
+n_Reg_2-ng+CCS_power_plant:
+  y: 44.70925
+  x: 9.43732
+n_electricity_demand_big:
+  y: 45.94706
+  x: 10.09024
+n_hydropower_simple:
+  y: 46.5186
+  x: 8.94828
+n_hydro_gate:
+  y: 44.90462
+  x: 10.5442
+n_Reg_2-Electricity_demand:
+  y: 44.89218
+  x: 9.73437
+n_CO2_storage_reformer_sink:
+  y: 46.58908
+  x: 10.08261
+n_hydro_reservoir_down:
+  y: 44.61719
+  x: 10.50137
