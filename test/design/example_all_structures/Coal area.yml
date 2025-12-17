@@ -1,0 +1,15 @@
+n_Reg_1-CO2_storage_geo:
+  y: 46.26174
+  x: 5.0772
+n_Reg_1-Coal_source:
+  y: 46.26174
+  x: 6.92496
+n_Reg_1-Coal_power_plant:
+  y: 45.17195
+  x: 5.29398
+n_Reg_1-Electricity_demand:
+  y: 46.87906
+  x: 6.00108
+n_Reg_1-Availability:
+  y: 45.87906
+  x: 6.00108

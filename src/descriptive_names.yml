@@ -93,6 +93,30 @@ structures:
     AbstractBatteryLife:
       stack_cost:             "Relative cost for replacing a battery stack"
 
+  EnergyModelsHeat:
+    ## link.jl
+    DHPipe:
+      cap:                    "Heat transport capacity of the pipe"
+      t_ground:               "Ground temperature in °C"
+
+    ## node.jl
+    HeatPump:
+      t_source:               "Heat source temperature"
+      t_sink:                 "Heat sink temperature"
+      eff_carnot:             "Carnot Efficiency"
+
+    ## resource.jl
+    ResourceHeat:
+      t_supply:               "Supply temperature in °C"
+      t_return:               "Return temperature in °C"
+
+    PinchData:
+      T_SH_hot:               "Hot temperature of surplus heat source in °C"
+      T_SH_cold:              "Cold temperature of surplus heat source in °C"
+      ΔT_min:                 "Minimum temperature difference between surplus source and DH network in °C"
+      T_DH_hot:               "Hot temperature of district heating network in °C"
+      T_DH_cold:              "Cold temperature of district heating network in °C"
+
   EnergyModelsHydrogen:
     ## node.jl
     AbstractElectrolyzer:
@@ -226,6 +250,23 @@ variables:
 
   # EnergyModelsCO2
   stor_level_Δ_sp:          "Increase in `stor_level` during a strategic period"
+
+  # EnergyModelsHeat
+  dh_pipe_loss:             "Heat losses in DH pipes"
+
+  # EnergyModelsLanguageInterface
+  buildings_surplus:        "Surplus delivered to a sink, i.e., oversatisfied demand"
+  buildings_deficit:        "Deficit in a sink, i.e., not satisfied demand"
+  solar_curtailment:        "Curtailment of a solar energy source"
+  solar_cap_use:            "Absolute capacity utilization"
+
+  # EnergyModelsFlex
+  input_frac_strat:         "Input resource fraction"
+  load_shift_from:          "Load shift from"  
+  load_shift_to:            "Load shift to"  
+  load_shifted:             "Load shifted"
+  sink_surplus_p:           "Penalties for surplus of resource"  
+  sink_deficit_p:           "Penalties for deficits of resource"  
 
 # Overview of total quantities and their components
 total:

@@ -50,6 +50,8 @@ makedocs(;
             "Customize colors"=>"how-to/customize-colors.md",
             "Customize icons"=>"how-to/customize-icons.md",
             "Customize descriptive_names"=>"how-to/customize-descriptive_names.md",
+            "Improve performance"=>"how-to/improve-performance.md",
+            "Use custom backgroun map"=>"how-to/use-custom-background-map.md",
         ],
         "Library" => Any[
             "Public"=>"library/public.md",

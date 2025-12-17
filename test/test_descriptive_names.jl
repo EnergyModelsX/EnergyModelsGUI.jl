@@ -2,6 +2,9 @@ const EMB = EnergyModelsBase
 const EMI = EnergyModelsInvestments
 const EMG = EnergyModelsGeography
 const EMRP = EnergyModelsRenewableProducers
+const EMH2 = EnergyModelsHydrogen
+const EMH = EnergyModelsHeat
+const EMC = EnergyModelsCO2
 
 case, model, m, gui = run_case()
 
@@ -78,22 +81,16 @@ case, model, m, gui = run_case()
     @testset "Test existence of descriptive names for all available EMX-packages" begin
         # Check that no descriptive names are empty for types
         descriptive_names = create_descriptive_names()
-        types_map = get_descriptive_names([EMB, EMI, EMG, EMRP], descriptive_names)
+        types_map =
+            get_descriptive_names([EMB, EMI, EMG, EMRP, EMH2, EMH, EMC], descriptive_names)
         @test !any(any(isempty.(values(a))) for a ∈ values(types_map))
 
-        case, model = generate_example_data_geo()
-        m = create_model(case, model)
+        # Check that no warnings are logged when running a full case
+        @test_logs min_level=Logging.Error case, _, m, gui = run_all_in_one_case()
 
         # Check that no descriptive names are empty for variables
         variables_map = get_descriptive_names(m, descriptive_names)
         @test !any(any(isempty.(values(a))) for a ∈ values(variables_map))
-
-        case, model = generate_example_hp()
-        m = create_model(case, model)
-
-        # Check that no descriptive names are empty for variables for EMRP
-        variables_map_EMRP = get_descriptive_names(m, descriptive_names)
-        @test !any(any(isempty.(values(a))) for a ∈ values(variables_map_EMRP))
     end
 end
 EMGUI.close(gui)

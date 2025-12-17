@@ -21,6 +21,7 @@ Pkg.activate(env)
 include(joinpath(testdir, "case7.jl"))
 include(joinpath(testdir, "EMI_geography_2.jl"))
 include(joinpath(testdir, "example_test.jl"))
+include(joinpath(testdir, "example_all_structures.jl"))
 
 # Add utilities needed for examples
 include(joinpath(exdir, "utils.jl"))
