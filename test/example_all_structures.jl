@@ -34,8 +34,13 @@ This comprehensive example includes:
 - Sink-source examples: both operational and investment variants, connected via hub for `Power`.
 
 All subsystems are connected through the global multi-carrier hub, demonstrating integration of:
-- EnergyModelsBase, EnergyModelsGeography, EnergyModelsHydrogen, EnergyModelsCO2,
-  EnergyModelsRenewableProducers, EnergyModelsHeat, EnergyModelsInvestments
+- EnergyModelsBase v0.9.3
+- EnergyModelsCO2 v0.7.6
+- EnergyModelsGeography v0.11.3
+- EnergyModelsHeat v0.1.3
+- EnergyModelsHydrogen v0.8.3
+- EnergyModelsInvestments v0.8.1
+- EnergyModelsRenewableProducers v0.6.7
 """
 function generate_all_in_one_case()
     # -----------------------------
