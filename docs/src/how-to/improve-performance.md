@@ -1,7 +1,7 @@
 # [Improve performance](@id how_to-improve_performance)
 
 Due to the just-in-time (JIT) compilation of Julia, the instantiation of the `EnergyModelsGUI` window takes some time (but reopening the window will take less time). 
-This also includes interactive features in the GUI (creating a the first plot is a lot lower than the subsequent plots).
+This also includes interactive features in the GUI (creating a the first plot is a lot slower than creating subsequent plots).
 
 That being said, it is possible to boost startup time by turning of redundant features. 
 One can for example plot sub-areas only on demand (which for large system significantly reduces setup of the `GUI`) through 
