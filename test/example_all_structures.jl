@@ -20,7 +20,7 @@ const EMI    = EnergyModelsInvestments
 const TS     = TimeStruct
 
 """
-Mega-example: combines all node families from the attached examples into ONE connected Case.
+All-in-one-case: combines all nodes from the main EMX packages.
 
 This comprehensive example includes:
 - Two areas (EnergyModelsGeography) transferring `Power` and `CO2` with investment 

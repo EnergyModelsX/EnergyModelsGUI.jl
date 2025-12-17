@@ -1,5 +1,13 @@
 # Release notes
 
+## Version 0.6.1 (2025-12-17)
+
+### Enhancements
+
+* Improved testing of `descriptive_names` and added more names from other packages.
+* Improved documentation.
+
+
 ## Version 0.6.0 (2025-12-15)
 
 ### Bugfix
