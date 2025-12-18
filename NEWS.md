@@ -1,5 +1,11 @@
 # Release notes
 
+## Version 0.6.2 (2025-12-18)
+
+### Bugfix
+
+* Fix missing header type for type `Int` used in the exported function `save_results` (e.g., for the variable `:discharge_segment` in `EnergyModelsRenewableProducers`).
+
 ## Version 0.6.1 (2025-12-17)
 
 ### Enhancements
