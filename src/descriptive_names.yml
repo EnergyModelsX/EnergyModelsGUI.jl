@@ -142,6 +142,13 @@ structures:
     CCSRetroFit:
       opex_var:               "Variable operating expense per unit of CO₂ captured"
 
+  EnergyModelsFlex:
+    ## links/datastructures.jl
+    CapacityCostLink:
+      cap:                    "Installed capacity"
+      cap_price:              "Price of capacity usage"
+      cap_price_periods:      "The number of sub periods of a year"
+
 
 variables:
   # EnergyModelsBase
@@ -267,6 +274,8 @@ variables:
   load_shifted:             "Load shifted"
   sink_surplus_p:           "Penalties for surplus of resource"  
   sink_deficit_p:           "Penalties for deficits of resource"  
+  cap_cost_sub_period:      "Cost over sub periods"
+  max_cap_use_sub_period:   "Maximum capacity usage over sub periods"
 
 # Overview of total quantities and their components
 total:
@@ -275,6 +284,8 @@ total:
     opex_fixed:             "Total absolute fixed OPEX"
     trans_opex_var:         "Total absolute variable transmission OPEX"
     trans_opex_fixed:       "Total absolute fixed transmission OPEX"
+    link_opex_var:          "Total absolute variable link OPEX"  
+    link_opex_fixed:        "Total absolute fixed link OPEX" 
   capex_fields:
     cap_capex:              "Total absolute CAPEX for investments in the capacity of technologies"
     stor_level_capex:       "Total absolute CAPEX for investments in the capacity of storages"
