@@ -10,6 +10,10 @@
 
 * Adjust `descriptive_names` to new elements in `EnergyModelsFlex`.
 
+### Adjustments
+
+* Use `Downloads` instead of `HTTP` to download `.geojson` files. This resolves warning and uses a standard julia library that is faster to load.
+
 ## Version 0.6.2 (2025-12-18)
 
 ### Bugfix
