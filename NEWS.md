@@ -13,6 +13,7 @@
 ### Adjustments
 
 * Use `Downloads` instead of `HTTP` to download `.geojson` files. This resolves warning and uses a standard julia library that is faster to load.
+* Cleaned up `test/case7.jl`.
 
 ## Version 0.6.2 (2025-12-18)
 
