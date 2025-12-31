@@ -343,7 +343,7 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
 
                 # Download the file if it doesn't exist in the temporary directory
                 if !isfile(local_file_path)
-                    download(url, local_file_path)
+                    Downloads.download(url, local_file_path)
                 end
 
                 # Now read the data from the file
