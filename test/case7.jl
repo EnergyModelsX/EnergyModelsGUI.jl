@@ -72,7 +72,10 @@ function read_data()
     lat = [xy[2] for xy ∈ coordinates]
 
     # Create the individual areas and transmission modes
-    areas = [RefArea(i, area_ids[i], lon[i], lat[i], an[i]) for i ∈ eachindex(area_ids)]
+    areas = [
+        RefArea("area" * string(i), area_ids[i], lon[i], lat[i], an[i]) for
+        i ∈ eachindex(area_ids)
+    ]
 
     # Set parameters for the power line
     capacity, lossRatio = get_cable_data()
@@ -244,26 +247,34 @@ function get_sub_system_data_case7(a_id, products, T)
 
         # Create links between nodes
         links = [
-            Direct(1, el_busbar_11125, el_1, Linear()),
-            Direct(2, el_busbar_11125, heat_generator, Linear()),
-            Direct(3, el_busbar_11125, water_heater, Linear()),
-            Direct(4, heat_generator, heating_1, Linear()),
-            Direct(5, water_heater, hot_water_1, Linear()),
-            Direct(6, el_busbar_11125, heat_pump, Linear()),
-            Direct(7, heat_pump, heating_1, Linear()),
-            Direct(8, waste_heat_data_center, heat_pump, Linear()),
+            Direct("El busbar_11125 - El 1", el_busbar_11125, el_1, Linear()),
+            Direct(
+                "El busbar_11125 - Heat generator",
+                el_busbar_11125,
+                heat_generator,
+                Linear(),
+            ),
+            Direct(
+                "El busbar_11125 - Water heater",
+                el_busbar_11125,
+                water_heater,
+                Linear(),
+            ),
+            Direct("Heat generator - Heating 1", heat_generator, heating_1, Linear()),
+            Direct("Water heater - Hot water 1", water_heater, hot_water_1, Linear()),
+            Direct("El busbar_11125 - Heat pump", el_busbar_11125, heat_pump, Linear()),
+            Direct("Heat pump - Heating 1", heat_pump, heating_1, Linear()),
+            Direct(
+                "Waste heat data center - Heat pump",
+                waste_heat_data_center,
+                heat_pump,
+                Linear(),
+            ),
         ]
     elseif a_id == "Area 2"
         # Load the electricity cost from file
         El_cost_file = readlines(inputFolder * raw"/el cost.dat")
         El_cost = [parse(Float64, line) for line ∈ El_cost_file] # In NOK/MWh
-
-        # Load the power supply capacity from file
-        max_outtake_file = readlines(inputFolder * raw"/10.dat")
-        max_outtake = [parse(Float64, line) for line ∈ max_outtake_file] # In MW
-        max_waste_outtake = [
-            i > 1 ? FixedProfile(0.0) : FixedProfile(0.0) for i ∈ 1:(T.len)
-        ] # Make Waste supply available only from 2030
 
         # Construct nodes
         el_busbar_11124 = GeoAvailability(
@@ -272,7 +283,7 @@ function get_sub_system_data_case7(a_id, products, T)
         )
         power_supply = RefSource(
             "Power supply",                     # Node id
-            OperationalProfile(max_outtake),    # Cap, installed capacity
+            FixedProfile(10),                   # Cap, installed capacity
             OperationalProfile(El_cost),        # Variable operational cost per unit produced
             FixedProfile(0),                    # Fixed operational cost per unit produced
             Dict(Power => 1),                   # The generated resources with conversion value 1
@@ -288,7 +299,7 @@ function get_sub_system_data_case7(a_id, products, T)
         EV_charger_change_factors = [1, El_change_factor[3] / El_change_factor[2]] # Since the EV_charger is introduced in 2030, the El_change_factor is shifted such that the initial profile is not scaled (starting at the second strategic period) # Since the EV_charger is introduced in 2030, the El_change_factor is shifted such that the initial profile is not scaled (starting at the second strategic period)
         EV_charger_demand = [
             if i == 1
-                OperationalProfile(0.0 * ones(24))
+                FixedProfile(0.0)
             else
                 OperationalProfile(
                     EV_charger_demand_day * EV_charger_change_factors[i-1],

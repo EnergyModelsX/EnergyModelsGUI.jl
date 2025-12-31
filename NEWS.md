@@ -1,5 +1,21 @@
 # Release notes
 
+## Version 0.6.3 (2026-01-06)
+
+### Bugfix
+
+* Fix bug that did not show the backgruond map of the topology when exporting to .svg-format.
+
+### Enhancements
+
+* Adjust `descriptive_names` to new elements in `EnergyModelsFlex`.
+
+### Adjustments
+
+* Use `Downloads` instead of `HTTP` to download `.geojson` files. This resolves warning and uses a standard julia library that is faster to load.
+* Cleaned up `test/case7.jl`.
+* Add a white background to `.svg`-files.
+
 ## Version 0.6.2 (2025-12-18)
 
 ### Bugfix

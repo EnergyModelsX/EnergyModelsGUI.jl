@@ -329,8 +329,8 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
             alignmode = Inside(),
         )
 
-        if isempty(vars[:map_boundary_file])
-            # Plot coast lines
+        # Plot coast lines
+        if isempty(vars[:map_boundary_file]) # Use default coast lines
             if vars[:coarse_coast_lines] # Use low resolution coast lines
                 boundary = GeoMakie.land()
             else # Use high resolution coast lines
@@ -343,7 +343,7 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
 
                 # Download the file if it doesn't exist in the temporary directory
                 if !isfile(local_file_path)
-                    HTTP.download(url, local_file_path)
+                    Downloads.download(url, local_file_path)
                 end
 
                 # Now read the data from the file
@@ -352,21 +352,10 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
                 # Create GeoMakie plotable object
                 boundary = GeoMakie.to_multipoly(boundary_geo_json.geometry)
             end
-        else
+        else # Use user-provided coast lines
             boundary_geo_json = GeoJSON.read(read(vars[:map_boundary_file], String))
             boundary = GeoMakie.to_multipoly(boundary_geo_json.geometry)
         end
-        poly!(
-            ax,
-            boundary;
-            color = :honeydew,
-            colormap = :dense,
-            strokecolor = :gray50,
-            strokewidth = 0.5,
-            inspectable = false,
-            depth_shift = 1.0f0 - 2.0f-5,
-            stroke_depth_shift = 1.0f0 - 3.0f-5,
-        )
         ocean_coords = [(180, -90), (-180, -90), (-180, 90), (180, 90)]
         poly!(
             ax,
@@ -377,6 +366,17 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
             inspectable = false,
             depth_shift = 1.0f0,
             stroke_depth_shift = 1.0f0 - 1.0f-5,
+        )
+        poly!(
+            ax,
+            boundary;
+            color = :honeydew,
+            colormap = :dense,
+            strokecolor = :gray50,
+            strokewidth = 0.5,
+            inspectable = false,
+            depth_shift = 1.0f0 - 2.0f-5,
+            stroke_depth_shift = 1.0f0 - 3.0f-5,
         )
     else # The design does not use the EnergyModelsGeography package: Create a simple Makie axis
         ax = Axis(

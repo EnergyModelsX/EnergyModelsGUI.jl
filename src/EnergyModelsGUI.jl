@@ -48,7 +48,7 @@ using DataFrames
 using GeoMakie, GeoJSON
 
 # Needed to download the .json file for geographical coastlines
-using HTTP
+using Downloads
 
 # Use PrettyTables to enable printing data to the REPL
 using PrettyTables
