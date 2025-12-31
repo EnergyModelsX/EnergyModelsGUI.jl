@@ -78,6 +78,14 @@ function export_svg(
         r"height=\".*?\"" => "height=\"$h\"",
         count = 3,
     )
+
+    # Add white background
+    svg_str1, header = extract_svg(svg)
+    svg =
+        header *
+        """<rect x="$ox" y="$(sh - oy - h)" width="$w" height="$h" fill="white"/> """ *
+        svg_str1 * "</svg>\n"
+
     open(filename, "w") do io
         print(io, svg)
     end
