@@ -4,7 +4,7 @@
 
 ### Bugfix
 
-* Fix bug that did not show the backgruond map of the topology when exporting to .svg-format.
+* Fix bug that did not show the background map of the topology when exporting to .svg-format.
 
 ### Enhancements
 
@@ -77,7 +77,7 @@
 
 ### Enhancements
 
-* Use `Float32` instead of `Number`/`Real`/`Float64` for coordinate related computations in topo (also `Point2f` instead of `Tuple` and `Vector`). 
+* Use `Float32` instead of `Number`/`Real`/`Float64` for coordinate related computations in topo (also `Point2f` instead of `Tuple` and `Vector`).
 * Remove redundant `notify_component` function and `Observable`s (use the `@lift` macro instead).
 * Improve performance of updates to `ax_info`.
 * Add missing tests for show-function on the types `AbstractSystem` and `ProcInvData`, and improve code structure.

@@ -33,7 +33,6 @@ Compute the outer bounding box of the axis `ax` with additional `padding`.
 """
 function outer_bbox(ax::Makie.AbstractAxis; padding::Number = 0)
     sbb = ax.layoutobservables.suggestedbbox[]
-    # prot = ax.layoutobservables.protrusions[]
     prot = ax.layoutobservables.reporteddimensions[].outer
     o = sbb.origin .- (prot.left, prot.bottom) .- padding
     w = sbb.widths .+ (prot.left + prot.right, prot.bottom + prot.top) .+ 2 * padding
