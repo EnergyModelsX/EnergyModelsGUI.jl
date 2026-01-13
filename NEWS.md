@@ -1,6 +1,6 @@
 # Release notes
 
-## Version 0.6.3 (2026-01-06)
+## Version 0.6.3 (2026-01-13)
 
 ### Bugfix
 
