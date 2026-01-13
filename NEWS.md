@@ -1,5 +1,21 @@
 # Release notes
 
+## Version 0.6.3 (2026-01-13)
+
+### Bugfix
+
+* Fix bug that did not show the background map of the topology when exporting to .svg-format.
+
+### Enhancements
+
+* Adjust `descriptive_names` to new elements in `EnergyModelsFlex`.
+
+### Adjustments
+
+* Use `Downloads` instead of `HTTP` to download `.geojson` files. This resolves warning and uses a standard julia library that is faster to load.
+* Cleaned up `test/case7.jl`.
+* Add a white background to `.svg`-files.
+
 ## Version 0.6.2 (2025-12-18)
 
 ### Bugfix
@@ -61,7 +77,7 @@
 
 ### Enhancements
 
-* Use `Float32` instead of `Number`/`Real`/`Float64` for coordinate related computations in topo (also `Point2f` instead of `Tuple` and `Vector`). 
+* Use `Float32` instead of `Number`/`Real`/`Float64` for coordinate related computations in topo (also `Point2f` instead of `Tuple` and `Vector`).
 * Remove redundant `notify_component` function and `Observable`s (use the `@lift` macro instead).
 * Improve performance of updates to `ax_info`.
 * Add missing tests for show-function on the types `AbstractSystem` and `ProcInvData`, and improve code structure.

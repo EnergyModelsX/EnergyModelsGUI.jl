@@ -27,49 +27,66 @@ function merge_svg_strings(svg1, svg2)
 end
 
 """
+    outer_bbox(ax::Makie.AbstractAxis; padding::Number = 0)
+
+Compute the outer bounding box of the axis `ax` with additional `padding`.
+"""
+function outer_bbox(ax::Makie.AbstractAxis; padding::Number = 0)
+    sbb = ax.layoutobservables.suggestedbbox[]
+    prot = ax.layoutobservables.reporteddimensions[].outer
+    o = sbb.origin .- (prot.left, prot.bottom) .- padding
+    w = sbb.widths .+ (prot.left + prot.right, prot.bottom + prot.top) .+ 2 * padding
+    return Rect2f(o, w)
+end
+
+"""
+    get_svg(blockscene::Makie.Scene)
+
+Get the SVG representation of the `blockscene`.
+"""
+function get_svg(blockscene::Makie.Scene)
+    svg = mktempdir() do dir
+        save(joinpath(dir, "output.svg"), blockscene; backend = CairoMakie)
+        read(joinpath(dir, "output.svg"), String)
+    end
+    return svg
+end
+
+"""
     export_svg(ax::Makie.Block, filename::String)
 
 Export the `ax` to a .svg file with path given by `filename`.
+
+!!! note "Temporary approach"
+    This approach awaits solution from issue https://github.com/MakieOrg/Makie.jl/issues/4500
 """
 function export_svg(
     ax::Makie.Block, filename::String; legend::Union{Makie.Legend,Nothing} = nothing,
 )
-    bb = ax.layoutobservables.suggestedbbox[]
-    protrusions = ax.layoutobservables.reporteddimensions[].outer
-
-    offset = 0 #ax.spinewidth[] / 2
-    axis_bb = Rect2f(
-        bb.origin .- (protrusions.left, protrusions.bottom) .- offset,
-        bb.widths .+
-        (protrusions.left + protrusions.right, protrusions.bottom + protrusions.top) .+
-        2 * offset,
+    bbox = outer_bbox(ax)
+    _, sh = ax.blockscene.viewport[].widths
+    ox, oy = bbox.origin
+    w, h = bbox.widths
+    svg_ax = get_svg(ax.blockscene)
+    svg_legend = isnothing(legend) ? "" : get_svg(legend.blockscene)
+    svg = merge_svg_strings(svg_ax, svg_legend)
+    svg = replace(
+        svg,
+        r"viewBox=\".*?\"" => "viewBox=\"$ox $(sh - oy - h) $w $h\"",
+        r"width=\".*?\"" => "width=\"$w\"",
+        r"height=\".*?\"" => "height=\"$h\"",
+        count = 3,
     )
 
-    pad = 5
+    # Add white background
+    svg_str1, header = extract_svg(svg)
+    svg =
+        header *
+        """<rect x="$ox" y="$(sh - oy - h)" width="$w" height="$h" fill="white"/> """ *
+        svg_str1 * "</svg>\n"
 
-    ws = axis_bb.widths
-    o = axis_bb.origin
-    width = "$(ws[1] + 2 * pad)pt"
-    height = "$(ws[2] + 2 * pad)pt"
-
-    # Temporary hack to fix viewBox for SVG export:
-    # Based on the default (1920,1080) resolution, set hack such that
-    # [:results]: when ws[2] is 575.80005 then hack should be 202.442, and
-    # [:topo]:    when ws[2] is 1001.0    then hack should be 953.000
-    # Awaiting solution from issue https://github.com/MakieOrg/Makie.jl/issues/4500
-    # pad should arguably also be set to 0 when solution is found
-    hack = 202.442 + (ws[2] - 575.80005) * (953.000 - 202.442) / (1001.0 - 575.80005)
-    viewBox = "$(o[1] - pad) $(o[2] - hack + ws[2] - pad) $(ws[1] + 2 * pad) $(ws[2] + 2 * pad)"
-
-    svgstring_ax = repr(MIME"image/svg+xml"(), ax.blockscene)
-    svgstring_legend =
-        isnothing(legend) ? "" : repr(MIME"image/svg+xml"(), legend.blockscene)
-    svgstring = merge_svg_strings(svgstring_ax, svgstring_legend)
-    svgstring = replace(svgstring, r"""(?<=width=")[^"]*(?=")""" => width; count = 1)
-    svgstring = replace(svgstring, r"""(?<=height=")[^"]*(?=")""" => height; count = 1)
-    svgstring = replace(svgstring, r"""(?<=viewBox=")[^"]*(?=")""" => viewBox; count = 1)
     open(filename, "w") do io
-        print(io, svgstring)
+        print(io, svg)
     end
     return 0
 end

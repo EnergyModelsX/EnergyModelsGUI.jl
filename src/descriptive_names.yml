@@ -1,4 +1,4 @@
-# This file contains description of EMX element fields (and potential sub-fields) and variables 
+# This file contains description of EMX element fields (and potential sub-fields) and variables
 # with fields of type TimeStruct.TimeProfile and fields that cannot be inherited
 # from supertypes.
 structures:
@@ -86,7 +86,7 @@ structures:
 
     HydroGenerator:
       cap:                    "Installed discharge or power capacity"
-      
+
     HydroPump:
       cap:                    "Installed pumping capacity"
 
@@ -142,6 +142,13 @@ structures:
     CCSRetroFit:
       opex_var:               "Variable operating expense per unit of CO₂ captured"
 
+  EnergyModelsFlex:
+    ## links/datastructures.jl
+    CapacityCostLink:
+      cap:                    "Installed capacity"
+      cap_price:              "Price of capacity usage"
+      cap_price_periods:      "The number of sub periods in an investment period"
+
 
 variables:
   # EnergyModelsBase
@@ -184,7 +191,7 @@ variables:
   linepack_stor_level:      "Storage level in linepack"
   emissions_trans:          "Emissions of a transmission mode"
 
-  # EnergyModelsInvestment 
+  # EnergyModelsInvestment
   cap_capex:                "Absolute CAPEX for investments in the capacity of a technology"
   cap_invest_b:             "Binary indicator of capacity investments"
   cap_remove_b:             "Binary indicator of capacity investments removal"
@@ -262,11 +269,13 @@ variables:
 
   # EnergyModelsFlex
   input_frac_strat:         "Input resource fraction"
-  load_shift_from:          "Load shift from"  
-  load_shift_to:            "Load shift to"  
+  load_shift_from:          "Load shift from"
+  load_shift_to:            "Load shift to"
   load_shifted:             "Load shifted"
-  sink_surplus_p:           "Penalties for surplus of resource"  
-  sink_deficit_p:           "Penalties for deficits of resource"  
+  sink_surplus_p:           "Penalties for surplus of resource"
+  sink_deficit_p:           "Penalties for deficits of resource"
+  ccl_cap_use_cost:         "Cost over sub periods"
+  ccl_cap_use_max:          "Maximum capacity usage over sub periods"
 
 # Overview of total quantities and their components
 total:
@@ -275,6 +284,8 @@ total:
     opex_fixed:             "Total absolute fixed OPEX"
     trans_opex_var:         "Total absolute variable transmission OPEX"
     trans_opex_fixed:       "Total absolute fixed transmission OPEX"
+    link_opex_var:          "Total absolute variable link OPEX"
+    link_opex_fixed:        "Total absolute fixed link OPEX"
   capex_fields:
     cap_capex:              "Total absolute CAPEX for investments in the capacity of technologies"
     stor_level_capex:       "Total absolute CAPEX for investments in the capacity of storages"
