@@ -1,5 +1,12 @@
 # Release notes
 
+## Version 0.7.0 (2026-04-17)
+
+### Breaking changes
+
+* Adjusted to [`EnergyModelsBase` v0.10.0](https://github.com/EnergyModelsX/EnergyModelsBase.jl/releases/tag/v0.10.0) and the corresponding dependency changes in the packages.
+* The changes did not require any adjustments, but a breaking change is beneficial to be able to provide bugfixes for previous versions.
+
 ## Version 0.6.3 (2026-01-13)
 
 ### Bugfix

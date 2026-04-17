@@ -1,6 +1,6 @@
 name = "EnergyModelsGUI"
 uuid = "737a7361-d3b7-40e9-b1ac-59bee4c5ea2d"
-version = "0.6.3"
+version = "0.7.0"
 authors = ["Jon Vegard Venås <JonVegard.Venas@sintef.no>", "Dimitri Pinel <Dimitri.Pinel@sintef.no>", "Magnus Askeland <Magnus.Askeland@sintef.no>", "Shweta Tiwari <Shweta.Tiwari@sintef.no>"]
 
 [deps]
@@ -41,9 +41,9 @@ Colors = "0.13"
 DataFrames = "1"
 Dates = "1"
 Downloads = "1"
-EnergyModelsBase = "0.9"
-EnergyModelsGeography = "0.11.3"
-EnergyModelsInvestments = "0.8"
+EnergyModelsBase = "0.10"
+EnergyModelsGeography = "0.12"
+EnergyModelsInvestments = "0.9"
 FileIO = "1"
 GLMakie = "0.13"
 GeoJSON = "0.8"
