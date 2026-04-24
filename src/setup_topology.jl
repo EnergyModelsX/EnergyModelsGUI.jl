@@ -48,13 +48,13 @@ function EnergySystemDesign(
         # Collect all (lon, lat) coordinates from elements that have them
         coords = [
             Point2f(element.lon, element.lat)
-            for element in get_children(system)
+            for element ∈ get_children(system)
         ]
 
         # Compute all pairwise distances
         min_dist = Inf
-        for i in 1:length(coords)-1
-            for j in i+1:length(coords)
+        for i ∈ 1:(length(coords)-1)
+            for j ∈ (i+1):length(coords)
                 dist = l2_norm(coords[i] - coords[j])
                 if dist < min_dist
                     min_dist = dist

@@ -534,15 +534,15 @@ function get_investment_times(gui::GUI, max_inst::Float64)
                 for investment_indicator ∈ investment_indicators # important not to use shorthand loop syntax here due to the break command (exiting both loops in that case)
                     sym = Symbol(investment_indicator)
                     if haskey(model, sym) &&
-                    !isempty(model[sym]) &&
-                    element ∈ axes(model[sym])[1]
+                       !isempty(model[sym]) &&
+                       element ∈ axes(model[sym])[1]
                         val = value(model[sym][element, t])
                         if val > get_var(gui, :tol) * max_inst
                             capex::Float64 = 0.0
                             for capex_field ∈ capex_fields
                                 capex_key = Symbol(capex_field[1])
                                 if haskey(model, capex_key) &&
-                                element ∈ axes(model[capex_key])[1]
+                                   element ∈ axes(model[capex_key])[1]
                                     capex += value(model[capex_key][element, t])
                                 end
                             end
