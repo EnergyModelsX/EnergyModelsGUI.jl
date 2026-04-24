@@ -4,6 +4,7 @@ Power:           "#045993" # blue
 power:           "#045993" # blue
 Hydrogen:        "#009DAD" # cyan
 H2:              "#009DAD" # cyan
+H₂:              "#009DAD" # cyan
 Cooling:         "#00DBDB" # aqua
 Resource:        "#C059A1" # pink
 Waste:           "#DB6000" # orange
@@ -12,6 +13,7 @@ WarmWater:       "#75499C" # purple
 ResourceCarrier: "#C059A1" # pink
 Biomass:         "#118011" # green
 NG:              "#B88505" # goldenrod
+CH₄:             "#B88505" # goldenrod
 Oil:             "#DBB500" # gold
 ResourceEmit:    "#606060" # gray
 CO2:             "#606060" # gray
@@ -20,3 +22,6 @@ Coal:            "#6D392E" # brown
 Water:           "#bfefff" # sky blue
 HeatLT:          "#fbdfb0" # :navajowhite
 HeatHT:          "#e78582" # :lightcoral
+Ammonia:         "#007C79" # dark teal
+NH3:             "#007C79" # dark teal
+NH₃:             "#007C79" # dark teal
