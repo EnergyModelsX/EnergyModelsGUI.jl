@@ -32,6 +32,7 @@ function EnergySystemDesign(
     icon::String = "",
     parent::AbstractGUIObj = NothingDesign(),
     level::Int64 = 0,
+    radius::Float32 = 0.1f0,
 )
     # Create the path to the file where existing design is stored (if any)
     file::String = design_file(system, design_path)
@@ -41,6 +42,28 @@ function EnergySystemDesign(
         YAML.load_file(file)
     else
         Dict()
+    end
+
+    if isa(system, SystemGeo)
+        # Collect all (lon, lat) coordinates from elements that have them
+        coords = [
+            Point2f(element.lon, element.lat)
+            for element ∈ get_children(system)
+        ]
+
+        # Compute all pairwise distances
+        min_dist = Inf
+        for i ∈ 1:(length(coords)-1)
+            for j ∈ (i+1):length(coords)
+                dist = l2_norm(coords[i] - coords[j])
+                if dist < min_dist
+                    min_dist = dist
+                end
+            end
+        end
+
+        # Set radius to a third of the minimal distance such that expanded nodes do not overlap
+        radius = min_dist / 3
     end
 
     # Complete the `id_to_color_map` if some products are lacking (this is done by choosing
@@ -98,7 +121,7 @@ function EnergySystemDesign(
                     xy = xy_parent
                 else # place nodes in a circle around the parents availability node
                     xy = place_nodes_in_circle(
-                        nodes_count, current_node, 1.0f0, xy_parent,
+                        nodes_count, current_node, radius, xy_parent,
                     )
                     current_node += 1
                 end
@@ -119,6 +142,7 @@ function EnergySystemDesign(
                     icon = find_icon(this_sys, id_to_icon_map),
                     parent = design,
                     level = level + 1,
+                    radius = radius,
                 ),
             )
         end
