@@ -502,6 +502,15 @@ get_values(vals::DataFrame, ts::Vector) = vals[in.(vals.t, Ref(ts)), :val]
 get_values(vals::TimeProfile, ts::Vector) = vals[ts]
 
 """
+    get_inv_objs(obj::AbstractElement)
+
+Get the objects for which investment information should be stored for a given `AbstractElement`. 
+By default, this is just the element itself, but for some elements (e.g., `Transmission`) it can 
+be relevant to also store the investment information of related objects (e.g., its modes).
+"""
+get_inv_objs(obj::AbstractElement) = [obj]
+
+"""
     get_investment_times(gui::GUI, max_inst::Float64)
 
 Calculate when investments has taken place and store the information. An investement is
@@ -516,29 +525,32 @@ function get_investment_times(gui::GUI, max_inst::Float64)
     period_labels = get_var(gui, :periods_labels)
     model = get_model(gui)
     for component ∈ get_root_design(gui)
-        element = get_element(component)
+        # Ensure to include both the component itself and its modes (in case of a transmission) when checking for investments
+        elements = get_inv_objs(get_element(component))
         investment_times = String[]
         investment_capex = Float64[]
-        for (i, t) ∈ enumerate(𝒯ᴵⁿᵛ)
-            for investment_indicator ∈ investment_indicators # important not to use shorthand loop syntax here due to the break command (exiting both loops in that case)
-                sym = Symbol(investment_indicator)
-                if haskey(model, sym) &&
-                   !isempty(model[sym]) &&
-                   element ∈ axes(model[sym])[1]
-                    val = value(model[sym][element, t])
-                    if val > get_var(gui, :tol) * max_inst
-                        capex::Float64 = 0.0
-                        for capex_field ∈ capex_fields
-                            capex_key = Symbol(capex_field[1])
-                            if haskey(model, capex_key) &&
-                               element ∈ axes(model[capex_key])[1]
-                                capex += value(model[capex_key][element, t])
+        for element ∈ elements
+            for (i, t) ∈ enumerate(𝒯ᴵⁿᵛ)
+                for investment_indicator ∈ investment_indicators # important not to use shorthand loop syntax here due to the break command (exiting both loops in that case)
+                    sym = Symbol(investment_indicator)
+                    if haskey(model, sym) &&
+                    !isempty(model[sym]) &&
+                    element ∈ axes(model[sym])[1]
+                        val = value(model[sym][element, t])
+                        if val > get_var(gui, :tol) * max_inst
+                            capex::Float64 = 0.0
+                            for capex_field ∈ capex_fields
+                                capex_key = Symbol(capex_field[1])
+                                if haskey(model, capex_key) &&
+                                element ∈ axes(model[capex_key])[1]
+                                    capex += value(model[capex_key][element, t])
+                                end
                             end
+                            t_str = split(period_labels[i], " ")[1]
+                            push!(investment_times, t_str)
+                            push!(investment_capex, capex)
+                            break # Do not add the capex again for other elements in investment_indicators
                         end
-                        t_str = split(period_labels[i], " ")[1]
-                        push!(investment_times, t_str)
-                        push!(investment_capex, capex)
-                        break # Do not add the capex again for other elements in investment_indicators
                     end
                 end
             end
