@@ -189,6 +189,14 @@ Map types to header symbols for saving results.
 """
 EMGUI._type_to_header(::Type{<:TransmissionMode}) = :element
 
+"""
+    EMGUI.get_inv_objs(obj::Transmission)
+
+Get the objects for which investment information should be stored for a given `Transmission`. 
+This includes obj itself but also its modes.
+"""
+EMGUI.get_inv_objs(obj::Transmission) = [obj, modes(obj)...]
+
 ############################################################################################
 ## From info_axis_utils.jl
 """

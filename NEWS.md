@@ -1,5 +1,17 @@
 # Release notes
 
+## Version 0.7.1 (2026-04-24)
+
+### Bugfix
+
+* Fix bug that resulted in arbitrary evaluated lat-lon coordinates for children of `Area`s due to the arbitrary default radius of 1.0 if not provided by the design `.yml` input files. The bug is resolved by first computing minimal distance between areas and letting the new radius be a third of this distance.
+* Fix issue when the transmissions/links is not properly defined (e.g., `from` or `to` objects not sharing resource).
+* Fix missing investments in transmission modes in the Investment overview.
+
+### Enhancements
+
+* Add more colors for resources aliases.
+
 ## Version 0.7.0 (2026-04-17)
 
 ### Breaking changes
