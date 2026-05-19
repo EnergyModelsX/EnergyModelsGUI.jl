@@ -229,6 +229,10 @@ function connect!(gui::GUI, connection::Connection, two_way::Bool)
             any(style == inv_linestyle for style ∈ linestyles) ? [inv_linestyle] : [:solid]
     else
         colors = get_colors(connection)
+        if isempty(colors)
+            @warn "No resources transmitted for connection $(get_element(connection).id). Skipping."
+            return
+        end
         no_colors = length(colors)
         linestyle = linestyles
     end
