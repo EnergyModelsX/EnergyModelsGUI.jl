@@ -4,7 +4,7 @@
 
 ### Adjustments
 
-* If coordinates have not been saved to a design file for the nodes under an `Area`, they are now placed *symetrically* around the circle (that is, acounting for one node being the `GeoAvailability` node to be placed at the center).
+* If coordinates have not been saved to a design file for the nodes under an `Area`, they are now placed *symmetrically* around the circle (that is, accounting for one node being the `GeoAvailability` node to be placed at the center).
 * The default value for the radius of the circle for placing nodes without coordinates is now a third of the minimal distance between area coordinates defined in the `top_level` design file.
 
 ## Version 0.7.1 (2026-04-24)
