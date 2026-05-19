@@ -44,12 +44,42 @@ function EnergySystemDesign(
         Dict()
     end
 
+    # Complete the `id_to_color_map` if some products are lacking (this is done by choosing
+    # colors for the lacking `Resource`s that are most distinct to the existing set of colors)
+    if !issubset(get_products(system), keys(id_to_color_map))
+        id_to_color_map = set_colors(get_products(system), id_to_color_map)
+    end
+
+    # Initialize components and connections
+    components = EnergySystemDesign[]
+    connections = Connection[]
+
+    # Create an iterator for the current system
+    elements = get_children(system)
+
+    # Calculate radius for node placement if system is a SystemGeo (i.e. contains geographical information)
     if isa(system, SystemGeo)
-        # Collect all (lon, lat) coordinates from elements that have them
-        coords = [
-            Point2f(element.lon, element.lat)
-            for element ∈ get_children(system)
-        ]
+        coordinates_missing = false
+        coords = Point2f[]
+        for element ∈ elements
+            # Extract available information from file (stored in the `design_dict` variable)
+            key::String = string(element)
+            system_info::Dict = haskey(design_dict, key) ? design_dict[key] : Dict()
+            if haskey(system_info, "x") && haskey(system_info, "y")
+                xy = Point2f(system_info["x"], system_info["y"])
+                push!(coords, xy)
+            else
+                coordinates_missing = true
+                break
+            end
+        end
+        if coordinates_missing
+            # Collect all (lon, lat) coordinates from elements that have them
+            coords = [
+                Point2f(element.lon, element.lat)
+                for element ∈ get_children(system)
+            ]
+        end
 
         # Compute all pairwise distances
         min_dist = Inf
@@ -65,19 +95,6 @@ function EnergySystemDesign(
         # Set radius to a third of the minimal distance such that expanded nodes do not overlap
         radius = min_dist / 3
     end
-
-    # Complete the `id_to_color_map` if some products are lacking (this is done by choosing
-    # colors for the lacking `Resource`s that are most distinct to the existing set of colors)
-    if !issubset(get_products(system), keys(id_to_color_map))
-        id_to_color_map = set_colors(get_products(system), id_to_color_map)
-    end
-
-    # Initialize components and connections
-    components = EnergySystemDesign[]
-    connections = Connection[]
-
-    # Create an iterator for the current system
-    elements = get_children(system)
 
     design = EnergySystemDesign(
         system,
@@ -99,6 +116,11 @@ function EnergySystemDesign(
     if !isnothing(elements)
         current_node::Int64 = 1
         nodes_count = length(get_children(system))
+        if !isa(parent, NothingDesign) && isa(get_system(parent), SystemGeo)
+            # If the parent is a SystemGeo, we subtract one to the nodes count to account 
+            # for the availability node that is placed in the center
+            nodes_count -= 1
+        end
 
         # Loop through all components of `system`
         for element ∈ elements
