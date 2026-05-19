@@ -14,6 +14,8 @@ ResourceCarrier: "#C059A1" # pink
 Biomass:         "#118011" # green
 NG:              "#B88505" # goldenrod
 CH₄:             "#B88505" # goldenrod
+CH4:             "#B88505" # goldenrod
+Methane:         "#B88505" # goldenrod
 Oil:             "#DBB500" # gold
 ResourceEmit:    "#606060" # gray
 CO2:             "#606060" # gray
