@@ -1,5 +1,17 @@
 # Release notes
 
+## Version 0.6.4 (2026-05-19)
+
+### Bugfix
+
+* Fix bug that resulted in arbitrary evaluated lat-lon coordinates for children of `Area`s due to the arbitrary default radius of 1.0 if not provided by the design `.yml` input files. The bug is resolved by first computing minimal distance between areas and letting the new radius be a third of this distance.
+* Fix issue when the transmissions/links is not properly defined (*e.g.*, `from` or `to` objects not sharing resource).
+* Fix missing investments in transmission modes in the Investment overview.
+
+### Enhancements
+
+* Add more colors for resources aliases.
+
 ## Version 0.6.3 (2026-01-13)
 
 ### Bugfix
@@ -20,7 +32,7 @@
 
 ### Bugfix
 
-* Fix missing header type for type `Int` used in the exported function `save_results` (e.g., for the variable `:discharge_segment` in `EnergyModelsRenewableProducers`).
+* Fix missing header type for type `Int` used in the exported function `save_results` (*e.g.*, for the variable `:discharge_segment` in `EnergyModelsRenewableProducers`).
 
 ## Version 0.6.1 (2025-12-17)
 
