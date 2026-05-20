@@ -58,7 +58,7 @@ You should then get the following GUI:
        The location of these files can be assigned through the `design_path` input parameter to the `GUI` function (this feature has the shortcut `ctrl+s`).
     6. `reset view`: Reset the view to the optimal view based on the current system if the view has been altered (this feature has the shortcut `ctrl+r`).
     7. `Expand all`: Toggle this to show/hide all components of all `Area`s.
-    8. `Simplified`: Toggle this to use simplified connection plotting for all hierarchical levels.
+    8. `Simplified`: Toggle this to use simplified connection plotting for the current level by default; it also applies to expanded sub-levels when `Expand all` is enabled, or when `simplify_all_levels` was enabled when constructing the GUI.
     9. `Alpha`: Adjust the transparency of the components not being invested in.
 
 !!! note "Top right text areas"

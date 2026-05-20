@@ -99,9 +99,10 @@ Type for storing processed investment data.
 
 # Fields
 
-- **`id::String`** is the identifier of the element associated with the investment data.
+- **`id::String`** is the identifier for structures that have `TransmissionModes` 
+  (default is thus an empty string).
 - **`inv_times::Vector{String}`** is a vector of formatted strings for added investments.
-- **`capex::Vector{Number}`** contains the capex of all times with added investments.
+- **`capex::Vector{Float64}`** contains the capex of all times with added investments.
 - **`invested::Observable{Bool}`** indicates if the element has been invested in.
 """
 mutable struct ProcInvData
