@@ -261,7 +261,7 @@ function Connection(
         instantiate_inv_data(connection),
         Makie.AbstractPlot[],
         Makie.AbstractPlot[],
-        fill(Observable(1.0f0), length(colors)),
+        [Observable(1.0f0) for _ in 1:length(colors)],
     )
 end
 

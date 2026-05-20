@@ -364,7 +364,8 @@ function define_event_functions(gui::GUI)
 
     # Alpha slider: Handle change in alpha slider for non-investment connections
     on(alpha_slider.value; priority = 10) do val
-        get_var(gui, :alpha)[] = val
+        alpha = get_var(gui, :alpha)
+        alpha[] = convert(eltype(alpha), val)
         return Consume(false)
     end
 

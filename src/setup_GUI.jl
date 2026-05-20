@@ -545,7 +545,7 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
     alpha_slider = Makie.Slider(
         gridlayout_taskbar[1, 12];
         range = 0:0.01:1,
-        startvalue = vars[:alpha],
+        startvalue = vars[:alpha][],
         width = 100 * vars[:fontsize] / 12,
     )
 
