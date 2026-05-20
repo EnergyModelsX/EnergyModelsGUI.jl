@@ -347,6 +347,7 @@ function connect!(gui::GUI, connection::Connection, two_way::Bool)
     end
 
     for j ∈ 1:no_colors
+        alpha = @lift $simplified ? $max_alpha : $(alphas[j])
         pts_lines = @lift $triple[3][j]
         lns = lines!(
             ax,
@@ -358,7 +359,7 @@ function connect!(gui::GUI, connection::Connection, two_way::Bool)
             inspectable = true,
             depth_shift = get_var(gui, :depth_shift_lines),
             visible = visible_plot,
-            alpha = alphas[j],
+            alpha = alpha,
         )
         lns.kw[:EMGUI_obj] = connection
         push!(get_plots(connection), lns)

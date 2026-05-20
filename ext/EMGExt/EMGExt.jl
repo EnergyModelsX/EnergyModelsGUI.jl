@@ -93,7 +93,7 @@ function EMGUI.ProcInvData(element::TransmissionMode)
     return EMGUI.ProcInvData(
         EMGUI.get_element_label(element),
         String[],
-        Vector{Number}(),
+        Float64[],
         Observable(false),
     )
 end

@@ -104,14 +104,14 @@ Type for storing processed investment data.
 - **`capex::Vector{Number}`** contains the capex of all times with added investments.
 - **`invested::Observable{Bool}`** indicates if the element has been invested in.
 """
-mutable struct ProcInvData{T<:Number}
+mutable struct ProcInvData
     id::String
     inv_times::Vector{String}
-    capex::Vector{T}
+    capex::Vector{Float64}
     invested::Observable{Bool}
 end
 function ProcInvData(::Any)
-    return ProcInvData("", String[], Vector{Number}(), Observable(false))
+    return ProcInvData("", String[], Float64[], Observable(false))
 end
 
 """
@@ -654,12 +654,10 @@ get_plots(conn::Connection, simplified::Bool) =
 
 """
     get_inv_times(data::ProcInvData)
-    get_inv_times(design::AbstractGUIObj)
 
-Returns the `inv_times` field of a `ProcInvData`/`AbstractGUIObj` object `data`.
+Returns the `inv_times` field of a `ProcInvData` object `data`.
 """
 get_inv_times(data::ProcInvData) = data.inv_times
-get_inv_times(design::AbstractGUIObj) = get_inv_times(get_inv_data(design))
 
 """
     get_capex(data::ProcInvData)
@@ -672,7 +670,7 @@ get_capex(data::ProcInvData) = data.capex
     has_invested(data::ProcInvData)
     has_invested(data::EnergySystemDesign)
 
-Returns a boolean indicator if investment has occured.
+Returns an observable of the boolean indicator for if investment has occured.
 """
 has_invested(data::ProcInvData) = data.invested
 has_invested(design::EnergySystemDesign) = has_invested(get_inv_data(design)[1])
