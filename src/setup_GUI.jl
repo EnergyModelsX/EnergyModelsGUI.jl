@@ -550,7 +550,7 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
     )
 
     # Add the following to add flexibility
-    Makie.Label(gridlayout_taskbar[1, 11], " "; tellwidth = false)
+    Makie.Label(gridlayout_taskbar[1, 13], " "; tellwidth = false)
 
     # Add buttons related to the ax_results object (where the optimization results are plotted)
     Makie.Label(

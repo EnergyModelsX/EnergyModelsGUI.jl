@@ -261,7 +261,7 @@ function Connection(
         instantiate_inv_data(connection),
         Makie.AbstractPlot[],
         Makie.AbstractPlot[],
-        [Observable(1.0f0) for _ in 1:length(colors)],
+        [Observable(1.0f0) for _ ∈ 1:length(colors)],
     )
 end
 
@@ -663,23 +663,19 @@ get_inv_times(design::AbstractGUIObj) = get_inv_times(get_inv_data(design))
 
 """
     get_capex(data::ProcInvData)
-    get_capex(design::AbstractGUIObj)
 
-Returns the `capex` of the investments of a `ProcInvData`/`AbstractGUIObj` object `data`.
+Returns the `capex` of the investments of a `ProcInvData` object `data`.
 """
 get_capex(data::ProcInvData) = data.capex
-get_capex(design::AbstractGUIObj) = get_capex(get_inv_data(design))
 
 """
     has_invested(data::ProcInvData)
     has_invested(data::EnergySystemDesign)
-    has_invested(data::Connection)
 
 Returns a boolean indicator if investment has occured.
 """
 has_invested(data::ProcInvData) = data.invested
 has_invested(design::EnergySystemDesign) = has_invested(get_inv_data(design)[1])
-has_invested(design::Connection) = has_invested(get_inv_data(design))
 
 """
     get_inv_data(obj::AbstractGUIObj)

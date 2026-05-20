@@ -324,8 +324,12 @@ function connect!(gui::GUI, connection::Connection, two_way::Bool)
     visible_plot = @lift $visible && ($simplified == simplified_initial)
     markersize = @lift data_to_pixel(gui, marker_to_box_ratio * $Δh)
     alphas = get_alpha(connection)
+    max_alpha = lift(alphas...) do a...
+        maximum(a)
+    end
 
     for j ∈ 1:no_colors
+        alpha = @lift $simplified ? $max_alpha : $(alphas[j])
         sctr = scatter!(
             ax,
             xy_midpoints;
@@ -336,7 +340,7 @@ function connect!(gui::GUI, connection::Connection, two_way::Bool)
             inspectable = false,
             depth_shift = get_var(gui, :depth_shift_lines),
             visible = visible_plot,
-            alpha = alphas[j],
+            alpha = alpha,
         )
         sctr.kw[:EMGUI_obj] = connection
         push!(get_plots(connection), sctr)
