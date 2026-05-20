@@ -22,6 +22,8 @@ pin_plot_button = get_button(gui, :pin_plot)
 expand_all_toggle = get_toggle(gui, :expand_all)
 simplified_toggle = get_toggle(gui, :simplified)
 
+alpha_slider = get_slider(gui, :alpha)
+
 # Test specific GUI functionalities
 @testset "Test interactivity" verbose = true begin
     op_cost = [3371970.00359, 5382390.00598, 2010420.00219]
@@ -176,6 +178,32 @@ simplified_toggle = get_toggle(gui, :simplified)
                 i_selected = available_data_menu_2.i_selected[]
                 str = options[i_selected][2].description * " ($name) [$trans_mode]"
                 @test options[i_selected][1] == str
+            end
+        end
+    end
+
+    @testset "Test changing alpha value" begin
+        alpha_slider_2 = get_slider(gui_2, :alpha)
+        Bergen_Trondheim = connections_2[2]
+
+        pick_component!(gui_2, Bergen_Trondheim, :topo)
+        update!(gui_2)
+
+        new_alpha = 0.5f0
+        alpha_slider_2.value[] = new_alpha
+
+        # Test that a TransmissionMode has updated its value
+        @test all(plot.alpha[] == new_alpha for plot ∈ get_plots(Bergen_Trondheim))
+
+        # Test that a node in the Oslo area has updated its value
+        Oslo = components_2[1]
+        node1 = get_component(Oslo, 7) # fetch node n_7
+        @test all(plot.alpha[] == new_alpha for plot ∈ get_plots(node1))
+
+        # Test that links to the n_7 node also have the updated alpha value
+        for connection ∈ get_connections(Oslo)
+            if node1 == connection.from || node1 == connection.to
+                @test all(plot.alpha[] == new_alpha for plot ∈ get_plots(connection))
             end
         end
     end

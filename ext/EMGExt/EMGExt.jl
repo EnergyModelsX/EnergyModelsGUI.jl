@@ -5,6 +5,7 @@ using EnergyModelsBase
 using EnergyModelsInvestments
 using EnergyModelsGeography
 using EnergyModelsGUI
+using GLMakie
 
 const TS = TimeStruct
 const EMG = EnergyModelsGeography
@@ -81,6 +82,30 @@ function EMGUI.get_plotables(system::EMGUI.SystemGeo)
         get_areas(system),
         modes(get_transmissions(system)),
     )
+end
+
+"""
+    EMGUI.ProcInvData(element::TransmissionMode)
+
+Constructor for an `ProcInvData` object on a `TransmissionMode` `element`. 
+"""
+function EMGUI.ProcInvData(element::TransmissionMode)
+    return EMGUI.ProcInvData(
+        EMGUI.get_element_label(element),
+        String[],
+        Vector{Number}(),
+        Observable(false),
+    )
+end
+
+"""
+    instantiate_inv_data(element::Transmission)
+
+Instantiate the `inv_data` field for a `Transmission` by creating a vector 
+of `ProcInvData` for each mode.
+"""
+function EMGUI.instantiate_inv_data(element::Transmission)
+    return [EMGUI.ProcInvData(mode) for mode ∈ modes(element)]
 end
 
 ############################################################################################
@@ -193,9 +218,8 @@ EMGUI._type_to_header(::Type{<:TransmissionMode}) = :element
     EMGUI.get_inv_objs(obj::Transmission)
 
 Get the objects for which investment information should be stored for a given `Transmission`. 
-This includes obj itself but also its modes.
 """
-EMGUI.get_inv_objs(obj::Transmission) = [obj, modes(obj)...]
+EMGUI.get_inv_objs(obj::Transmission) = modes(obj)
 
 ############################################################################################
 ## From info_axis_utils.jl

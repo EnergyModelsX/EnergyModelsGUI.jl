@@ -99,17 +99,30 @@ Type for storing processed investment data.
 
 # Fields
 
+- **`id::String`** is the identifier of the element associated with the investment data.
 - **`inv_times::Vector{String}`** is a vector of formatted strings for added investments.
 - **`capex::Vector{Number}`** contains the capex of all times with added investments.
-- **`invested::Bool`** indicates if the element has been invested in.
+- **`invested::Observable{Bool}`** indicates if the element has been invested in.
 """
-struct ProcInvData{T<:Number}
+mutable struct ProcInvData{T<:Number}
+    id::String
     inv_times::Vector{String}
     capex::Vector{T}
-    invested::Bool
+    invested::Observable{Bool}
 end
-function ProcInvData()
-    return ProcInvData(String[], Vector{Number}(), false)
+function ProcInvData(::Any)
+    return ProcInvData("", String[], Vector{Number}(), Observable(false))
+end
+
+"""
+    instantiate_inv_data(element::AbstractElement)
+
+Instantiate the `inv_data` field for an `AbstractElement` by creating a vector of `ProcInvData`.
+This function can be specialized for different types of `AbstractElement` to handle specific cases, 
+such as `Transmission` where multiple modes may require separate `ProcInvData` instances.
+"""
+function instantiate_inv_data(element::AbstractElement)
+    return [ProcInvData(element)]
 end
 
 """
@@ -136,11 +149,13 @@ energy system designs in Julia.
   for changes and represented as a Symbol.
 - **`file::String`** is the filename or path associated with the `EnergySystemDesign`.
 - **`visible::Observable{Bool}`** indicates whether the system is visible, observed for changes.
-- **`inv_data::ProcInvData`** stores processed investment data.
+- **`inv_data::Vector{ProcInvData}`** stores processed investment data.
 - **`plots::Vector{Makie.AbstractPlot}`** is a vector with all Makie object associated with 
   this object.
 - **`simplified::Observable{Bool}`** indicates whether the system uses a simplified 
   representation of its plotted connections, observed for changes.
+- **`alpha::Observable{Float32}`** is the alpha value for the system's connections, observed for changes. 
+  The alpha value is used to toggle the visibility of the nodes when investments have occurred.
 """
 mutable struct EnergySystemDesign <: AbstractGUIObj
     system::AbstractSystem
@@ -155,9 +170,10 @@ mutable struct EnergySystemDesign <: AbstractGUIObj
     wall::Observable{Symbol}
     file::String
     visible::Observable{Bool}
-    inv_data::ProcInvData
+    inv_data::Vector{ProcInvData}
     plots::Vector{Makie.AbstractPlot}
     simplified::Observable{Bool}
+    alpha::Observable{Float32}
 end
 function EnergySystemDesign(
     system::AbstractSystem,
@@ -186,9 +202,10 @@ function EnergySystemDesign(
         wall,
         file,
         visible,
-        ProcInvData(),
+        instantiate_inv_data(get_element(system)),
         Makie.AbstractPlot[],
         Observable(false),
+        Observable(1.0f0),
     )
 end
 
@@ -207,11 +224,14 @@ Mutable type for providing a flexible data structure for connections between
 - **`connection::AbstractElement`** is the EMX connection structure.
 - **`parent::EnergySystemDesign`** is the parent EnergySystemDesign of the connection.
 - **`colors::Vector{RGBA{Float32}}`** is the associated colors of the connection.
-- **`inv_data::ProcInvData`** stores processed investment data.
+- **`inv_data::Vector{ProcInvData}`** stores processed investment data.
 - **`regular_plots::Vector{Makie.AbstractPlot}`** is a vector with 
   all regular plots associated with the connection.
 - **`simplified_plots::Vector{Makie.AbstractPlot}`** is a vector with 
   all simplified plots associated with the connection.
+- **`alpha::Vector{Observable{Float32}}`** is the alpha value of the connection, observed for changes.
+  For each line it controls the alpha value, which is used to toggle the visibility of the line when 
+  the connection has not been invested in.
 """
 mutable struct Connection <: AbstractGUIObj
     from::EnergySystemDesign
@@ -219,9 +239,10 @@ mutable struct Connection <: AbstractGUIObj
     connection::AbstractElement
     parent::EnergySystemDesign
     colors::Vector{RGBA{Float32}}
-    inv_data::ProcInvData
+    inv_data::Vector{ProcInvData}
     regular_plots::Vector{Makie.AbstractPlot}
     simplified_plots::Vector{Makie.AbstractPlot}
+    alpha::Vector{Observable{Float32}}
 end
 function Connection(
     from::EnergySystemDesign,
@@ -237,9 +258,10 @@ function Connection(
         connection,
         parent,
         colors,
-        ProcInvData(),
+        instantiate_inv_data(connection),
         Makie.AbstractPlot[],
         Makie.AbstractPlot[],
+        fill(Observable(1.0f0), length(colors)),
     )
 end
 
@@ -280,6 +302,8 @@ The main type for the realization of the GUI.
   gui.axes[:results] object.
 - **`toggles::Dict{Symbol,Makie.Toggle}`** is a dictionary of the GLMakie toggles linked
   to the gui.axes[:results] object.
+- **`sliders::Dict{Symbol,Makie.Slider}`** is a dictionary of the GLMakie sliders linked
+  to the gui.axes[:results] object.
 - **`root_design::EnergySystemDesign`** is the data structure used for the root topology.
 - **`design::EnergySystemDesign`** is the data structure used for visualizing the topology.
 - **`model::Union{Model, Dict}`** contains the optimization results.
@@ -293,6 +317,7 @@ mutable struct GUI
     buttons::Dict{Symbol,Makie.Button}
     menus::Dict{Symbol,Makie.Menu}
     toggles::Dict{Symbol,Makie.Toggle}
+    sliders::Dict{Symbol,Makie.Slider}
     root_design::EnergySystemDesign
     design::EnergySystemDesign
     model::Union{Model,Dict}
@@ -647,12 +672,14 @@ get_capex(design::AbstractGUIObj) = get_capex(get_inv_data(design))
 
 """
     has_invested(data::ProcInvData)
-    has_invested(data::AbstractGUIObj)
+    has_invested(data::EnergySystemDesign)
+    has_invested(data::Connection)
 
 Returns a boolean indicator if investment has occured.
 """
 has_invested(data::ProcInvData) = data.invested
-has_invested(design::AbstractGUIObj) = has_invested(get_inv_data(design))
+has_invested(design::EnergySystemDesign) = has_invested(get_inv_data(design)[1])
+has_invested(design::Connection) = has_invested(get_inv_data(design))
 
 """
     get_inv_data(obj::AbstractGUIObj)
@@ -674,6 +701,13 @@ get_visible(obj::AbstractGUIObj) = obj.visible
 Returns the `parent` field of a `AbstractGUIObj` `obj`.
 """
 get_parent(obj::AbstractGUIObj) = obj.parent
+
+"""
+    get_alpha(obj::AbstractGUIObj)
+
+Returns the `alpha` field of a `AbstractGUIObj` `obj`.
+"""
+get_alpha(obj::AbstractGUIObj) = obj.alpha
 
 """
     get_fig(gui::GUI)
@@ -744,6 +778,13 @@ get_menu(gui::GUI, menu_name::Symbol) = gui.menus[menu_name]
 Returns the `toggle` with name `toggle_name` of a `GUI` `gui`.
 """
 get_toggle(gui::GUI, toggle_name::Symbol) = gui.toggles[toggle_name]
+
+"""
+    get_slider(gui::GUI, slider_name::Symbol)
+
+Returns the `slider` with name `slider_name` of a `GUI` `gui`.
+"""
+get_slider(gui::GUI, slider_name::Symbol) = gui.sliders[slider_name]
 
 """
     get_root_design(gui::GUI)

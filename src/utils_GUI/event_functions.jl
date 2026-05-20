@@ -12,6 +12,7 @@ function define_event_functions(gui::GUI)
     expand_all_toggle = get_toggle(gui, :expand_all)
     expand_all = get_var(gui, :expand_all)
     simplified_toggle = get_toggle(gui, :simplified)
+    alpha_slider = get_slider(gui, :alpha)
 
     # On zooming, make sure all graphics are adjusted acordingly
     on(ax_topo.finallimits; priority = 10) do finallimits
@@ -358,6 +359,12 @@ function define_event_functions(gui::GUI)
     on(simplified_toggle.active; priority = 10) do val
         design = get_design(gui)
         toggle_simplified!(gui, design, val)
+        return Consume(false)
+    end
+
+    # Alpha slider: Handle change in alpha slider for non-investment connections
+    on(alpha_slider.value; priority = 10) do val
+        get_var(gui, :alpha)[] = val
         return Consume(false)
     end
 

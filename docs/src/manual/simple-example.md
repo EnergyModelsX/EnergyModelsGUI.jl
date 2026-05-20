@@ -58,6 +58,8 @@ You should then get the following GUI:
        The location of these files can be assigned through the `design_path` input parameter to the `GUI` function (this feature has the shortcut `ctrl+s`).
     6. `reset view`: Reset the view to the optimal view based on the current system if the view has been altered (this feature has the shortcut `ctrl+r`).
     7. `Expand all`: Toggle this to show/hide all components of all `Area`s.
+    8. `Simplified`: Toggle this to use simplified connection plotting for all hierarchical levels.
+    9. `Alpha`: Adjust the transparency of the components not being invested in.
 
 !!! note "Top right text areas"
     The first text area (to the left) shows some tips of using the GUI by defult, but is temporarily changed upon a selection of an EMX object in which information of this object is shown.

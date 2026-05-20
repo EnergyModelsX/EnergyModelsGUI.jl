@@ -89,6 +89,7 @@ function create_EMI_geography_images()
         coarse_coast_lines = false,
         scale_tot_opex = true,
         scale_tot_capex = false,
+        alpha = 0.5,
     )
 
     # Create examples.png image

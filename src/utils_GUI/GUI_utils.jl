@@ -358,17 +358,25 @@ function initialize_available_data!(gui)
         println(io, "Total investment cost: $(format_number(total_capex))\n")
         has_investments::Bool = false
         for obj ∈ design
-            inv_times = get_inv_times(obj)
-            if !isempty(inv_times)
-                if !has_investments
-                    println(io, "Investment overview (CAPEX):")
-                    has_investments = true
-                end
-                capex = get_capex(obj)
-                label = get_element_label(obj)
-                println(io, "\t", label, ":")
-                for (t, capex) ∈ zip(inv_times, capex)
-                    println(io, "\t\t", t, ": ", format_number(capex))
+            inv_data = get_inv_data(obj)
+            label = get_element_label(obj)
+            for d ∈ inv_data
+                tabs = "\t"
+                inv_times = get_inv_times(d)
+                if !isempty(inv_times)
+                    if !has_investments
+                        println(io, "Investment overview (CAPEX):")
+                        has_investments = true
+                    end
+                    println(io, tabs, label, ":")
+                    if !isempty(d.id)
+                        tabs *= "\t"
+                        println(io, tabs, d.id, ":")
+                    end
+                    capex = get_capex(d)
+                    for (t, capex) ∈ zip(inv_times, capex)
+                        println(io, tabs, "\t", t, ": ", format_number(capex))
+                    end
                 end
             end
         end
@@ -526,10 +534,12 @@ function get_investment_times(gui::GUI, max_inst::Float64)
     model = get_model(gui)
     for component ∈ get_root_design(gui)
         # Ensure to include both the component itself and its modes (in case of a transmission) when checking for investments
+        alpha = get_alpha(component)
         elements = get_inv_objs(get_element(component))
-        investment_times = String[]
-        investment_capex = Float64[]
-        for element ∈ elements
+        for (e, element) ∈ enumerate(elements)
+            investment_times = String[]
+            investment_capex = Float64[]
+            has_inv::Bool = false
             for (i, t) ∈ enumerate(𝒯ᴵⁿᵛ)
                 for investment_indicator ∈ investment_indicators # important not to use shorthand loop syntax here due to the break command (exiting both loops in that case)
                     sym = Symbol(investment_indicator)
@@ -537,6 +547,7 @@ function get_investment_times(gui::GUI, max_inst::Float64)
                        !isempty(model[sym]) &&
                        element ∈ axes(model[sym])[1]
                         val = value(model[sym][element, t])
+                        has_inv = true
                         if val > get_var(gui, :tol) * max_inst
                             capex::Float64 = 0.0
                             for capex_field ∈ capex_fields
@@ -554,9 +565,27 @@ function get_investment_times(gui::GUI, max_inst::Float64)
                     end
                 end
             end
-        end
-        if !isempty(investment_times)
-            component.inv_data = ProcInvData(investment_times, investment_capex, true)
+            inv_data = component.inv_data[e]
+            if !isempty(investment_times)
+                inv_data.inv_times = investment_times
+                inv_data.capex = investment_capex
+                inv_data.invested[] = true
+            elseif has_inv
+                if isa(alpha, Vector)
+                    alpha[e] = get_var(gui, :alpha)
+                else
+                    component.alpha = get_var(gui, :alpha)
+
+                    # Set alpha also for all connections to/from the component
+                    for connection ∈ get_connections(get_parent(component))
+                        if connection.to == component || connection.from == component
+                            for e ∈ 1:length(get_alpha(connection))
+                                connection.alpha[e] = get_var(gui, :alpha)
+                            end
+                        end
+                    end
+                end
+            end
         end
     end
 end
