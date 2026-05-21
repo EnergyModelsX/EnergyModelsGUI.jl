@@ -53,6 +53,8 @@ to the old EnergyModelsX `case` dictionary.
   plotting for all hierarchical levels.
 - **`map_boundary_file::String=""`** is the path to a .geojson file containing
   geographical boundary data for plotting to be used instead of the default coastlines.
+- **`alpha::Number=1.0`** is the alpha value for non-invested connections 
+  and nodes in the topology design.
 
 !!! warning "Reading model results from CSV-files"
     Reading model results from a directory (*i.e.*, `model::String` implying that the results
@@ -87,6 +89,7 @@ function GUI(
     simplified_connection_plotting::Bool = false,
     simplify_all_levels::Bool = false,
     map_boundary_file::String = "",
+    alpha::Number = 1.0,
 )
     # Generate the system topology:
     @info raw"Setting up the topology design structure"
@@ -134,6 +137,7 @@ function GUI(
         :simplify_all_levels => simplify_all_levels,
         :marker_to_box_ratio => 0.4, # Ratio between marker size and `Node` box size
         :map_boundary_file => map_boundary_file,
+        :alpha => Observable(Float32(alpha)),
         :autolimits => Dict(
             :results_op => true,
             :results_sc => true,
@@ -148,7 +152,7 @@ function GUI(
         ),
     )
 
-    # gobal variables for legends
+    # global variables for legends
     vars[:color_box_padding_px] = 25               # Padding around the legends
     vars[:color_boxes_width_px] = 20               # Width of the rectangles for the colors in legends
     vars[:color_boxes_height_px] = vars[:fontsize] # Height of the rectangles for the colors in legends
@@ -213,7 +217,8 @@ function GUI(
     vars[:ctrl_is_pressed] = Ref(false)
 
     # Construct the makie figure and its objects
-    fig, buttons, menus, toggles, axes, legends = create_makie_objects(vars, root_design)
+    fig, buttons, menus, toggles, sliders, axes, legends =
+        create_makie_objects(vars, root_design)
 
     # Construct screen object
     manifest = Pkg.Operations.Context().env.manifest
@@ -228,7 +233,8 @@ function GUI(
 
     ## Create the main structure for the EnergyModelsGUI
     gui::GUI = GUI(
-        fig, screen, axes, legends, buttons, menus, toggles, root_design, design,
+        fig, screen, axes, legends, buttons, menus, toggles, sliders, root_design,
+        design,
         transfer_model(model, get_system(root_design)), vars,
     )
 
@@ -529,9 +535,22 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
         gridlayout_taskbar[1, 10];
         active = vars[:simplified_connection_plotting],
     )
+    Makie.Label(
+        gridlayout_taskbar[1, 11],
+        "Alpha:";
+        halign = :right,
+        fontsize = vars[:fontsize],
+        justification = :right,
+    )
+    alpha_slider = Makie.Slider(
+        gridlayout_taskbar[1, 12];
+        range = 0:0.01:1,
+        startvalue = vars[:alpha][],
+        width = 100 * vars[:fontsize] / 12,
+    )
 
     # Add the following to add flexibility
-    Makie.Label(gridlayout_taskbar[1, 11], " "; tellwidth = false)
+    Makie.Label(gridlayout_taskbar[1, 13], " "; tellwidth = false)
 
     # Add buttons related to the ax_results object (where the optimization results are plotted)
     Makie.Label(
@@ -695,6 +714,9 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
     toggles::Dict{Symbol,Makie.Toggle} =
         Dict(:expand_all => expand_all_toggle, :simplified => simplified_toggle)
 
+    # Collect all sliders into a dictionary
+    sliders::Dict{Symbol,Makie.Slider} = Dict(:alpha => alpha_slider)
+
     # Collect all axes into a dictionary
     axes::Dict{Symbol,Makie.Block} = Dict(
         :topo => ax, :results => ax_results, :info => ax_info, :summary => ax_summary,
@@ -710,5 +732,5 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
         depth_shift = -1.0f0,
     )
 
-    return fig, buttons, menus, toggles, axes, legends
+    return fig, buttons, menus, toggles, sliders, axes, legends
 end

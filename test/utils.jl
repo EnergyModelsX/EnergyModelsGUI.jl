@@ -23,6 +23,7 @@ import EnergyModelsGUI:
     get_var,
     get_xy,
     get_toggle,
+    get_slider,
     get_ax,
     update_info_box!,
     update_available_data_menu!,

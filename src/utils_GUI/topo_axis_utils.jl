@@ -315,29 +315,39 @@ function connect!(gui::GUI, connection::Connection, two_way::Bool)
     end
 
     # Extract observables from the tuple
-    xy_midpoints = @lift fill($triple[1], no_colors)
-    θs = @lift fill($triple[2], no_colors)
+    xy_midpoints = @lift $triple[1]
+    θs = @lift $triple[2]
 
     ax = get_ax(gui, :topo)
     visible = get_visible(parent)
     simplified_initial::Bool = simplified[]
     visible_plot = @lift $visible && ($simplified == simplified_initial)
     markersize = @lift data_to_pixel(gui, marker_to_box_ratio * $Δh)
-    sctr = scatter!(
-        ax,
-        xy_midpoints;
-        marker = arrow_parts,
-        markersize = markersize,
-        rotation = θs,
-        color = colors,
-        inspectable = false,
-        depth_shift = get_var(gui, :depth_shift_lines),
-        visible = visible_plot,
-    )
-    sctr.kw[:EMGUI_obj] = connection
-    push!(get_plots(connection), sctr)
+    alphas = get_alpha(connection)
+    max_alpha = lift(alphas...) do a...
+        maximum(a)
+    end
 
     for j ∈ 1:no_colors
+        alpha = @lift $simplified ? $max_alpha : $(alphas[j])
+        sctr = scatter!(
+            ax,
+            xy_midpoints;
+            marker = arrow_parts[j],
+            markersize = markersize,
+            rotation = θs,
+            color = colors[j],
+            inspectable = false,
+            depth_shift = get_var(gui, :depth_shift_lines),
+            visible = visible_plot,
+            alpha = alpha,
+        )
+        sctr.kw[:EMGUI_obj] = connection
+        push!(get_plots(connection), sctr)
+    end
+
+    for j ∈ 1:no_colors
+        alpha = @lift $simplified ? $max_alpha : $(alphas[j])
         pts_lines = @lift $triple[3][j]
         lns = lines!(
             ax,
@@ -349,6 +359,7 @@ function connect!(gui::GUI, connection::Connection, two_way::Bool)
             inspectable = true,
             depth_shift = get_var(gui, :depth_shift_lines),
             visible = visible_plot,
+            alpha = alpha,
         )
         lns.kw[:EMGUI_obj] = connection
         push!(get_plots(connection), lns)
@@ -447,6 +458,7 @@ function draw_box!(gui::GUI, design::EnergySystemDesign)
             depth_shift = get_var(gui, :depth_shift_components),
             stroke_depth_shift = get_var(gui, :depth_shift_components) - 1.0f-5,
             visible = get_visible(get_parent(design)),
+            alpha = get_alpha(design),
         ) # Create a white background rectangle to hide lines from connections
 
         add_inspector_to_poly!(white_rect2, (self, i, p) -> get_hover_string(design))
@@ -464,11 +476,12 @@ function draw_box!(gui::GUI, design::EnergySystemDesign)
         color = WHITE,
         inspectable = true,
         strokewidth = get_var(gui, :linewidth),
-        strokecolor = design.color,
+        strokecolor = get_color(design),
         linestyle = linestyle,
         depth_shift = get_var(gui, :depth_shift_components),
         stroke_depth_shift = get_var(gui, :depth_shift_components) - 1.0f-5,
         visible = get_visible(get_parent(design)),
+        alpha = get_alpha(design),
     ) # Create a white background rectangle to hide lines from connections
 
     add_inspector_to_poly!(white_rect, (self, i, p) -> get_hover_string(design))
@@ -552,6 +565,7 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
             depth_shift = get_var(gui, :depth_shift_components),
             stroke_depth_shift = get_var(gui, :depth_shift_components) - 1.0f-5,
             visible = get_visible(get_parent(design)),
+            alpha = get_alpha(design),
         )
         add_inspector_to_poly!(polys, (self, i, p) -> get_hover_string(design))
         polys.kw[:EMGUI_obj] = design
@@ -575,6 +589,7 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
                 depth_shift = get_var(gui, :depth_shift_components),
                 stroke_depth_shift = get_var(gui, :depth_shift_components) - 1.0f-5,
                 visible = get_visible(get_parent(design)),
+                alpha = get_alpha(design),
             )
 
             add_inspector_to_poly!(
@@ -599,6 +614,7 @@ function draw_icon!(gui::GUI, design::EnergySystemDesign)
             inspector_label = (self, i, p) -> get_hover_string(design),
             depth_shift = get_var(gui, :depth_shift_components),
             visible = get_visible(get_parent(design)),
+            alpha = get_alpha(design),
         )
         icon_image.kw[:EMGUI_obj] = design
         push!(get_plots(design), icon_image)
@@ -677,9 +693,10 @@ function draw_label!(gui::GUI, component::EnergySystemDesign)
         align = alignment_obs,
         fontsize = get_var(gui, :fontsize),
         inspectable = false,
-        color = has_invested(component) ? RED : BLACK,
+        color = has_invested(component)[] ? RED : BLACK,
         depth_shift = get_var(gui, :depth_shift_components),
         visible = get_visible(get_parent(component)),
+        alpha = get_alpha(component),
     )
     label_text.kw[:EMGUI_obj] = component
     push!(get_plots(component), label_text)
@@ -766,13 +783,22 @@ Return the string for a EMB.Node/Area/Link/Transmission to be shown on hovering.
 function get_hover_string(obj::AbstractGUIObj)
     element = get_element(obj)
     label = get_element_label(element)
-    inv_times = get_inv_times(obj)
+    inv_data = get_inv_data(obj)
     io = IOBuffer()
     print(io, "$label ($(nameof(typeof(element))))")
-    if !isempty(inv_times)
-        capex = get_capex(obj)
-        for (t, c) ∈ zip(inv_times, capex)
-            print(io, "\n\t", t, ": ", format_number(c))
+    for d ∈ inv_data
+        inv_times = get_inv_times(d)
+        tabs = ""
+        if !isempty(inv_times)
+            if !isempty(d.id)
+                tabs *= "\t"
+                print(io, "\n", tabs, d.id, ":")
+            end
+            capex = get_capex(d)
+            tabs *= "\t"
+            for (t, c) ∈ zip(inv_times, capex)
+                print(io, "\n", tabs, t, ": ", format_number(c))
+            end
         end
     end
     return String(take!(io))
