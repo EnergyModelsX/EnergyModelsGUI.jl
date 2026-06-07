@@ -423,7 +423,21 @@ function initialize_available_data!(gui)
                     ),
                 )
             end
-            df[!, :t] = convert_array(df[!, :t], get_all_periods(T))
+
+            t_vals = df[!, :t]
+            if all(x -> isa(x, AbstractString), t_vals)
+                periods_dict = get_all_periods(T)
+                missing_t = setdiff(unique(t_vals), collect(keys(periods_dict)))
+                if !isempty(missing_t)
+                    throw(
+                        ArgumentError(
+                            "Additional plot data contains unknown time values in column :t: "
+                            * join(string.(missing_t), ", ") * ".",
+                        ),
+                    )
+                end
+                df[!, :t] = convert_array(t_vals, periods_dict)
+            end
         else
             @warn "Additional plot data does not contain a 't' column. Creating a OperationalProfile."
             if length(df[!, 1]) > length(collect(T))
@@ -477,10 +491,7 @@ function get_data(data::DataFrame)
     # Make a copy of the DataFrame to avoid modifying the original one when renaming columns
     df = copy(data)
 
-    # Make sure the time column name is :t if present as string
-    if "t" ∈ names(df)
-        rename!(df, "t" => :t)
-    end
+    rename_time_column!(df)
     return df
 end
 
@@ -862,6 +873,11 @@ function get_total_sum_time(data::DataFrame, periods::Vector{<:TS.TimeStructure}
     return [sum(data[data.:t .== [t], :val]) for t ∈ periods]
 end
 
+"""
+    get_all_periods(𝒯::TimeStructure)
+
+Get all TimeStructures in `𝒯` as a dictionary with their string representation as keys.
+"""
 function get_all_periods(𝒯::TimeStructure)
     all_periods = Union{TS.TimePeriod,TS.TimeStructure}[]
     get_all_periods!(all_periods, 𝒯)
@@ -962,15 +978,34 @@ function transfer_model(model::String, system::AbstractSystem)
     return data
 end
 
+"""
+    read_csv(file::String)
+
+Read a CSV file and return it as a DataFrame. The time column is renamed to :t if it is 
+named "t", "sp", "rp", "osc", or "op".
+"""
 function read_csv(file::String)
     df = CSV.read(file, DataFrame)
+    rename_time_column!(df)
+    return df
+end
 
-    # Rename columns :sp, :rp, or :osc to :t if present. Note that the type of the
-    # time structure is available through the type of the column.
-    for col ∈ (:t, :sp, :rp, :osc, :op)
-        if string(col) ∈ names(df)
-            rename!(df, col => :t)
-        end
+"""
+    rename_time_column!(df::DataFrame)
+
+Rename the time column in `df` to :t if it is named "t", "sp", "rp", "osc", or "op". 
+If more than one of these columns are present, an error is thrown.
+"""
+function rename_time_column!(df::DataFrame)
+    time_cols = filter(c -> c ∈ names(df), ["t", "sp", "rp", "osc", "op"])
+    if length(time_cols) > 1
+        throw(
+            ArgumentError(
+                "Additional plot data must contain at most one time column (t/sp/rp/osc/op).",
+            ),
+        )
+    elseif length(time_cols) == 1
+        rename!(df, time_cols[1] => :t)
     end
     return df
 end

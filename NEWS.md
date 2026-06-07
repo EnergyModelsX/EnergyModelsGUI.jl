@@ -1,6 +1,6 @@
 # Release notes
 
-## Unversioned (2026-06-07)
+## Unversioned updates (2026-06-07)
 
 * Added functionality for adding additional plots.
 
