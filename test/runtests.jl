@@ -2,6 +2,8 @@ using EnergyModelsGUI
 using Test
 using YAML
 using Logging
+using CSV
+using DataFrames
 
 const TEST_ATOL = 1e-6
 const EMGUI = EnergyModelsGUI
