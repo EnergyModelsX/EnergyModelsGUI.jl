@@ -190,7 +190,7 @@ end
 
 """
     results_available(model::Model)
-    results_available(model::String)
+    results_available(model::Dict)
 
 Check if the model has a feasible solution.
 """
@@ -210,6 +210,7 @@ function initialize_available_data!(gui)
     design = get_root_design(gui)
     system = get_system(design)
     model = get_model(gui)
+    T = get_time_struct(gui)
     plotables = [nothing; vcat(get_elements_vec(system))...] # `nothing` here represents no selection
     gui.vars[:available_data] = Dict{Any,Vector{PlotContainer}}(
         element => Vector{PlotContainer}() for element ∈ plotables
@@ -217,7 +218,6 @@ function initialize_available_data!(gui)
 
     # Find appearances of node/area/link/transmission in the model
     if results_available(model)
-        T = get_time_struct(gui)
         mode_to_transmission = get_mode_to_transmission_map(system)
         for sym ∈ get_JuMP_names(gui)
             var = model[sym]
@@ -406,6 +406,93 @@ function initialize_available_data!(gui)
             append!(get_available_data(gui)[element], available_data)
         end
     end
+
+    # Add additional plots provided by the user 
+    element = nothing # Additional plots are not associated with a specific element
+    for (i, additional_plot) ∈ enumerate(get_var(gui, :additional_plots))
+        df = get_data(additional_plot["data"])
+        if isempty(df)
+            @warn "Additional plot data is empty. Skipping this plot."
+            continue
+        end
+        if "t" ∈ names(df)
+            if !allunique(df[!, :t])
+                throw(
+                    ArgumentError(
+                        "Additional plot data must have unique values in column :t.",
+                    ),
+                )
+            end
+
+            t_vals = df[!, :t]
+            if all(x -> isa(x, AbstractString), t_vals)
+                periods_dict = get_all_periods(T)
+                missing_t = setdiff(unique(t_vals), collect(keys(periods_dict)))
+                if !isempty(missing_t)
+                    throw(
+                        ArgumentError(
+                            "Additional plot data contains unknown time values in column :t: "
+                            * join(string.(missing_t), ", ") * ".",
+                        ),
+                    )
+                end
+                df[!, :t] = convert_array(t_vals, periods_dict)
+            end
+        else
+            @warn "Additional plot data does not contain a 't' column. Creating a OperationalProfile."
+            if length(df[!, 1]) > length(collect(T))
+                throw(
+                    ArgumentError(
+                        "Additional plot data has more rows than the number of time periods in the model.",
+                    ),
+                )
+            end
+            df[!, :t] = collect(T)[1:length(df[!, 1])]
+        end
+        for col ∈ names(df)
+            if !(eltype(df[!, col]) <: Number)
+                continue
+            end
+            if isa(additional_plot["data"], String)
+                descriptive_name = basename(additional_plot["data"]) * " - " * string(col)
+            else
+                descriptive_name = "Additional plot $i - " * string(col)
+            end
+            val = df[!, col]
+
+            # Normalize the data if requested by the user
+            if haskey(additional_plot, "normalize") && additional_plot["normalize"]
+                if !all(val .== 0)
+                    val = val ./ maximum(abs.(val))
+                    descriptive_name *= " (normalized)"
+                end
+            end
+            container = GlobalDataContainer(
+                string(col),
+                [element],
+                DataFrame(t = df[!, :t], val = val),
+                descriptive_name,
+            )
+            push!(get_available_data(gui)[element], container)
+        end
+    end
+end
+
+"""
+    get_data(data::String)
+    get_data(data::DataFrame)
+
+Get the data from a string path to a CSV file or directly from a DataFrame.
+"""
+function get_data(data::String)
+    return read_csv(data)
+end
+function get_data(data::DataFrame)
+    # Make a copy of the DataFrame to avoid modifying the original one when renaming columns
+    df = copy(data)
+
+    rename_time_column!(df)
+    return df
 end
 
 """
@@ -738,12 +825,18 @@ function get_descriptive_names(model::Model, descriptive_names::Dict{Symbol,Any}
 end
 
 """
-    select_data!(gui::GUI, name::String; selection::Vector = Any[])
+    select_data!(gui::GUI, name::String; selection::Vector = Any[], fun::Function = findfirst)
 
 Select the data with name `name` from the `available_data` menu. If `selection` is provided, 
-it is used to further specify which data to select.
+it is used to further specify which data to select. The `fun` argument is used to specify the 
+function for finding the data in the menu (default is `findfirst`).
 """
-function select_data!(gui::GUI, name::String; selection::Vector = Any[])
+function select_data!(
+    gui::GUI,
+    name::String;
+    selection::Vector = Any[],
+    fun::Function = findfirst,
+)
     # Fetch the available data menu object
     menu = get_menu(gui, :available_data)
 
@@ -751,9 +844,9 @@ function select_data!(gui::GUI, name::String; selection::Vector = Any[])
 
     # Find menu number for data with name `name`
     if isempty(selection)
-        i_selected = findfirst(x -> get_name(x[2]) == name, items)
+        i_selected = fun(x -> get_name(x[2]) == name, items)
     else
-        i_selected = findfirst(
+        i_selected = fun(
             x -> get_name(x[2]) == name && issubset(selection, get_selection(x[2])),
             items,
         )
@@ -778,6 +871,17 @@ function get_total_sum_time(
 end
 function get_total_sum_time(data::DataFrame, periods::Vector{<:TS.TimeStructure})
     return [sum(data[data.:t .== [t], :val]) for t ∈ periods]
+end
+
+"""
+    get_all_periods(𝒯::TimeStructure)
+
+Get all TimeStructures in `𝒯` as a dictionary with their string representation as keys.
+"""
+function get_all_periods(𝒯::TimeStructure)
+    all_periods = Union{TS.TimePeriod,TS.TimeStructure}[]
+    get_all_periods!(all_periods, 𝒯)
+    return get_repr_dict(unique(all_periods))
 end
 
 """
@@ -845,9 +949,7 @@ function transfer_model(model::String, system::AbstractSystem)
         𝒯 = get_time_struct(system)
 
         results = Vector{Pair{Symbol,DataFrame}}(undef, length(files))
-        all_periods = Union{TS.TimePeriod,TS.TimeStructure}[]
-        get_all_periods!(all_periods, 𝒯)
-        periods_dict = get_repr_dict(unique(all_periods))
+        periods_dict = get_all_periods(𝒯)
         products_dict = get_repr_dict(get_products(system))
         plotables_dict = get_repr_dict(get_plotables(system))
 
@@ -855,16 +957,7 @@ function transfer_model(model::String, system::AbstractSystem)
             file = files[i]
             varname = Symbol(basename(file)[1:(end-4)])
 
-            df = CSV.read(file, DataFrame)
-
-            # Rename columns :sp, :op, or :osc to :t if present. Note that the type of the
-            # time structure is available through the type of the column.
-            for col ∈ (:sp, :rp, :osc)
-                if string(col) ∈ names(df)
-                    rename!(df, col => :t)
-                end
-            end
-
+            df = read_csv(file)
             col_names = names(df)
             df[!, :t] = convert_array(df[!, :t], periods_dict)
             if "res" ∈ col_names
@@ -883,6 +976,38 @@ function transfer_model(model::String, system::AbstractSystem)
         @warn "The model must be a directory containing the results. No results loaded."
     end
     return data
+end
+
+"""
+    read_csv(file::String)
+
+Read a CSV file and return it as a DataFrame. The time column is renamed to :t if it is 
+named "t", "sp", "rp", "osc", or "op".
+"""
+function read_csv(file::String)
+    df = CSV.read(file, DataFrame)
+    rename_time_column!(df)
+    return df
+end
+
+"""
+    rename_time_column!(df::DataFrame)
+
+Rename the time column in `df` to :t if it is named "t", "sp", "rp", "osc", or "op". 
+If more than one of these columns are present, an error is thrown.
+"""
+function rename_time_column!(df::DataFrame)
+    time_cols = filter(c -> c ∈ names(df), ["t", "sp", "rp", "osc", "op"])
+    if length(time_cols) > 1
+        throw(
+            ArgumentError(
+                "Additional plot data must contain at most one time column (t/sp/rp/osc/op).",
+            ),
+        )
+    elseif length(time_cols) == 1
+        rename!(df, time_cols[1] => :t)
+    end
+    return df
 end
 
 """

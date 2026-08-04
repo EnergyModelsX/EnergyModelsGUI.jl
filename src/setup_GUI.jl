@@ -55,6 +55,10 @@ to the old EnergyModelsX `case` dictionary.
   geographical boundary data for plotting to be used instead of the default coastlines.
 - **`alpha::Number=1.0`** is the alpha value for non-invested connections 
   and nodes in the topology design.
+- **`additional_plots::Vector{<:Dict}=Dict[]`** is a vector of dictionaries containing the information
+  for additional plots to be added to the GUI. Each dictionary should contain the following
+  keys: `data::Union{String, DataFrame}` (where providing string signalizes a path to a CSV file), 
+  and optionally `normalize::Bool` (whether to normalize the data, defaults to `false`).
 
 !!! warning "Reading model results from CSV-files"
     Reading model results from a directory (*i.e.*, `model::String` implying that the results
@@ -90,7 +94,29 @@ function GUI(
     simplify_all_levels::Bool = false,
     map_boundary_file::String = "",
     alpha::Number = 1.0,
+    additional_plots::Vector{<:Dict} = Dict[],
 )
+    errors = String[]
+    for additional_plot ∈ additional_plots
+        if !haskey(additional_plot, "data") ||
+           !isa(additional_plot["data"], Union{String,DataFrame})
+            push!(
+                errors,
+                "An entry in `additional_plots` is missing the required key " *
+                "`data`. The `data` field should contain either a string " *
+                "(path to a CSV file) or a DataFrame.",
+            )
+        end
+        if haskey(additional_plot, "normalize") && !isa(additional_plot["normalize"], Bool)
+            push!(
+                errors,
+                "The `normalize` key in `additional_plots` should be of type Bool.",
+            )
+        end
+    end
+    if !isempty(errors)
+        throw(ArgumentError(join(errors, " ")))
+    end
     # Generate the system topology:
     @info raw"Setting up the topology design structure"
     root_design::EnergySystemDesign = EnergySystemDesign(
@@ -150,6 +176,7 @@ function GUI(
             :results_rp => GLMakie.HyperRectangle(Vec2f(0, 0), Vec2f(1, 1)),
             :results_sp => GLMakie.HyperRectangle(Vec2f(0, 0), Vec2f(1, 1)),
         ),
+        :additional_plots => additional_plots,
     )
 
     # global variables for legends

@@ -190,7 +190,13 @@ function get_data(
     field_data = get_field_data(selection)
     if isa(selection, JuMPContainer)
         sym = Symbol(get_name(selection))
-        i_T, type = get_time_axis(model[sym])
+        _, type = get_time_axis(model[sym])
+    elseif isa(selection, GlobalDataContainer)
+        if isa(field_data, DataFrame)
+            _, type = get_time_axis(field_data)
+        else
+            type = nested_eltype(field_data)
+        end
     else
         type = nested_eltype(field_data)
     end
