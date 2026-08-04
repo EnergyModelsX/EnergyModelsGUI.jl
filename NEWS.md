@@ -9,6 +9,7 @@
 * The default value for the radius of the circle for placing nodes without coordinates is now a third of the minimal distance between area coordinates defined in the `top_level` design file.
 * Show investments into individual `TransmissionMode`s in the investment overview and in the information box appearing when hovering over an object.
 * Adjust node placement for the case without EMG and an Availability node present.
+* Bump versions of dependencies to latest versions.
 
 ### Enhancements
 
