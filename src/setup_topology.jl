@@ -115,10 +115,15 @@ function EnergySystemDesign(
     # (constructed as an EnergySystemDesign) to `components`
     if !isnothing(elements)
         current_node::Int64 = 1
-        nodes_count = length(get_children(system))
+        nodes_count = length(get_children(system)) # The number of nodes to be placed in a circle around the parent node if coordinates are not defined.
         if !isa(parent, NothingDesign) && isa(get_system(parent), SystemGeo)
             # If the parent is a SystemGeo, we subtract one to the nodes count to account 
             # for the availability node that is placed in the center
+            nodes_count -= 1
+        elseif isa(parent, NothingDesign) && any(isa.(elements, Availability))
+            # If the design is at top level and not a SystemGeo and any of the elements is 
+            # an Availability node, we subtract one to the nodes count to account for the 
+            # availability node that is placed in the center
             nodes_count -= 1
         end
 
