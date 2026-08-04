@@ -3,6 +3,10 @@
 
 ## Version 0.7.2 (2026-08-04)
 
+### Bugfix
+
+* Fix bug when pinning more than `length(colormap)` number of plots.
+
 ### Adjustments
 
 * If coordinates have not been saved to a design file for the nodes under an `Area`, they are now placed *symmetrically* around the circle (that is, accounting for one node being the `GeoAvailability` node to be placed at the center).

@@ -473,7 +473,7 @@ function update_plot!(gui::GUI, element)
             @debug "Could not find anything to overwrite, creating new plot instead"
             n_visible = length(get_visible_data(gui, time_axis)) + 1
             colormap = get_var(gui, :colormap)
-            i = (n_visible - 1 % length(colormap)) + 1
+            i = ((n_visible - 1) % length(colormap)) + 1
             color = colormap[i]
             if time_axis == :results_op
                 plot = stairs!(ax, points; step = :pre, label = label, color = color)
