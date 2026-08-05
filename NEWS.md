@@ -1,17 +1,23 @@
 # Release notes
 
 
-## Version 0.7.2 (2026-06-07)
+## Version 0.7.2 (2026-08-04)
+
+### Bugfix
+
+* Fix bug when pinning more than `length(colormap)` number of plots.
 
 ### Adjustments
 
 * If coordinates have not been saved to a design file for the nodes under an `Area`, they are now placed *symmetrically* around the circle (that is, accounting for one node being the `GeoAvailability` node to be placed at the center).
 * The default value for the radius of the circle for placing nodes without coordinates is now a third of the minimal distance between area coordinates defined in the `top_level` design file.
 * Show investments into individual `TransmissionMode`s in the investment overview and in the information box appearing when hovering over an object.
-* Added functionality for adding additional plots.
+* Adjust node placement for the case without EMG and an Availability node present.
+* Bump versions of dependencies to latest versions.
 
 ### Enhancements
 
+* Added functionality for adding additional plots.
 * Enabled the user to adjust the alpha value of EMGUI-objects not invested in.
 
 ## Version 0.7.1 (2026-04-24)
