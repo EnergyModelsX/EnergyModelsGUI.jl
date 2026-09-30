@@ -644,8 +644,15 @@ function update_limits!(ax::Axis)
     yorigin = ax.finallimits[].origin[2]
     ywidth = ax.finallimits[].widths[2]
 
-    # try to avoid legend box overlapping the plots
-    ylims!(ax, yorigin, yorigin + ywidth * 1.1)
+    if iszero(ywidth)
+        # Pad limits without a span (occuring for plots of constant data) to avoid
+        # errors when setting the limits
+        Δy = pad_amount(yorigin)
+        ylims!(ax, yorigin - Δy, yorigin + Δy)
+    else
+        # try to avoid legend box overlapping the plots
+        ylims!(ax, yorigin, yorigin + ywidth * 1.1)
+    end
 end
 
 """
@@ -658,8 +665,29 @@ function update_limits!(ax::Axis, limits::GLMakie.HyperRectangle)
     xmax = limits.origin[1] + limits.widths[1]
     ymin = limits.origin[2]
     ymax = limits.origin[2] + limits.widths[2]
+
+    # Pad limits without a span (occuring for, e.g., stored limits of plots of constant
+    # data where the widths vanish in Float32 precision) to avoid errors when setting
+    # the limits
+    if xmax ≤ xmin
+        Δx = pad_amount(xmin)
+        xmin -= Δx
+        xmax += Δx
+    end
+    if ymax ≤ ymin
+        Δy = pad_amount(ymin)
+        ymin -= Δy
+        ymax += Δy
+    end
     limits!(ax, xmin, xmax, ymin, ymax)
 end
+
+"""
+    pad_amount(val::Real)
+
+Return the amount with which degenerate axis limits around `val` are padded.
+"""
+pad_amount(val::Real) = max(abs(val) / 10, oftype(float(val), 0.1))
 
 """
     update_barplot_dodge!(gui::GUI)
