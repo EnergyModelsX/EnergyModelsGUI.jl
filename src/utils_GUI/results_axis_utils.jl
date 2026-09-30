@@ -252,6 +252,11 @@ end
 function get_periods(T::TS.TimeStructure, ::Type{<:TS.ScenarioPeriod})
     return collect(TS.opscenarios(T))
 end
+function get_periods(::TS.TimeStructure, ::Type{<:TS.PeriodPartition})
+    # Partitions may differ between elements and are instead extracted from the variable
+    # itself (see `get_var_periods`)
+    return TS.PeriodPartition[]
+end
 function get_periods(T::TS.TimeStructure, ::Type{<:Any})
     return collect(T)
 end
@@ -278,7 +283,11 @@ function get_time_axis(
 )
     types::Vector{Type} = collect(get_jump_axis_types(data))
     i_T::Union{Int64,Nothing} = findfirst(
-        x -> x <: TS.TimePeriod || x <: TS.TimeStructure{T} where {T}, types,
+        x ->
+            x <: TS.TimePeriod ||
+            x<:(TS.TimeStructure{T} where {T}) ||
+            x <: TS.PeriodPartition,
+        types,
     )
     if isnothing(i_T)
         return i_T, nothing

@@ -232,7 +232,14 @@ function initialize_available_data!(gui)
 
             for combination ∈ get_combinations(var, i_T)
                 selection = collect(combination)
-                field_data = extract_data_selection(var, selection, i_T, periods)
+                if type <: TS.PeriodPartition && isa(var, SparseVars)
+                    # Partitions may differ between elements; extract them from the
+                    # variable itself for the given selection
+                    periods_comb = get_var_periods(var, selection, i_T)
+                else
+                    periods_comb = periods
+                end
+                field_data = extract_data_selection(var, selection, i_T, periods_comb)
                 element = getfirst(x -> !isa(x, Resource), selection)
                 if !isa(element, AbstractElement) && !isnothing(element) # it must be a transmission
                     element = mode_to_transmission[element]
@@ -675,6 +682,38 @@ function get_investment_times(gui::GUI, max_inst::Float64)
             end
         end
     end
+end
+
+"""
+    get_var_periods(var::SparseVars, selection::Vector, i_T::Int64)
+
+Get the sorted time indices available in `var` at axis `i_T` for the combination
+`selection` of the remaining indices. This is required for variables indexed over
+`TS.PeriodPartition`s as the partitions may differ between elements.
+"""
+function get_var_periods(var::SparseVars, selection::Vector, i_T::Int64)
+    sel = Tuple(selection)
+    pds = [
+        key[i_T] for
+        key ∈ keys(var.data) if (key[1:(i_T-1)]..., key[(i_T+1):end]...) == sel
+    ]
+    return sort(pds; by = partition_sort_key)
+end
+
+"""
+    is_partition_data(container::PlotContainer)
+
+Return `true` if `container` holds data indexed over `TS.PeriodPartition`s, *i.e.*, a JuMP
+variable with a `TS.PeriodPartition` axis or a field of type `PartitionProfile`.
+"""
+is_partition_data(::PlotContainer) = false
+function is_partition_data(container::JuMPContainer)
+    field_data = get_field_data(container)
+    return eltype(first(axes(field_data))) <: TS.PeriodPartition
+end
+function is_partition_data(container::CaseDataContainer)
+    field_data = get_field_data(container)
+    return isa(field_data, TimeProfile) && nested_eltype(field_data) <: PartitionProfile
 end
 
 """
