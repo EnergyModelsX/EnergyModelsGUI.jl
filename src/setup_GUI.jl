@@ -591,10 +591,7 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
     )
     time_menu = Makie.Menu(
         gridlayout_results_taskbar1[1, 2];
-        options = zip(
-            ["Strategic", "Representative", "Scenario", "Operational", "Partition"],
-            [:results_sp, :results_rp, :results_sc, :results_op, :results_pt],
-        ),
+        options = zip(TIME_AXES_LABELS, TIME_AXES),
         halign = :left,
         width = 110 * vars[:fontsize] / 12,
         fontsize = vars[:fontsize],

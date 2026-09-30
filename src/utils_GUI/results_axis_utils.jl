@@ -489,7 +489,8 @@ function update_plot!(gui::GUI, element)
                     custom_ticks = (1:no_pts, scenarios_labels[1:no_pts])
                 end
             elseif time_axis == :results_pt
-                time_menu.i_selected[] = 5
+                # The partition axis is appended after the base time axes options
+                time_menu.i_selected[] = length(TIME_AXES) + 1
             end
         end
         if time_axis == :results_op

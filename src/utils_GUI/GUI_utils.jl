@@ -747,6 +747,40 @@ function update_available_data_menu!(gui::GUI, element)
     container = available_data[element]
     container_strings = create_label.(container)
     get_menu(gui, :available_data).options = zip(container_strings, container)
+    update_time_menu!(gui, element)
+end
+
+"""
+    has_partition_data(gui::GUI, element)
+
+Return `true` if `element` has available data indexed over `TS.PeriodPartition`s.
+"""
+function has_partition_data(gui::GUI, element)
+    return any(is_partition_data, get_available_data(gui)[element])
+end
+
+"""
+    update_time_menu!(gui::GUI, element)
+
+Update the options of the time menu based on `element`: The option for plotting data over
+`TS.PeriodPartition`s is only made available if `element` has data indexed over such
+partitions.
+"""
+function update_time_menu!(gui::GUI, element)
+    time_menu = get_menu(gui, :time)
+    labels = copy(TIME_AXES_LABELS)
+    time_axes = copy(TIME_AXES)
+    if has_partition_data(gui, element)
+        push!(labels, PARTITION_AXIS_LABEL)
+        push!(time_axes, PARTITION_AXIS)
+    end
+    if length(collect(time_menu.options[])) != length(time_axes)
+        # Reset the selection if the partition axis is removed while being selected
+        if time_menu.selection[] ∉ time_axes
+            time_menu.i_selected = 1
+        end
+        time_menu.options = zip(labels, time_axes)
+    end
 end
 
 """

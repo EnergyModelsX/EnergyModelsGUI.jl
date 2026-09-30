@@ -349,6 +349,14 @@ const JuMPContainer = PlotContainer{:JuMP}
 const CaseDataContainer = PlotContainer{:CaseData}
 const GlobalDataContainer = PlotContainer{:GlobalData}
 
+# Define the time axes of the results axis and their labels in the time menu. The
+# partition axis (PARTITION_AXIS) is appended to the base options only for elements
+# with data indexed over `TS.PeriodPartition`s
+const TIME_AXES_LABELS = ["Strategic", "Representative", "Scenario", "Operational"]
+const TIME_AXES = [:results_sp, :results_rp, :results_sc, :results_op]
+const PARTITION_AXIS_LABEL = "Partition"
+const PARTITION_AXIS = :results_pt
+
 # Define standard colours in EMGUI
 const BLACK = RGBA{Float32}(0.0, 0.0, 0.0, 1.0)
 const WHITE = RGBA{Float32}(1.0, 1.0, 1.0, 1.0)
