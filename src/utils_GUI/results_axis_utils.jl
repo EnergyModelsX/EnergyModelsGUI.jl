@@ -200,9 +200,30 @@ function get_data(
     else
         type = nested_eltype(field_data)
     end
-    periods, time_axis = get_periods(T, type, sp, rp, sc)
+    if type <: TS.PeriodPartition || type <: PartitionProfile
+        periods = filter_partitions(get_partition_periods(selection, T), sp, rp, sc)
+        time_axis = :results_pt
+    else
+        periods, time_axis = get_periods(T, type, sp, rp, sc)
+    end
     y_values = get_values(field_data, periods)
     return periods, y_values, time_axis
+end
+
+"""
+    get_partition_periods(selection::JuMPContainer, ::TS.TimeStructure)
+    get_partition_periods(selection::PlotContainer, T::TS.TimeStructure)
+
+Get all `TS.PeriodPartition`s for the data in `selection`, either from the axis of the
+extracted JuMP data or, for case data, constructed from the element itself (see
+[`period_partitions`](@ref)).
+"""
+function get_partition_periods(selection::JuMPContainer, ::TS.TimeStructure)
+    return collect(first(axes(get_field_data(selection))))
+end
+function get_partition_periods(selection::PlotContainer, T::TS.TimeStructure)
+    element = getfirst(x -> !isa(x, Resource) && !isnothing(x), get_selection(selection))
+    return period_partitions(element, T)
 end
 
 """
@@ -414,8 +435,12 @@ function update_plot!(gui::GUI, element)
             else
                 label *= " for strategic period $sp"
             end
-        elseif time_axis == :results_op
-            xlabel *= " (OperationalPeriods)"
+        elseif time_axis == :results_op || time_axis == :results_pt
+            if time_axis == :results_op
+                xlabel *= " (OperationalPeriods)"
+            else
+                xlabel *= " (PeriodPartitions)"
+            end
 
             if eltype(T.operational) <: TS.RepresentativePeriods
                 if eltype(T.operational[sp].rep_periods) <: TS.OperationalScenarios
@@ -463,6 +488,8 @@ function update_plot!(gui::GUI, element)
                 if !isempty(scenarios_labels)
                     custom_ticks = (1:no_pts, scenarios_labels[1:no_pts])
                 end
+            elseif time_axis == :results_pt
+                time_menu.i_selected[] = 5
             end
         end
         if time_axis == :results_op
