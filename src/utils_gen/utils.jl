@@ -53,19 +53,26 @@ end
     period_partitions(element, T::TS.TimeStructure)
 
 Return the vector of `TS.PeriodPartition`s partitioning the operational periods of `T` for
-`element`, or `nothing` if `element` does not use partitioned data.
+`element`.
 
 By default, the partitions are constructed from the field `period_duration` of `element`
-(the convention introduced by, *e.g.*, `PeriodDemandSink` in `EnergyModelsFlex`). The
-function can be specialized for elements that store the partition duration differently.
+(the convention introduced by, *e.g.*, `PeriodDemandSink` in `EnergyModelsFlex`). Elements
+that store the partition duration differently require a specialized method of this
+function. If the partitions cannot be determined, a warning highlighting `element` is
+issued and an empty vector is returned.
 """
 function period_partitions(element, T::TS.TimeStructure)
     if hasproperty(element, :period_duration)
         return collect(partition_duration(T, element.period_duration))
     end
-    return nothing
+    @warn "The `PeriodPartition`s of element `$element` (of type `$(typeof(element))`) " *
+          "cannot be determined as it has no field `period_duration`. Provide a method " *
+          "`EnergyModelsGUI.period_partitions(element::$(nameof(typeof(element))), T)` " *
+          "to visualize its data indexed over `PeriodPartition`s." _id =
+        (:period_partitions, element) maxlog = 1
+    return TS.PeriodPartition[]
 end
-period_partitions(::Nothing, ::TS.TimeStructure) = nothing
+period_partitions(::Nothing, ::TS.TimeStructure) = TS.PeriodPartition[]
 
 """
     partition_sort_key(pd::TS.PeriodPartition)
@@ -269,6 +276,7 @@ end
     _type_to_header(::Type{<:TS.AbstractOperationalScenario})
     _type_to_header(::Type{<:TS.TimePeriod})
     _type_to_header(::Type{<:TS.TimeStructure})
+    _type_to_header(::Type{<:TS.PeriodPartition})
     _type_to_header(::Type{<:Resource})
     _type_to_header(::Type{<:AbstractElement})
 
@@ -279,6 +287,7 @@ _type_to_header(::Type{<:TS.AbstractRepresentativePeriod}) = :rp
 _type_to_header(::Type{<:TS.AbstractOperationalScenario}) = :osc
 _type_to_header(::Type{<:TS.TimePeriod}) = :t
 _type_to_header(::Type{<:TS.TimeStructure}) = :t
+_type_to_header(::Type{<:TS.PeriodPartition}) = :pd
 _type_to_header(::Type{<:Resource}) = :res
 _type_to_header(::Type{<:AbstractElement}) = :element
 _type_to_header(::Type{<:Int}) = :segment
