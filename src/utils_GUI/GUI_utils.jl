@@ -82,7 +82,7 @@ end
     pick_component!(gui::GUI, ::Nothing, ax_type::Symbol)
 
 Check if a system is found under the mouse pointer and if it is an `AbstractGUIObj` (for
-objects in the topology axis) or a `Dict` (for objects in the results axis). If found, 
+objects in the topology axis) or a `Dict` (for objects in the results axis). If found,
 state variables are updated. Results in the topology axis are only cleared if `ax_type = :topo`
 and in the results axis if `ax_type = :results`.
 """
@@ -108,7 +108,7 @@ end
 """
     clear_selection!(gui::GUI, ax_type::Symbol)
 
-Clear the color selection of the topology axis if `ax_type = :topo`, and of the results axis 
+Clear the color selection of the topology axis if `ax_type = :topo`, and of the results axis
 if `ax_type = :results`.
 """
 function clear_selection!(gui::GUI, ax_type::Symbol)
@@ -407,7 +407,7 @@ function initialize_available_data!(gui)
         end
     end
 
-    # Add additional plots provided by the user 
+    # Add additional plots provided by the user
     element = nothing # Additional plots are not associated with a specific element
     for (i, additional_plot) ∈ enumerate(get_var(gui, :additional_plots))
         df = get_data(additional_plot["data"])
@@ -599,8 +599,8 @@ get_values(vals::TimeProfile, ts::Vector) = vals[ts]
 """
     get_inv_objs(obj::AbstractElement)
 
-Get the objects for which investment information should be stored for a given `AbstractElement`. 
-By default, this is just the element itself, but for some elements (e.g., `Transmission`) it can 
+Get the objects for which investment information should be stored for a given `AbstractElement`.
+By default, this is just the element itself, but for some elements (e.g., `Transmission`) it can
 be relevant to also store the investment information of related objects (e.g., its modes).
 """
 get_inv_objs(obj::AbstractElement) = [obj]
@@ -827,8 +827,8 @@ end
 """
     select_data!(gui::GUI, name::String; selection::Vector = Any[], fun::Function = findfirst)
 
-Select the data with name `name` from the `available_data` menu. If `selection` is provided, 
-it is used to further specify which data to select. The `fun` argument is used to specify the 
+Select the data with name `name` from the `available_data` menu. If `selection` is provided,
+it is used to further specify which data to select. The `fun` argument is used to specify the
 function for finding the data in the menu (default is `findfirst`).
 """
 function select_data!(
@@ -880,40 +880,50 @@ Get all TimeStructures in `𝒯` as a dictionary with their string representatio
 """
 function get_all_periods(𝒯::TimeStructure)
     all_periods = Union{TS.TimePeriod,TS.TimeStructure}[]
-    get_all_periods!(all_periods, 𝒯)
+    get_all_periods!(all_periods, 𝒯, 𝒯)
     return get_repr_dict(unique(all_periods))
 end
 
 """
-    get_all_periods!(vec::Vector, ts::TwoLevel)
-    get_all_periods!(vec::Vector, ts::RepresentativePeriods)
-    get_all_periods!(vec::Vector, ts::OperationalScenarios)
-    get_all_periods!(vec::Vector, ts::Any)
+    get_all_periods!(vec::Vector, per, ::TwoLevel)
+    get_all_periods!(vec::Vector, per, ::RepresentativePeriods)
+    get_all_periods!(vec::Vector, per, ::OperationalScenarios)
+    get_all_periods!(vec::Vector, per, ::SimpleTimes)
+    get_all_periods!(::Vector, per, ::Any)
 
 Get all TimeStructures in `ts` and append them to `vec`.
 """
-function get_all_periods!(vec::Vector, ts::TwoLevel)
-    append!(vec, collect(ts))
-    append!(vec, strategic_periods(ts))
-    for t ∈ ts.operational
-        get_all_periods!(vec, t)
+function get_all_periods!(vec::Vector, per, ::TwoLevel)
+    𝒯ᴵⁿᵛ = strategic_periods(per)
+    append!(vec, 𝒯ᴵⁿᵛ)
+    for t_inv ∈ 𝒯ᴵⁿᵛ
+        get_all_periods!(vec, t_inv, t_inv.operational)
     end
 end
-function get_all_periods!(vec::Vector, ts::RepresentativePeriods)
-    append!(vec, repr_periods(ts))
-    for t ∈ ts.rep_periods
-        get_all_periods!(vec, t)
+function get_all_periods!(vec::Vector, per, ::RepresentativePeriods)
+    𝒯ʳᵖ = repr_periods(per)
+    append!(vec, 𝒯ʳᵖ)
+    for t_rp ∈ 𝒯ʳᵖ
+        ts =
+            isa(per, TS.TimeStructurePeriod) ? t_rp.operational.operational :
+            t_rp.operational
+        get_all_periods!(vec, t_rp, ts)
     end
 end
-function get_all_periods!(vec::Vector, ts::OperationalScenarios)
-    append!(vec, opscenarios(ts))
-    for t ∈ ts.scenarios
-        get_all_periods!(vec, t)
+function get_all_periods!(vec::Vector, per, ::OperationalScenarios)
+    𝒯ˢᶜ = opscenarios(per)
+    append!(vec, 𝒯ˢᶜ)
+    for t_scp ∈ 𝒯ˢᶜ
+        ts =
+            isa(per, TS.TimeStructurePeriod) ? t_scp.operational.operational :
+            t_scp.operational
+        get_all_periods!(vec, t_scp, ts)
     end
 end
-function get_all_periods!(::Vector, ::Any)
-    return nothing
+function get_all_periods!(vec::Vector, per, ::SimpleTimes)
+    append!(vec, collect(per))
 end
+get_all_periods!(::Vector, per, ::Any) = nothing
 
 """
     get_repr_dict(vec::AbstractVector{T}) where T
@@ -981,7 +991,7 @@ end
 """
     read_csv(file::String)
 
-Read a CSV file and return it as a DataFrame. The time column is renamed to :t if it is 
+Read a CSV file and return it as a DataFrame. The time column is renamed to :t if it is
 named "t", "sp", "rp", "osc", or "op".
 """
 function read_csv(file::String)
@@ -993,7 +1003,7 @@ end
 """
     rename_time_column!(df::DataFrame)
 
-Rename the time column in `df` to :t if it is named "t", "sp", "rp", "osc", or "op". 
+Rename the time column in `df` to :t if it is named "t", "sp", "rp", "osc", or "op".
 If more than one of these columns are present, an error is thrown.
 """
 function rename_time_column!(df::DataFrame)

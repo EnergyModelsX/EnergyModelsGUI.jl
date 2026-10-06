@@ -1,5 +1,10 @@
 # Release notes
 
+## Unversioned
+
+### Bugfix
+
+* Fixed a bug in the functionality `get_all_periods` when using `RepresentativePeriods` or `OperationalScenarios`.
 
 ## Version 0.7.2 (2026-08-04)
 
@@ -67,7 +72,6 @@
 
 * Improved testing of `descriptive_names` and added more names from other packages.
 * Improved documentation.
-
 
 ## Version 0.6.0 (2025-12-15)
 
@@ -336,6 +340,7 @@
 * Relaxed redundant minor version specification in the `Project.toml`-file.
 
 ### Feature
+
 * Provided the user with the ability to provide descriptive_names in the folder `ext/EMGUIExt/descriptive_names.yml` for a EMX package, and/or
   a user defined file, and/or a user defined Dict.
 
