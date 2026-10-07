@@ -214,12 +214,13 @@ end
     get_partition_periods(selection::JuMPContainer, ::TS.TimeStructure)
     get_partition_periods(selection::PlotContainer, T::TS.TimeStructure)
 
-Get all `TS.PeriodPartition`s for the data in `selection`, either from the axis of the
-extracted JuMP data or, for case data, constructed from the element itself (see
-[`period_partitions`](@ref)).
+Get all `TS.PeriodPartition`s for the data in `selection`, either from the time periods of
+the extracted JuMP data (sorted through [`partition_sort_key`](@ref)) or, for case data,
+constructed from the element itself (see [`period_partitions`](@ref)).
 """
 function get_partition_periods(selection::JuMPContainer, ::TS.TimeStructure)
-    return collect(first(axes(get_field_data(selection))))
+    pds = collect(get_time_periods(get_field_data(selection)))
+    return sort(pds; by = partition_sort_key)
 end
 function get_partition_periods(selection::PlotContainer, T::TS.TimeStructure)
     element = getfirst(x -> !isa(x, Resource) && !isnothing(x), get_selection(selection))
