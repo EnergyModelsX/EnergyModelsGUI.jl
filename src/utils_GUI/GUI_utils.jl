@@ -232,7 +232,14 @@ function initialize_available_data!(gui)
 
             for combination ∈ get_combinations(var, i_T)
                 selection = collect(combination)
-                field_data = extract_data_selection(var, selection, i_T, periods)
+                if type <: TS.PeriodPartition && isa(var, SparseVars)
+                    # Partitions may differ between elements; extract them from the
+                    # variable itself for the given selection
+                    periods_comb = get_var_periods(var, selection, i_T)
+                else
+                    periods_comb = periods
+                end
+                field_data = extract_data_selection(var, selection, i_T, periods_comb)
                 element = getfirst(x -> !isa(x, Resource), selection)
                 if !isa(element, AbstractElement) && !isnothing(element) # it must be a transmission
                     element = mode_to_transmission[element]
@@ -581,9 +588,11 @@ get_JuMP_dict(model::JuMP.Model) = object_dictionary(model)
     get_values(vals::SparseVariables.IndexedVarArray, ts::Vector)
     get_values(vals::JuMP.Containers.DenseAxisArray, ts::Vector)
     get_values(vals::DataFrame, ts::Vector)
+    get_values(vals::DataFrame, ts::Vector{<:TS.PeriodPartition})
 
 Get the values of the variables in `vals`. If a vector of time periods `ts` is provided, it
-returns the values for the times in `ts`.
+returns the values for the times in `ts`. For `TS.PeriodPartition`s read from CSV-files, the
+values are returned in the order of `ts`.
 """
 get_values(vals::SparseVars) = isempty(vals) ? [] : collect(Iterators.flatten(value.(vals)))
 get_values(vals::SparseVariables.IndexedVarArray) = collect(value.(values(vals.data)))
@@ -594,6 +603,8 @@ get_values(vals::SparseVariables.IndexedVarArray, ts::Vector) =
     isempty(vals) ? [] : value.(vals[ts])
 get_values(vals::JuMP.Containers.DenseAxisArray, ts::Vector) = Array(value.(vals[ts]))
 get_values(vals::DataFrame, ts::Vector) = vals[in.(vals.t, Ref(ts)), :val]
+get_values(vals::DataFrame, ts::Vector{<:TS.PeriodPartition}) =
+    [vals[findfirst(==(t), vals.t), :val] for t ∈ ts]
 get_values(vals::TimeProfile, ts::Vector) = vals[ts]
 
 """
@@ -678,6 +689,47 @@ function get_investment_times(gui::GUI, max_inst::Float64)
 end
 
 """
+    get_var_periods(var::SparseVars, selection::Vector, i_T::Int64)
+
+Get the sorted time indices available in `var` at axis `i_T` for the combination
+`selection` of the remaining indices. This is required for variables indexed over
+`TS.PeriodPartition`s as the partitions may differ between elements.
+"""
+function get_var_periods(var::SparseVars, selection::Vector, i_T::Int64)
+    sel = Tuple(selection)
+    pds = [
+        key[i_T] for
+        key ∈ keys(var.data) if (key[1:(i_T-1)]..., key[(i_T+1):end]...) == sel
+    ]
+    return sort(pds; by = partition_sort_key)
+end
+
+"""
+    get_time_periods(field_data::DataFrame)
+    get_time_periods(field_data)
+
+Get the time periods of the extracted data `field_data` of a JuMP variable, *i.e.*, the
+column `:t` if the model results are read from CSV-files and the first axis otherwise.
+"""
+get_time_periods(field_data::DataFrame) = field_data[!, :t]
+get_time_periods(field_data) = first(axes(field_data))
+
+"""
+    is_partition_data(container::PlotContainer)
+
+Return `true` if `container` holds data indexed over `TS.PeriodPartition`s, *i.e.*, a JuMP
+variable with a `TS.PeriodPartition` axis or a field of type `PartitionProfile`.
+"""
+is_partition_data(::PlotContainer) = false
+function is_partition_data(container::JuMPContainer)
+    return eltype(get_time_periods(get_field_data(container))) <: TS.PeriodPartition
+end
+function is_partition_data(container::CaseDataContainer)
+    field_data = get_field_data(container)
+    return isa(field_data, TimeProfile) && nested_eltype(field_data) <: PartitionProfile
+end
+
+"""
     get_combinations(var::SparseVars, i_T::Int)
     get_combinations(var::JuMP.Containers.DenseAxisArray, i_T::Int)
     get_combinations(var::DataFrame, ::Int)
@@ -708,6 +760,40 @@ function update_available_data_menu!(gui::GUI, element)
     container = available_data[element]
     container_strings = create_label.(container)
     get_menu(gui, :available_data).options = zip(container_strings, container)
+    update_time_menu!(gui, element)
+end
+
+"""
+    has_partition_data(gui::GUI, element)
+
+Return `true` if `element` has available data indexed over `TS.PeriodPartition`s.
+"""
+function has_partition_data(gui::GUI, element)
+    return any(is_partition_data, get_available_data(gui)[element])
+end
+
+"""
+    update_time_menu!(gui::GUI, element)
+
+Update the options of the time menu based on `element`: The option for plotting data over
+`TS.PeriodPartition`s is only made available if `element` has data indexed over such
+partitions.
+"""
+function update_time_menu!(gui::GUI, element)
+    time_menu = get_menu(gui, :time)
+    labels = copy(TIME_AXES_LABELS)
+    time_axes = copy(TIME_AXES)
+    if has_partition_data(gui, element)
+        push!(labels, PARTITION_AXIS_LABEL)
+        push!(time_axes, PARTITION_AXIS)
+    end
+    if length(collect(time_menu.options[])) != length(time_axes)
+        # Reset the selection if the partition axis is removed while being selected
+        if time_menu.selection[] ∉ time_axes
+            time_menu.i_selected = 1
+        end
+        time_menu.options = zip(labels, time_axes)
+    end
 end
 
 """
@@ -970,12 +1056,17 @@ function transfer_model(model::String, system::AbstractSystem)
 
             df = read_csv(file)
             col_names = names(df)
-            df[!, :t] = convert_array(df[!, :t], periods_dict)
             if "res" ∈ col_names
                 df[!, :res] = convert_array(df[!, :res], products_dict)
             end
             if "element" ∈ col_names
                 df[!, :element] = convert_array(df[!, :element], plotables_dict)
+            end
+            if "pd" ∈ col_names
+                # Partitions may differ between elements and are reconstructed per element
+                df = convert_partitions(df, 𝒯, varname)
+            else
+                df[!, :t] = convert_array(df[!, :t], periods_dict)
             end
 
             results[i] = varname => df
@@ -987,6 +1078,49 @@ function transfer_model(model::String, system::AbstractSystem)
         @warn "The model must be a directory containing the results. No results loaded."
     end
     return data
+end
+
+"""
+    convert_partitions(df::DataFrame, 𝒯::TimeStructure, varname::Symbol)
+
+Convert the string representations of the `TS.PeriodPartition`s in column `:pd` of `df` to
+the partitions themselves and store them in column `:t`.
+
+As the string representation of a partition does not include its operational periods and
+the partitions may differ between elements, the partitions are reconstructed for each
+element in column `:element` through [`period_partitions`](@ref). Rows whose partition
+cannot be reconstructed are removed with a warning highlighting the element.
+"""
+function convert_partitions(df::DataFrame, 𝒯::TimeStructure, varname::Symbol)
+    if !("element" ∈ names(df))
+        @warn "The variable `$varname` is indexed over `PeriodPartition`s without an " *
+              "element index. Its partitions cannot be reconstructed and it is skipped."
+        return DataFrame()
+    end
+    partitions_dicts = Dict{Any,Dict}()
+    unmatched_elements = Set()
+    partitions = Vector{Union{Nothing,TS.PeriodPartition}}(undef, nrow(df))
+    for (i, row) ∈ enumerate(eachrow(df))
+        element = row[:element]
+        partitions_dict = get!(partitions_dicts, element) do
+            get_repr_dict(period_partitions(element, 𝒯))
+        end
+        partitions[i] = get(partitions_dict, string(row[:pd]), nothing)
+        # Elements without any partitions are already highlighted by `period_partitions`
+        if isnothing(partitions[i]) && !isempty(partitions_dict)
+            push!(unmatched_elements, element)
+        end
+    end
+    for element ∈ unmatched_elements
+        @warn "The `PeriodPartition`s of element `$element` in the variable `$varname` do " *
+              "not match the partitions provided by `period_partitions`. The unmatched " *
+              "values are skipped."
+    end
+
+    keep = .!isnothing.(partitions)
+    df = df[keep, Not(:pd)]
+    df[!, :t] = TS.PeriodPartition[pd for pd ∈ partitions[keep]]
+    return select!(df, Not(:val), :val) # Keep the values in the last column
 end
 
 """

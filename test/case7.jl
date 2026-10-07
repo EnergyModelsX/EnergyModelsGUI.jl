@@ -1,4 +1,5 @@
 using EnergyModelsBase
+using EnergyModelsFlex
 using EnergyModelsGeography
 using EnergyModelsInvestments
 using EnergyModelsRenewableProducers
@@ -186,9 +187,11 @@ function get_sub_system_data_case7(a_id, products, T)
             ),
             Dict(Heat => 1),                     # input `Resource`s with conversion value `Real`
         )
-        hot_water_1 = RefSink(
+        hot_water_1 = PeriodDemandSink(
             "Hot water 1",                      # Node id
-            FixedProfile(0.2),                  # cap: the demand
+            FixedProfile(0.5),                  # cap: maximum demand satisfaction per operational period
+            12,                                 # period_duration: 2 demand periods per representative period
+            PartitionProfile([3, 1.8]),         # period_demand: the demand within each demand period
             Dict(                               # penality: penalties for surplus or deficits
                 :surplus => FixedProfile(0),    # Penalty for surplus
                 :deficit => FixedProfile(1e5)   # Penalty for deficit

@@ -111,3 +111,59 @@ end
 
     EMGUI.close(gui)
 end
+
+@testset "Test reading PeriodPartition results from files" verbose = true begin
+    directory = joinpath(tmpdir, "case7")
+    if !ispath(directory)
+        mkdir(directory)
+    end
+
+    # Save the results of case7 (including variables indexed over `PeriodPartition`s)
+    case, model, m, gui_jump = run_case()
+    EMGUI.save_results(m; directory)
+    df_csv = CSV.read(joinpath(directory, "demand_sink_deficit.csv"), DataFrame)
+    @test "pd" ∈ names(df_csv)
+
+    # Generate the GUI from saved files
+    gui = GUI(case; model = directory)
+    m_df = EMGUI.get_model(gui)
+    T = EMGUI.get_time_struct(gui)
+    @test eltype(m_df[:demand_sink_deficit][!, :t]) <: TimeStruct.PeriodPartition
+
+    # Test that all variables have the expected values
+    for var ∈ EMGUI.get_JuMP_names(gui)
+        if !isempty(m[var])
+            vals = vec(EMGUI.get_values(m[var]))
+            @test length(vals) == length(EMGUI.get_values(m_df[var]))
+            @test all(isapprox.(vals, EMGUI.get_values(m_df[var]), atol = TEST_ATOL))
+        end
+    end
+
+    # Test that the partition data is identical to the data of the GUI using the JuMP model
+    area1 = get_component(get_components(get_root_design(gui)), "area1")
+    hot_water = get_element(get_component(area1, "Hot water 1"))
+    el_1 = get_element(get_component(area1, "El 1"))
+    @test EMGUI.has_partition_data(gui, hot_water)
+    @test !EMGUI.has_partition_data(gui, el_1)
+    available_data_jump = EMGUI.get_available_data(gui_jump)[hot_water]
+    available_data_csv = EMGUI.get_available_data(gui)[hot_water]
+    for var ∈ ["demand_sink_deficit", "demand_sink_surplus"]
+        is_var = x -> EMGUI.get_name(x) == var
+        container_jump = EMGUI.getfirst(is_var, available_data_jump)
+        container_csv = EMGUI.getfirst(is_var, available_data_csv)
+        @test EMGUI.is_partition_data(container_csv)
+        for sp ∈ 1:3, rp ∈ 1:2
+            pds_jump, vals_jump, ax_jump = EMGUI.get_data(m, container_jump, T, sp, rp, 1)
+            pds_csv, vals_csv, ax_csv = EMGUI.get_data(m_df, container_csv, T, sp, rp, 1)
+            @test ax_csv == ax_jump == :results_pt
+            @test string.(pds_csv) == string.(pds_jump)
+            @test vals_csv ≈ vals_jump atol = TEST_ATOL
+        end
+    end
+
+    # Test that elements without partitions are highlighted
+    @test_logs (:warn, r"El 1") EMGUI.period_partitions(el_1, T)
+
+    EMGUI.close(gui)
+    EMGUI.close(gui_jump)
+end

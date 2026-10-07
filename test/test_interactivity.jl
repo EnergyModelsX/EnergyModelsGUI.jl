@@ -26,7 +26,7 @@ alpha_slider = get_slider(gui, :alpha)
 
 # Test specific GUI functionalities
 @testset "Test interactivity" verbose = true begin
-    op_cost = [3371970.00359, 5382390.00598, 2010420.00219]
+    op_cost = [3262470.0, 5272890.0, 2010420.0]
     inv_cost = [0.0, 0.0, 29536224.881975]
     @testset "Compare with Integrate results" begin
         T = get_time_struct(gui)
@@ -290,11 +290,11 @@ alpha_slider = get_slider(gui, :alpha)
 
         period_menu.i_selected = 1
         data_point = get_ax(gui, :results).scene.plots[1][1][][17][2]
-        @test data_point ≈ 2.8f0 atol = 1e-5
+        @test data_point ≈ 2.6f0 atol = 1e-5
 
         period_menu.i_selected = 2
         data_point = get_ax(gui, :results).scene.plots[1][1][][17][2]
-        @test data_point ≈ 4.0f0 atol = 1e-5
+        @test data_point ≈ 3.8f0 atol = 1e-5
 
         period_menu.i_selected = 3
         data_point = get_ax(gui, :results).scene.plots[1][1][][17][2]
@@ -379,7 +379,7 @@ alpha_slider = get_slider(gui, :alpha)
         notify(pin_plot_button.clicks) # test redundant clicks
         data_point = get_ax(gui, :results).scene.plots[1][1][][5][2]
         @test data_point ≈ 0.25f0 atol = 1e-5
-        data_point = get_ax(gui, :results).scene.plots[4][1][][5][2]
+        data_point = get_ax(gui, :results).scene.plots[5][1][][5][2]
         @test data_point ≈ 0.6f0 atol = 1e-5
     end
 
@@ -464,8 +464,8 @@ alpha_slider = get_slider(gui, :alpha)
         update!(gui)
         get_menu(gui, :period).i_selected = 3
         select_data!(gui, "stor_level_Δ_rp")
-        @test get_ax(gui, :results).scene.plots[3][1][][1][2] ≈ -7.2 atol = 1e-5
-        @test get_ax(gui, :results).scene.plots[3][1][][2][2] ≈ 7.2 atol = 1e-5
+        @test get_ax(gui, :results).scene.plots[3][1][][1][2] ≈ -7.0265152 atol = 1e-5
+        @test get_ax(gui, :results).scene.plots[3][1][][2][2] ≈ 7.0265152 atol = 1e-5
     end
 
     @testset "Test icon not found" begin
@@ -622,6 +622,97 @@ alpha_slider = get_slider(gui, :alpha)
         select_data!(gui3, "penalty.deficit")
         @test ax_results.scene.plots[3][1][][2][2] ≈ 4.0e6 atol = 1e-5
         EMGUI.close(gui3)
+    end
+
+    ## Test the PeriodDemandSink of case7 (data indexed over PeriodPartitions)
+    @testset "PeriodPartition support" verbose = true begin
+        clear_selection!(gui, :topo)
+        hot_water_design = get_component(area1, "Hot water 1")
+        hot_water = get_element(hot_water_design)
+        el_1_design = get_component(area1, "El 1")
+        el_1 = get_element(el_1_design)
+
+        @testset "Available data" begin
+            available_data = get_var(gui, :available_data)
+            partition_containers =
+                filter(EMGUI.is_partition_data, available_data[hot_water])
+
+            # Both the JuMP variables indexed over PeriodPartitions and the
+            # PartitionProfile fields of the sink should be available
+            @test any(x -> EMGUI.get_name(x) == "demand_sink_surplus", partition_containers)
+            @test any(x -> EMGUI.get_name(x) == "demand_sink_deficit", partition_containers)
+            @test any(x -> EMGUI.get_name(x) == "period_demand", partition_containers)
+
+            # The El 1 sink does not have any data indexed over PeriodPartitions
+            @test !any(EMGUI.is_partition_data, available_data[el_1])
+            @test EMGUI.has_partition_data(gui, hot_water)
+            @test !EMGUI.has_partition_data(gui, el_1)
+        end
+
+        @testset "Time menu options" begin
+            # The partition option should only be available when the sink is selected
+            pick_component!(gui, hot_water_design, :topo)
+            update!(gui)
+            @test length(collect(time_menu.options[])) == 5
+
+            pick_component!(gui, nothing, :topo) # deselect
+            @test length(collect(time_menu.options[])) == 4
+
+            pick_component!(gui, el_1_design, :topo)
+            update!(gui)
+            @test length(collect(time_menu.options[])) == 4
+            pick_component!(gui, nothing, :topo) # deselect
+        end
+
+        @testset "Plot JuMP partition data" begin
+            pick_component!(gui, hot_water_design, :topo)
+            update!(gui)
+            select_data!(gui, "demand_sink_deficit")
+            period_menu.i_selected = 1
+            representative_period_menu.i_selected = 1
+
+            @test time_menu.selection[] == :results_pt
+            data = get_visible_data(gui, :results_pt)[end]
+            pds = data[:t]
+            @test all(pd -> isa(pd, TimeStruct.PeriodPartition), pds)
+            @test string.(pds) == ["sp1-rp1-part1", "sp1-rp1-part2"]
+            @test data[:y] ≈
+                  [value(m[:demand_sink_deficit][hot_water, pd]) for pd ∈ pds] atol =
+                TEST_ATOL
+            # The demand can always be satisfied within the demand periods
+            @test data[:y] ≈ [0.0, 0.0] atol = TEST_ATOL
+        end
+
+        @testset "Filter by strategic and representative periods" begin
+            period_menu.i_selected = 2
+            data = get_visible_data(gui, :results_pt)[end]
+            @test string.(data[:t]) == ["sp2-rp1-part1", "sp2-rp1-part2"]
+
+            representative_period_menu.i_selected = 2
+            data = get_visible_data(gui, :results_pt)[end]
+            @test string.(data[:t]) == ["sp2-rp2-part1", "sp2-rp2-part2"]
+
+            period_menu.i_selected = 1
+            representative_period_menu.i_selected = 1
+        end
+
+        @testset "Plot case data (PartitionProfile)" begin
+            select_data!(gui, "period_demand")
+            data = get_visible_data(gui, :results_pt)[end]
+            @test string.(data[:t]) == ["sp1-rp1-part1", "sp1-rp1-part2"]
+            @test data[:y] ≈ [3.0, 1.8] atol = TEST_ATOL
+        end
+
+        @testset "Time menu reset for unsupported element" begin
+            # With the partition axis selected, selecting an element without partition
+            # data should remove the partition option and reset the time menu selection
+            @test time_menu.selection[] == :results_pt
+            pick_component!(gui, nothing, :topo)
+            pick_component!(gui, el_1_design, :topo)
+            update!(gui)
+            @test time_menu.selection[] == :results_sp
+            @test length(collect(time_menu.options[])) == 4
+        end
     end
 end
 EMGUI.close(gui)
