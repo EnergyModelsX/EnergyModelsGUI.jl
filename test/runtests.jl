@@ -40,8 +40,8 @@ global_logger(logger_new)
         # Check if there is need for formatting
         include(joinpath(testdir, "JuliaFormatter.jl"))
 
-        # The following tests simply checks if the main examples can be run without errors
-        include(joinpath(testdir, "test_examples.jl"))
+        # Test some of the utility functionality
+        include(joinpath(testdir, "test_utils.jl"))
 
         # The following tests results input and output functionality (saving and loading results)
         include(joinpath(testdir, "test_results_IO.jl"))
@@ -54,6 +54,9 @@ global_logger(logger_new)
 
         # Test descriptive names functionalities
         include(joinpath(testdir, "test_descriptive_names.jl"))
+
+        # The following tests simply checks if the main examples can be run without errors
+        include(joinpath(testdir, "test_examples.jl"))
     end
 end
 global_logger(logger_org)
