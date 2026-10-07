@@ -891,7 +891,8 @@ end
     get_all_periods!(vec::Vector, per, ::SimpleTimes)
     get_all_periods!(::Vector, per, ::Any)
 
-Get all TimeStructures in `ts` and append them to `vec`.
+Get all `TimeStructure`s in `per` and append them to `vec`. The required time structures
+are automatically deduced from the internal structure of `per`.
 """
 function get_all_periods!(vec::Vector, per, ::TwoLevel)
     𝒯ᴵⁿᵛ = strategic_periods(per)
