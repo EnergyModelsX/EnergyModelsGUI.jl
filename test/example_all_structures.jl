@@ -1,24 +1,3 @@
-using JuMP
-using SCIP
-using TimeStruct
-
-using EnergyModelsBase
-using EnergyModelsGeography
-using EnergyModelsHydrogen
-using EnergyModelsCO2
-using EnergyModelsRenewableProducers
-using EnergyModelsHeat
-using EnergyModelsInvestments
-
-const EMB    = EnergyModelsBase
-const EMG    = EnergyModelsGeography
-const EMH2   = EnergyModelsHydrogen
-const EMCO2  = EnergyModelsCO2
-const EMR    = EnergyModelsRenewableProducers
-const EMHeat = EnergyModelsHeat
-const EMI    = EnergyModelsInvestments
-const TS     = TimeStruct
-
 """
 All-in-one-case: combines all nodes from the main EMX packages.
 

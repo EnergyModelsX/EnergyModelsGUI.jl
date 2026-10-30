@@ -1,11 +1,3 @@
-# Import the required packages
-using EnergyModelsGUI
-using EnergyModelsBase
-using JuMP
-using HiGHS
-using PrettyTables
-using TimeStruct
-
 """
     generate_example_test(; use_rp::Bool=true, use_sc::Bool=true)
 

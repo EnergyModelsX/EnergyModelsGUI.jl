@@ -1,10 +1,16 @@
-const EMB = EnergyModelsBase
+using SCIP
+using EnergyModelsHydrogen
+using EnergyModelsCO2
+using EnergyModelsHeat
+
 const EMI = EnergyModelsInvestments
 const EMG = EnergyModelsGeography
 const EMRP = EnergyModelsRenewableProducers
 const EMH2 = EnergyModelsHydrogen
-const EMH = EnergyModelsHeat
-const EMC = EnergyModelsCO2
+const EMCO2 = EnergyModelsCO2
+const EMHeat = EnergyModelsHeat
+
+include(joinpath(testdir, "example_all_structures.jl"))
 
 case, model, m, gui = run_case()
 
@@ -82,7 +88,10 @@ case, model, m, gui = run_case()
         # Check that no descriptive names are empty for types
         descriptive_names = create_descriptive_names()
         types_map =
-            get_descriptive_names([EMB, EMI, EMG, EMRP, EMH2, EMH, EMC], descriptive_names)
+            get_descriptive_names(
+                [EMB, EMI, EMG, EMRP, EMH2, EMHeat, EMCO2],
+                descriptive_names,
+            )
         @test !any(any(isempty.(values(a))) for a ∈ values(types_map))
 
         # Check that no warnings are logged when running a full case

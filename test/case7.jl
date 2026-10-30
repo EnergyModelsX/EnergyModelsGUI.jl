@@ -1,16 +1,3 @@
-using EnergyModelsBase
-using EnergyModelsFlex
-using EnergyModelsGeography
-using EnergyModelsInvestments
-using EnergyModelsRenewableProducers
-using EnergyModelsGUI
-using JuMP
-using HiGHS
-using TimeStruct
-
-const EMB = EnergyModelsBase
-const EMG = EnergyModelsGeography
-
 # Read a daily profile from the input files
 case7_profile(file) = parse.(Float64, readlines(joinpath(@__DIR__, "inputfiles", file)))
 

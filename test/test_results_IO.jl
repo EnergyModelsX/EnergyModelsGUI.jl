@@ -1,3 +1,6 @@
+using CSV
+using DataFrames
+
 tmpdir = mktempdir(testdir; prefix = "exported_files_")
 
 function get_case(file)

@@ -1,12 +1,19 @@
-using EnergyModelsGUI
 using Test
-using YAML
 using Logging
-using CSV
-using DataFrames
+using YAML
+using JuMP
+using HiGHS
+using TimeStruct
+using EnergyModelsBase
+using EnergyModelsInvestments
+using EnergyModelsGeography
+using EnergyModelsRenewableProducers
+using EnergyModelsFlex
+using EnergyModelsGUI
 
 const TEST_ATOL = 1e-6
 const EMGUI = EnergyModelsGUI
+const EMB = EnergyModelsBase
 
 pkg_dir = pkgdir(EnergyModelsGUI)
 testdir = joinpath(pkg_dir, "test")
@@ -18,7 +25,6 @@ include(joinpath(testdir, "utils.jl"))
 include(joinpath(testdir, "case7.jl"))
 include(joinpath(testdir, "EMI_geography_2.jl"))
 include(joinpath(testdir, "example_test.jl"))
-include(joinpath(testdir, "example_all_structures.jl"))
 include(joinpath(testdir, "example_cases.jl"))
 
 logger_org = global_logger()
