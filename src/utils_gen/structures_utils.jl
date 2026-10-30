@@ -1,7 +1,8 @@
 """
-    function installed()
+    installed()
 
-Get a list of installed packages (from the depricated Pkg.installed()).
+Get a dictionary of the direct dependencies (with versions) of the active environment
+(replacement for the deprecated `Pkg.installed()`).
 """
 function installed()
     deps = Pkg.dependencies()
@@ -18,7 +19,8 @@ end
     place_nodes_in_circle(n::Int64, i::Int64, r::Float32, c::Point2f)
 
 Return coordinate for point number `i` of a total of `n` points evenly distributed around
-a circle of radius `r` centered at `c` from -π/4 to 5π/4.
+a circle of radius `r` centered at `c` from -π/4 to 5π/4 (point 1 at 5π/4; a single point
+is placed at π).
 """
 function place_nodes_in_circle(n::Int64, i::Int64, r::Float32, c::Point2f)
     θ::Float32 = n == 1 ? π32 : -π32 / 4 + 3π32 / 2 * (1 - Float32(i - 1) / Float32(n - 1))
@@ -44,7 +46,7 @@ end
 Returns a dictionary that completes the dictionary `id_to_color_map` with default color values
 for standard names (like Power, NG, Coal, CO2) collected from `src/colors.yml`.
 
-Color can be represented as a hex (*i.e.*, #a4220b2) or a symbol (*i.e.*, :green), but also a
+Color can be represented as a hex (*e.g.*, #a4220b) or a symbol (*e.g.*, :green), but also a
 string of the identifier for default colors in the `src/colors.yml` file.
 """
 function set_colors(products::Vector{<:Resource}, id_to_color_map::Dict)
@@ -105,9 +107,9 @@ end
 """
     set_icons(id_to_icon_map::Dict)
 
-Return a dictionary `id_to_icon_map` with id from nodes and icon paths based on provided
-paths (or name of .png icon file which will be found in the icons folder of any of the
-EMX packages).
+Return the dictionary `id_to_icon_map` (updated in place) with id from nodes and icon paths
+based on provided paths (or name of .png icon file which will be found in the icons folder
+of any of the EMX packages).
 
 The icon images are assumed to be in .png format, and the strings should not contain this
 file ending.
@@ -123,11 +125,13 @@ function set_icons(id_to_icon_map::Dict)
 end
 
 """
-    function find_icon_path(icon::String)
+    find_icon_path(icon::String)
 
-Search for path to icon based on icon name `icon`.
+Search for the path to the .png file of the icon based on the icon name `icon` (without
+file ending). The search covers `icon` as a path, the `icons` folder of EnergyModelsGUI, and
+the folder `ext/EMGUIExt/icons` of installed EnergyModels packages. An empty string is
+returned if no icon is found.
 """
-
 function find_icon_path(icon::String)
     icon_path = "" # in case not found
     if isfile(icon)
@@ -162,7 +166,8 @@ end
 """
     design_file(system::AbstractSystem, path::String)
 
-Construct the path for the .yml file for `system` in the folder `path`.
+Construct and return the path for the .yml file for `system` in the folder `path` (an empty string if
+`path` is empty).
 """
 function design_file(system::AbstractSystem, path::String)
     if isempty(path)
@@ -175,7 +180,8 @@ end
     find_icon(system::AbstractSystem, id_to_icon_map::Dict)
 
 Find the icon associated with a given `system`'s node id utilizing the mapping provided
-through `id_to_icon_map`.
+through `id_to_icon_map`, with a lookup by id taking precedence over a lookup by type. An
+empty string is returned if no icon is found.
 """
 function find_icon(system::AbstractSystem, id_to_icon_map::Dict)
     icon::String = ""
@@ -195,8 +201,8 @@ end
 """
     save_design(design::EnergySystemDesign)
 
-Save the x,y-coordinates of EnergySystemDesign `design` to a .yml file specifield in the
-field `file` of `design`.
+Save the x,y-coordinates of the components of EnergySystemDesign `design` (including its
+sub designs) to a .yml file specified in the field `file` of `design`.
 """
 function save_design(design::EnergySystemDesign)
     if isempty(design.file)
@@ -225,10 +231,10 @@ function save_design(design::EnergySystemDesign)
 end
 
 """
-    save_design(design::EnergySystemDesign, file::String)
+    save_design(design_dict::Dict, file::String)
 
-Save the x,y-coordinates of `design_dict` to a .yml file at location and filename given by
-`file`.
+Save the x,y-coordinates stored in `design_dict` to a .yml file at location and filename
+given by `file`.
 """
 function save_design(design_dict::Dict, file::String)
     design_dir = dirname(file)
@@ -239,9 +245,9 @@ function save_design(design_dict::Dict, file::String)
 end
 
 """
-    get_resource_colors(resources::Vector{Resource}, id_to_color_map::Dict{Any,Any})
+    get_resource_colors(resources::Vector{<:Resource}, id_to_color_map::Dict{Any,Any})
 
-Get the colors linked the the resources in `resources` based on the mapping `id_to_color_map`.
+Get the colors linked to the resources in `resources` based on the mapping `id_to_color_map`.
 """
 function get_resource_colors(resources::Vector{<:Resource}, id_to_color_map::Dict{Any,Any})
     colors::Vector{Any} = [id_to_color_map[resource.id] for resource ∈ resources]
@@ -249,7 +255,7 @@ function get_resource_colors(resources::Vector{<:Resource}, id_to_color_map::Dic
 end
 
 """
-    get_resource_colors(l::Vector{Link}, id_to_color_map::Dict{Any,Any})
+    get_resource_colors(l::Link, id_to_color_map::Dict{Any,Any})
 
 Get the colors linked to the resources in the link `l` based on the mapping `id_to_color_map`.
 """
@@ -270,7 +276,8 @@ end
 """
     getfirst(f::Function, a::Vector)
 
-Return the first element of Vector `a` satisfying the requirement of Function `f`.
+Return the first element of Vector `a` satisfying the requirement of Function `f`, or
+`nothing` if there is none.
 """
 function getfirst(f::Function, a::Vector)
     index = findfirst(f, a)

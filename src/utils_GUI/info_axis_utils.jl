@@ -49,9 +49,9 @@ create_indent_string(indent::Int64) = "  "^indent
         show_the_n_last_elements::Int64,
     )
 
-Appends the nested structure of element in a nice format to the `io` buffer for `element`. 
-The parameter `indent` tracks the indentation level, the parameter `vector_limit` is used 
-to truncate large vectors and `show_the_n_last_elements` specifies how many of the last elements to show.
+Append the nested structure of `element` in a nice format to the `io` buffer. The parameter
+`indent` tracks the indentation level, the parameter `vector_limit` is used to truncate
+large vectors and `show_the_n_last_elements` specifies how many of the last elements to show.
 """
 function print_nested_structure!(
     element::Any,

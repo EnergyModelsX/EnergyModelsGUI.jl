@@ -1,10 +1,11 @@
 """
     extract_svg(svg_string)
 
-Extracts the raw SVG content from the representation.
+Extract the raw SVG content from the SVG string `svg_string`. Returns the content between
+the opening `<svg ...>` and closing `</svg>` tags and the header preceding the content
+(both empty strings if `svg_string` is empty).
 """
 function extract_svg(svg_string)
-    # Extracts the raw SVG content from the representation
     if isempty(svg_string)
         return "", ""
     else
@@ -53,9 +54,10 @@ function get_svg(blockscene::Makie.Scene)
 end
 
 """
-    export_svg(ax::Makie.Block, filename::String)
+    export_svg(ax::Makie.Block, filename::String; legend=nothing)
 
-Export the `ax` to a .svg file with path given by `filename`.
+Export the `ax` to a .svg file with path given by `filename`. The optional keyword
+argument `legend` is a `Makie.Legend` that is added to the exported file.
 
 !!! note "Temporary approach"
     This approach awaits solution from issue https://github.com/MakieOrg/Makie.jl/issues/4500
@@ -94,7 +96,8 @@ end
 """
     export_xlsx(plots::Vector, filename::String, xlabel::Symbol)
 
-Export the `plots` to a .xlsx file with path given by `filename` and top header `xlabel`.
+Export the `plots` to a .xlsx file with path given by `filename` and top header `xlabel`
+for the first column. Returns 0 on success and 1 if `plots` is empty.
 """
 function export_xlsx(plots::Vector, filename::String, xlabel::Symbol)
     if isempty(plots)
@@ -124,7 +127,8 @@ end
 """
     export_xlsx(gui::GUI, filename::String)
 
-Export the JuMP fields to an xlsx file with path given by `filename`.
+Export the variables of the JuMP model of `gui` to an xlsx file (one sheet per variable)
+with path given by `filename`. Returns 0 on success and 1 if the model is empty.
 """
 function export_xlsx(gui::GUI, filename::String)
     model = get_model(gui)
@@ -175,7 +179,10 @@ end
     export_to_file(gui::GUI)
 
 Export results based on the state of `gui` to a file located within the folder specified
-through the `path_to_results` keyword of [`GUI`](@ref).
+through the `path_to_results` keyword of [`GUI`](@ref). The file name and format are given
+by the menus `:axes` and `:export_type`. Returns 0 on success, 1 if the combination of axes
+and file format is not supported, and 2 if an error occurred (`nothing` is returned if
+`path_to_results` is empty).
 """
 function export_to_file(gui::GUI)
     path = get_var(gui, :path_to_results)

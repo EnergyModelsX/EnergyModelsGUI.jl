@@ -51,7 +51,7 @@ makedocs(;
             "Customize icons"=>"how-to/customize-icons.md",
             "Customize descriptive_names"=>"how-to/customize-descriptive_names.md",
             "Improve performance"=>"how-to/improve-performance.md",
-            "Use custom backgroun map"=>"how-to/use-custom-background-map.md",
+            "Use custom background map"=>"how-to/use-custom-background-map.md",
             "Add additional plots"=>"how-to/add_additional_plots.md",
         ],
         "Library" => Any[

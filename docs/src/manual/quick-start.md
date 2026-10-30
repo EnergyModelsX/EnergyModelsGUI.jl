@@ -35,7 +35,7 @@ GUI(case; model=m)
 A complete overview of the keyword arguments available for the `GUI` functions is available *[in its docstring](@ref GUI(case::Case; kwargs...))*.
 
 !!! tip "Example"
-    The GUI and its functionality is described through *[an example](@ref man-exampl)*.
+    The GUI and its functionality are described through *[an example](@ref man-exampl)*.
     You can also load different examples from the example folder, if desired.
 
 ### [Visualization of saved results](@id man-quick-saved)
@@ -48,7 +48,7 @@ For a given `JuMP` model `m`, this approach is given by
 
 ```julia
 # Specify the directory for saving the results and save the results
-dir_save = `path-to-results`
+dir_save = "path-to-results"
 save_results(m; directory = dir_save)
 
 # Load the results from the saved directory
@@ -72,7 +72,7 @@ Partitions differ between elements and are not part of the time structure of the
 `EnergyModelsGUI` therefore has to construct the partitions of each element itself through the function [`period_partitions`](@ref EnergyModelsGUI.period_partitions).
 By default, it uses the field `period_duration` of the element, following the convention of `EnergyModelsFlex`.
 If your technology stores the duration of its partitions differently, you must provide a method for your type returning the vector of `PeriodPartition`s for the time structure `𝒯` of the case.
-Consider the case in which these are stored within the field `duration`, you must create a new method:
+Consider the case in which these are stored within the field `duration`. You must then create a new method:
 
 ```julia
 using EnergyModelsGUI, TimeStruct
@@ -83,7 +83,7 @@ end
 ```
 
 The method can be defined in your script or in the package introducing the technology, *e.g.*, through a package extension on `EnergyModelsGUI`.
-It is our aim to include a default method within `EnergyModelsBase` which can be extended in a later stage.
+It is our aim to include a default method within `EnergyModelsBase` which can be extended at a later stage.
 
 !!! warning "Requirements for period partitions"
     1. Without a method of `period_partitions` for an element lacking the field `period_duration`, a warning naming the element and the required method is issued and the partitioned data of this element is not available for plotting.

@@ -10,7 +10,7 @@ The `additional_plots` keyword argument accepts a vector of dictionaries. Each d
 - `"normalize"` (*optional*, default `false`):  
   If `true`, the series is scaled before plotting, which is useful for shape comparisons with model results.
 
-The time index of the additional data must match the time index of the model results. The time index column must be named one of the following `t`, `sp`, `rp`, `osc`, `op`. If this column is missing, an `OperationalProfile` will be created for the additional data (where the time index is inferred based on the row order to match the time structure of the model case), and a warning will be issued.
+The time index of the additional data must match the time index of the model results. The time index column must be named one of the following: `t`, `sp`, `rp`, `osc`, `op`. If this column is missing, an `OperationalProfile` will be created for the additional data (where the time index is inferred based on the row order to match the time structure of the model case), and a warning will be issued.
 
 ## Example
 
@@ -46,4 +46,4 @@ gui = GUI(case; additional_plots=[
 )
 ```
 
-After loading the GUI the additional series are available in the **Available data** menu (make sure not to have any element selected), and can be selected for plotting alongside model results.
+After loading the GUI the additional series are available in the **Data** menu (make sure not to have any element selected), and can be selected for plotting alongside model results.

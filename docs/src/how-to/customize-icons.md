@@ -22,6 +22,6 @@ gui = GUI(case; id_to_icon_map=id_to_icon_map);
 ```
 
 If the string provided is a full path to a .png file, the GUI will use this file.
-If the string is simply the name of the file (without the .png ending) as above, the GUI will first look for a file in a folder `../icons`.
+If the string is simply the name of the file (without the .png ending) as above, the GUI will first look for a file in the `icons` folder of `EnergyModelsGUI`.
 If it is not provided here, it will look in the `ext/EMGUIExt/icons/` folder in the EMX repositories.
 If the icon is not found here either, it will fall back to the default icon generation mentioned earlier (based on simple shapes like circle for `Sink`s and squares for `Source`s and colored by input/output colors).

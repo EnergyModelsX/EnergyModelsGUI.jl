@@ -14,7 +14,7 @@ function define_event_functions(gui::GUI)
     simplified_toggle = get_toggle(gui, :simplified)
     alpha_slider = get_slider(gui, :alpha)
 
-    # On zooming, make sure all graphics are adjusted acordingly
+    # On zooming, make sure all graphics are adjusted accordingly
     on(ax_topo.finallimits; priority = 10) do finallimits
         widths::Vec = finallimits.widths
         origin::Vec = finallimits.origin
@@ -35,7 +35,7 @@ function define_event_functions(gui::GUI)
         return Consume(false)
     end
 
-    # If the window is resized, make sure all graphics are adjusted acordingly
+    # If the window is resized, make sure all graphics are adjusted accordingly
     fig = get_fig(gui)
     on(fig.scene.events.window_area; priority = 3) do _
         get_vars(gui)[:plot_widths] = fig.scene.viewport.val.widths
@@ -62,7 +62,7 @@ function define_event_functions(gui::GUI)
                 # get changes
                 change::Point2f = get_change(gui, Val(event.key))
 
-                # check if any changes where made
+                # check if any changes were made
                 if change != Point2f(0.0f0, 0.0f0)
                     for sub_design ∈ get_selected_systems(gui)
                         sub_design.xy[] += change
@@ -209,7 +209,7 @@ function define_event_functions(gui::GUI)
 
             xy::Point2f = xy_origin .+ mouse_pos_loc .* xy_widths ./ widths
             selected_systems = get_selected_systems(gui)
-            if !isempty(selected_systems) && isa(selected_systems[1], EnergySystemDesign) # Only nodes/area can be moved (connections will update correspondinlgy)
+            if !isempty(selected_systems) && isa(selected_systems[1], EnergySystemDesign) # Only nodes/area can be moved (connections will update correspondingly)
                 sub_design::EnergySystemDesign = selected_systems[1]
 
                 update_sub_system_locations!(sub_design, xy .- sub_design.xy[])

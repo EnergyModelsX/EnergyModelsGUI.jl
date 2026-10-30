@@ -1,9 +1,9 @@
 # [Customize descriptive_names](@id how_to-cust_desc_names)
 
-`EnergyModelsGUI` provides a set of descriptive names for case input structures and assosiated JuMP variables.
+`EnergyModelsGUI` provides a set of descriptive names for case input structures and associated JuMP variables.
 These can be found in `src/descriptive_names.yml`. These descriptions are extended/overwritten with EMX
-packages having a `descriptive_names.yml` file in a `ext/EMGUIExt` folder of its repository (having a module 
-name starting with `EnergyModel`). That is, if you want to provide descriptive names for your EMX package, 
+packages having a `descriptive_names.yml` file in an `ext/EMGUIExt` folder of its repository (having a module 
+name starting with `EnergyModels`). That is, if you want to provide descriptive names for your EMX package, 
 add a `.yml` file in this location, with the same structure as `src/descriptive_names.yml`.
 
 It can be convenient to provide a user defined file in addition.
@@ -17,8 +17,8 @@ If you instead (or in addition) want to provide descriptive names through a `Dic
 
 ```julia
 descriptive_names_dict = Dict(
-    :structures => Dict( # Input parameter from the case Dict
-        :EnergyModelsGeography => Dict( # Input parameter from the case Dict
+    :structures => Dict( # Input parameters of the case structures
+        :EnergyModelsGeography => Dict( # Module of the structures
             :RefStatic => Dict(
                 :trans_cap => "New description for `trans_cap`",
                 :opex_fixed => "New description for `opex_fixed`",
@@ -54,11 +54,11 @@ gui = GUI(
 )
 ```
 
-You can similarly customize variables that indicate an investment has occured through the values of the key `:investment_indicators` in the keyword argument `descriptive_names_dict`.
-The default variables are which indicate investments are
+You can similarly customize variables that indicate an investment has occurred through the values of the key `:investment_indicators` in the keyword argument `descriptive_names_dict`.
+The default variables which indicate investments are
 
 - ``\texttt{cap\_add}`` for all nodes except for [`Storage`](@extref EnergyModelsBase.Storage),
-- ``\texttt{stor\_level\_add}`` for all  [`Storage`](@extref EnergyModelsBase.Storage) nodes,
-- ``\texttt{stor\_charge_\_add}`` for all  [`Storage`](@extref EnergyModelsBase.Storage) nodes with charge capacity,
-- ``\texttt{stor\_discharge\_add}`` for all  [`Storage`](@extref EnergyModelsBase.Storage) nodes with discharge capacity, and
+- ``\texttt{stor\_level\_add}`` for all [`Storage`](@extref EnergyModelsBase.Storage) nodes,
+- ``\texttt{stor\_charge\_add}`` for all [`Storage`](@extref EnergyModelsBase.Storage) nodes with charge capacity,
+- ``\texttt{stor\_discharge\_add}`` for all [`Storage`](@extref EnergyModelsBase.Storage) nodes with discharge capacity, and
 - ``\texttt{trans\_cap\_add}`` for all transmission modes.

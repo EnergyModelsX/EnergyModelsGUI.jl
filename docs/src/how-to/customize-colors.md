@@ -7,7 +7,7 @@ These can be found in `src/colors.yml` and are visualized below
 
 If you have a `Resource` with another `id` or you want to alter the default colors, you need to specify the `id_to_color_map` option in the `GUI` function.
 
-Say that your `case[:products]` contains the following products
+Say that the products of your `case` are the following
 
 ```julia
 NG     = ResourceEmit("NG", 0.2)
@@ -16,7 +16,7 @@ Power  = ResourceCarrier("Power", 0.)
 new_id = ResourceEmit("NewID",1.)
 ```
 
-and you want to alter the color of `Coal` and provide a custom color for the new `ResourceEmit` with `id` `NewID`, then simply do the following (colors can be a string in hex format or a symbol representing a named color from the [Colors.jl](https://juliagraphics.github.io/Colors.jl/stable/) package):
+and you want to alter the color of `NG` and provide a custom color for the new `ResourceEmit` with `id` `NewID`, then simply do the following (colors can be a string in hex format or a symbol representing a named color from the [Colors.jl](https://juliagraphics.github.io/Colors.jl/stable/) package):
 
 ```julia
 id_to_color_map = Dict(new_id.id => :yellow, NG.id => "#FF9876")

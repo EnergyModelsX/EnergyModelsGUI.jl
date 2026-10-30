@@ -121,7 +121,8 @@ end
     )
 
 Find the minimum and maximum coordinates of the components of `EnergySystemDesign` design
-given the minimum and maximum coordinates `min_x`, `min_y`, `max_x`, and `max_y`.
+given the minimum and maximum coordinates `min_x`, `max_x`, `min_y`, and `max_y`. The
+updated values are returned as the tuple `(min_x, max_x, min_y, max_y)`.
 """
 function find_min_max_coordinates(
     design::EnergySystemDesign, min_x::Number, max_x::Number, min_y::Number, max_y::Number,
@@ -146,7 +147,8 @@ end
 """
     find_min_max_coordinates(design::EnergySystemDesign)
 
-Find the minimum and maximum coordinates of the components of EnergySystemDesign `design`.
+Find the minimum and maximum coordinates of the components of EnergySystemDesign `design`,
+returned as the tuple `(min_x, max_x, min_y, max_y)`.
 """
 function find_min_max_coordinates(design::EnergySystemDesign)
     return find_min_max_coordinates(design, Inf, -Inf, Inf, -Inf)
@@ -167,7 +169,7 @@ end
 """
     angle_difference(angle1::Float32, angle2::Float32)
 
-Compute the difference between two angles.
+Compute the (smallest, non-negative) difference between two angles.
 """
 function angle_difference(angle1::Float32, angle2::Float32)
     diff::Float32 = abs(angle1 - angle2) % 2π32
@@ -186,10 +188,10 @@ get_text_alignment(::Val{:S}) = (:center, :top)
 get_text_alignment(::Val{:N}) = (:center, :bottom)
 
 """
-    function box(x::Float32, y::Float32, Δ::Float32)
+    box(x::Float32, y::Float32, Δ::Float32)
 
 Get the coordinates of a box with half side lengths `Δ` and centered at (`x`,`y`) starting
-at the upper right corner.
+at the upper right corner, returned as the vectors `xs` and `ys` of a closed path.
 """
 function box(x::Float32, y::Float32, Δ::Float32)
     xs::Vector{Float32} = [x + Δ, x - Δ, x - Δ, x + Δ, x + Δ]
@@ -201,8 +203,8 @@ end
 """
     update_sub_system_locations!(design::EnergySystemDesign, Δ::Point2f)
 
-Update the coordinates of a subsystem of design based on the movement of EnergySystemDesign
-`design`.
+Update the coordinates of the components of EnergySystemDesign `design` by shifting them by
+the displacement `Δ`.
 """
 function update_sub_system_locations!(design::EnergySystemDesign, Δ::Point2f)
     for component ∈ get_components(design)
@@ -212,16 +214,16 @@ end
 
 """
     get_sector_points(;
-        center::Point2f = Point2f(0.0f0, 0.0f0),
+        c::Point2f = Point2f(0.0f0, 0.0f0),
         Δ::Float32 = 1.0f0,
         θ₁::Float32 = 0.0f0,
         θ₂::Float32 = π32 / 4,
-        steps::Int=200,
+        steps::Int = 200,
         geometry::Symbol = :circle)
 
-Get points for the boundary of a sector defined by the center `c`, radius/halfsidelength `Δ`,
-and angles `θ₁` and `θ₂` for a square (geometry = :rect), a circle (geometry = :circle), or a
-triangle (geometry = :triangle).
+Get points for the boundary of a sector defined by the center `c`, radius/half side length
+`Δ`, and angles `θ₁` and `θ₂` for a square (geometry = :rect), a circle
+(geometry = :circle), or a triangle (geometry = :triangle).
 """
 function get_sector_points(;
     c::Point2f = Point2f(0.0f0, 0.0f0),

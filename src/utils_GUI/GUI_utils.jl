@@ -51,7 +51,7 @@ end
 """
     get_EMGUI_obj(plt)
 
-Get the `EnergySystemDesign`/`Connection` assosiated with `plt`. Note that due to the nested
+Get the `EnergySystemDesign`/`Connection` associated with `plt`. Note that due to the nested
 structure of Makie, we must iteratively look through up to three nested layers to find where
 this object is stored.
 """
@@ -83,8 +83,8 @@ end
 
 Check if a system is found under the mouse pointer and if it is an `AbstractGUIObj` (for
 objects in the topology axis) or a `Dict` (for objects in the results axis). If found,
-state variables are updated. Results in the topology axis are only cleared if `ax_type = :topo`
-and in the results axis if `ax_type = :results`.
+state variables are updated. Otherwise, the selection in the topology axis is only cleared
+if `ax_type = :topo` and the selection in the results axis if `ax_type = :results`.
 """
 function pick_component!(gui::GUI, ax_type::Symbol)
     plt, _ = pick(get_fig(gui))
@@ -182,7 +182,8 @@ end
 """
     get_mode_to_transmission_map(::System)
 
-Dispatchable function to get the mapping between modes and transmissions for a `GeoSystem`.
+Dispatchable function to get the mapping between modes and transmissions. It returns an
+empty `Dict` for a `System` and is overloaded for a `SystemGeo` in `EMGExt`.
 """
 function get_mode_to_transmission_map(::System)
     return Dict()
@@ -304,7 +305,7 @@ function initialize_available_data!(gui)
 
                 tot_capex .+= capex
 
-                # add opex_field to available data
+                # add capex_field to available data
                 container = GlobalDataContainer(
                     "capex_strategic",
                     [element],
@@ -446,7 +447,7 @@ function initialize_available_data!(gui)
                 df[!, :t] = convert_array(t_vals, periods_dict)
             end
         else
-            @warn "Additional plot data does not contain a 't' column. Creating a OperationalProfile."
+            @warn "Additional plot data does not contain a 't' column. Creating an `OperationalProfile`."
             if length(df[!, 1]) > length(collect(T))
                 throw(
                     ArgumentError(
@@ -504,7 +505,7 @@ end
 
 """
     extract_data_selection(var::SparseVars, selection::Vector, i_T::Int64, periods::Vector)
-    extract_data_selection(var::Jump.Containers.DenseAxisArray, selection::Vector, i_T::Int64, ::Vector)
+    extract_data_selection(var::JuMP.Containers.DenseAxisArray, selection::Vector, i_T::Int64, ::Vector)
     extract_data_selection(var::DataFrame, selection::Vector, ::Int64, ::Vector)
 
 Extract data from `var` having its time dimension at index `i_T` for all time periods in `periods`.
@@ -574,8 +575,9 @@ end
     get_JuMP_dict(model::Model)
     get_JuMP_dict(model::Dict)
 
-Get the dictionary of the model results. If the model is a JuMP.Model, it returns the object
-dictionary.
+Get the dictionary of the model results. If the model is a `JuMP.Model`, it returns the
+object dictionary. If the model is a `Dict` (results read from CSV-files), the entry
+`:metadata` is excluded.
 """
 get_JuMP_dict(model::Dict) = Dict(k => v for (k, v) ∈ model if k != :metadata)
 get_JuMP_dict(model::JuMP.Model) = object_dictionary(model)
@@ -589,6 +591,7 @@ get_JuMP_dict(model::JuMP.Model) = object_dictionary(model)
     get_values(vals::JuMP.Containers.DenseAxisArray, ts::Vector)
     get_values(vals::DataFrame, ts::Vector)
     get_values(vals::DataFrame, ts::Vector{<:TS.PeriodPartition})
+    get_values(vals::TimeProfile, ts::Vector)
 
 Get the values of the variables in `vals`. If a vector of time periods `ts` is provided, it
 returns the values for the times in `ts`. For `TS.PeriodPartition`s read from CSV-files, the
@@ -610,18 +613,19 @@ get_values(vals::TimeProfile, ts::Vector) = vals[ts]
 """
     get_inv_objs(obj::AbstractElement)
 
-Get the objects for which investment information should be stored for a given `AbstractElement`.
-By default, this is just the element itself, but for some elements (e.g., `Transmission`) it can
-be relevant to also store the investment information of related objects (e.g., its modes).
+Get the objects for which investment information should be stored for a given
+`AbstractElement`. By default, this is just the element itself, but for some elements
+(*e.g.*, `Transmission`) it can be relevant to also store the investment information of
+related objects (*e.g.*, its modes).
 """
 get_inv_objs(obj::AbstractElement) = [obj]
 
 """
     get_investment_times(gui::GUI, max_inst::Float64)
 
-Calculate when investments has taken place and store the information. An investement is
-assumed to have taken place if any `investment_indicators` are larger than get_var(gui,:tol)
-relative to `max_inst`.
+Calculate when investments have taken place and store the information. An investment is
+assumed to have taken place if any `investment_indicators` are larger than
+`get_var(gui, :tol)` relative to `max_inst`.
 """
 function get_investment_times(gui::GUI, max_inst::Float64)
     T = get_time_struct(gui)
@@ -743,7 +747,7 @@ function get_combinations(var::JuMP.Containers.DenseAxisArray, i_T::Int)
     return Iterators.product(axes(var)[vcat(1:(i_T-1), (i_T+1):end)]...)
 end
 function get_combinations(var::DataFrame, ::Int)
-    # Exclude the time and value columns (assumed to be :t and :vals)
+    # Exclude the time and value columns (assumed to be :t and :val)
     cols = names(var)
     non_time_val_cols = filter(c -> c != "t" && c != "val", cols)
     # Get unique tuples of the non-time/value columns
@@ -776,8 +780,7 @@ end
     update_time_menu!(gui::GUI, element)
 
 Update the options of the time menu based on `element`: The option for plotting data over
-`TS.PeriodPartition`s is only made available if `element` has data indexed over such
-partitions.
+`TS.PeriodPartition`s is only made available if `element` has data indexed over such partitions.
 """
 function update_time_menu!(gui::GUI, element)
     time_menu = get_menu(gui, :time)
@@ -804,7 +807,8 @@ following order:
 
 - The default descriptive names found in `src/descriptive_names.yml`.
 - Any descriptive_names.yml file found in the ext/EMGUIExt folder of available EMX packages.
-- Descriptive names from a user defined file (from the GUI input argument `path_to_descriptive_names`).
+- Descriptive names from a user defined file (from the GUI input argument
+  `path_to_descriptive_names`).
 - Descriptive names from a user defined Dict (from the GUI input argument `descriptive_names_dict`).
 """
 function create_descriptive_names(vars::Dict{Symbol,Any})
@@ -818,7 +822,7 @@ function create_descriptive_names(vars::Dict{Symbol,Any})
     # Filter packages with names matching the pattern "EnergyModels*"
     emx_packages = filter(pkg -> occursin(r"EnergyModels", string(pkg)), loaded_packages)
     # apply inheritances for fetching descriptive names
-    # create a dictionary were the keys are all the types defined in emx_packages and the values are the types they inherit from
+    # create a dictionary where the keys are all the types defined in emx_packages and the values are the types they inherit from
     emx_supertypes_dict = get_supertypes(emx_packages)
     inherit_descriptive_names_from_supertypes!(descriptive_names, emx_supertypes_dict)
     for package ∈ emx_packages
@@ -866,7 +870,9 @@ create_descriptive_names() = create_descriptive_names(
     get_descriptive_names(modules::Union{Module, Vector{Module}}, descriptive_names::Dict{Symbol,Any})
     get_descriptive_names(model::Model, descriptive_names::Dict{Symbol,Any})
 
-Get a mapping between EMX types and their descriptive names for fields of type `TimeProfile`.
+Get a mapping between EMX types and their descriptive names for fields of type `TimeProfile`
+(for `modules`) or between the names of the variables in `model` and their descriptive
+names (for `model`).
 """
 function get_descriptive_names(
     modules::Union{Module,Vector{Module}},
@@ -914,8 +920,8 @@ end
     select_data!(gui::GUI, name::String; selection::Vector = Any[], fun::Function = findfirst)
 
 Select the data with name `name` from the `available_data` menu. If `selection` is provided,
-it is used to further specify which data to select. The `fun` argument is used to specify the
-function for finding the data in the menu (default is `findfirst`).
+it is used to further specify which data to select. The `fun` argument is used to specify
+the function for finding the data in the menu (default is `findfirst`).
 """
 function select_data!(
     gui::GUI,
@@ -947,7 +953,7 @@ end
     get_total_sum_time(data::JuMP.Containers.DenseAxisArray, ::Vector{<:TS.TimeStructure})
     get_total_sum_time(data::DataFrame, periods::Vector{<:TS.TimeStructure})
 
-Get the total sum of the data for each time period in `data`.
+Get the total sum of `data` over all indices except the time for each period in `periods`.
 """
 function get_total_sum_time(
     data::JuMP.Containers.DenseAxisArray,
@@ -962,7 +968,8 @@ end
 """
     get_all_periods(𝒯::TimeStructure)
 
-Get all TimeStructures in `𝒯` as a dictionary with their string representation as keys.
+Get all `TimeStructure`s and `TimePeriod`s in `𝒯` as a dictionary with their string
+representation as keys.
 """
 function get_all_periods(𝒯::TimeStructure)
     all_periods = Union{TS.TimePeriod,TS.TimeStructure}[]
@@ -1034,7 +1041,9 @@ end
     transfer_model(model::Model, system::AbstractSystem)
     transfer_model(model::String, system::AbstractSystem)
 
-Convert the model to a DataFrame if it is provided as a path to a directory.
+Return `model` unchanged if it is a `Model`. If it is a path to a directory with results
+saved as CSV-files, convert it to a `Dict` containing a `DataFrame` for each variable and
+the `:metadata`.
 """
 transfer_model(model::Model, ::AbstractSystem) = model
 function transfer_model(model::String, system::AbstractSystem)
