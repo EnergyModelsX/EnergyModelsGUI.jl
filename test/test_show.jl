@@ -1,8 +1,8 @@
-case, _ = generate_example_ss()
-gui = GUI(case)
-
 # Test specific miscellaneous functionalities
 @testset "Test functionality" verbose = true begin
+    case, _ = generate_example_ss()
+    gui = GUI(case)
+
     # Test print functionalities of GUI structures to the REPL
     @testset "Test Base.show() functions" begin
         design = EMGUI.get_design(gui)
@@ -21,4 +21,6 @@ gui = GUI(case)
         system = EMGUI.parse_case(case)
         @test Base.show(system) == Base.show(design)
     end
+
+    EMGUI.close(gui)
 end

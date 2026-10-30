@@ -46,10 +46,16 @@ end
 end
 
 @testset "Test reading additional plot data from files" verbose = true begin
-    # Read the case and model data from previous test
+    # Save the results of the case to a separate folder
     file = "EMB_network.jl"
-    directory = joinpath(tmpdir, splitext(file)[1])
+    directory = joinpath(tmpdir, "additional_plots_" * splitext(file)[1])
+    if !ispath(directory)
+        mkdir(directory)
+    end
     case, model = get_case(file)
+    optimizer = optimizer_with_attributes(HiGHS.Optimizer, MOI.Silent() => true)
+    m = run_model(case, model, optimizer)
+    EMGUI.save_results(m; directory)
 
     # Create additional plot data and save it to a CSV file
     test_additional_plots_dir = joinpath(tmpdir, "test_additional_plots")
