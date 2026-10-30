@@ -464,8 +464,15 @@ alpha_slider = get_slider(gui, :alpha)
         update!(gui)
         get_menu(gui, :period).i_selected = 3
         select_data!(gui, "stor_level_Δ_rp")
-        @test get_ax(gui, :results).scene.plots[3][1][][1][2] ≈ -7.0265152 atol = 1e-5
-        @test get_ax(gui, :results).scene.plots[3][1][][2][2] ≈ 7.0265152 atol = 1e-5
+
+        # Compare with the values of the JuMP model, as the storage level changes of the
+        # Battery are not unique (alternative optima with the same objective value)
+        battery = get_element(sub_component)
+        t_inv = collect(strategic_periods(get_time_struct(gui)))[3]
+        jump_values =
+            [value(m[:stor_level_Δ_rp][battery, t_rp]) for t_rp ∈ repr_periods(t_inv)]
+        plotted_values = [point[2] for point ∈ get_ax(gui, :results).scene.plots[3][1][]]
+        @test plotted_values ≈ jump_values atol = 1e-5
     end
 
     @testset "Test icon not found" begin

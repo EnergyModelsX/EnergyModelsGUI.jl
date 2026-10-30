@@ -72,7 +72,7 @@ Partitions differ between elements and are not part of the time structure of the
 `EnergyModelsGUI` therefore has to construct the partitions of each element itself through the function [`period_partitions`](@ref EnergyModelsGUI.period_partitions).
 By default, it uses the field `period_duration` of the element, following the convention of `EnergyModelsFlex`.
 If your technology stores the duration of its partitions differently, you must provide a method for your type returning the vector of `PeriodPartition`s for the time structure `𝒯` of the case.
-Consider the case in which these are stored within the field `duation`, you must create a new method:
+Consider the case in which these are stored within the field `duration`, you must create a new method:
 
 ```julia
 using EnergyModelsGUI, TimeStruct

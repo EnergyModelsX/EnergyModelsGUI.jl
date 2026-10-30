@@ -156,7 +156,7 @@ function get_sub_system_data_case7(a_id, products, T)
         el_1 = RefSink(
             "El 1",                           # Node id
             StrategicProfile(El_1_demand),    # cap: the demand
-            Dict(                             # penality: penalties for surplus or deficits
+            Dict(                             # penalty: penalties for surplus or deficits
                 :surplus => FixedProfile(0),  # Penalty for surplus
                 :deficit => FixedProfile(1e5) # Penalty for deficit
             ),
@@ -181,7 +181,7 @@ function get_sub_system_data_case7(a_id, products, T)
         heating_1 = RefSink(
             "Heating 1",                        # Node id
             RepresentativeProfile(Heat_demand), # cap: the demand
-            Dict(                               # penality: penalties for surplus or deficits
+            Dict(                               # penalty: penalties for surplus or deficits
                 :surplus => FixedProfile(0),    # Penalty for surplus
                 :deficit => FixedProfile(1e5)   # Penalty for deficit
             ),
@@ -192,7 +192,7 @@ function get_sub_system_data_case7(a_id, products, T)
             FixedProfile(0.5),                  # cap: maximum demand satisfaction per operational period
             12,                                 # period_duration: 2 demand periods per representative period
             PartitionProfile([3, 1.8]),         # period_demand: the demand within each demand period
-            Dict(                               # penality: penalties for surplus or deficits
+            Dict(                               # penalty: penalties for surplus or deficits
                 :surplus => FixedProfile(0),    # Penalty for surplus
                 :deficit => FixedProfile(1e5)   # Penalty for deficit
             ),
@@ -318,7 +318,7 @@ function get_sub_system_data_case7(a_id, products, T)
         ev_charger = RefSink(
             "EV charger",                           # Node id
             StrategicProfile(EV_charger_demand),    # cap: the demand
-            Dict(                                   # penality: penalties for surplus or deficits
+            Dict(                                   # penalty: penalties for surplus or deficits
                 :surplus => FixedProfile(0),        # Penalty for surplus
                 :deficit => FixedProfile(1e5)       # Penalty for deficit
             ),
