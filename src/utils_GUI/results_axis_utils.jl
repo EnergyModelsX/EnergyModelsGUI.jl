@@ -200,9 +200,31 @@ function get_data(
     else
         type = nested_eltype(field_data)
     end
-    periods, time_axis = get_periods(T, type, sp, rp, sc)
+    if type <: TS.PeriodPartition || type <: PartitionProfile
+        periods = filter_partitions(get_partition_periods(selection, T), sp, rp, sc)
+        time_axis = :results_pt
+    else
+        periods, time_axis = get_periods(T, type, sp, rp, sc)
+    end
     y_values = get_values(field_data, periods)
     return periods, y_values, time_axis
+end
+
+"""
+    get_partition_periods(selection::JuMPContainer, ::TS.TimeStructure)
+    get_partition_periods(selection::PlotContainer, T::TS.TimeStructure)
+
+Get all `TS.PeriodPartition`s for the data in `selection`, either from the time periods of
+the extracted JuMP data (sorted through [`partition_sort_key`](@ref)) or, for case data,
+constructed from the element itself (see [`period_partitions`](@ref)).
+"""
+function get_partition_periods(selection::JuMPContainer, ::TS.TimeStructure)
+    pds = collect(get_time_periods(get_field_data(selection)))
+    return sort(pds; by = partition_sort_key)
+end
+function get_partition_periods(selection::PlotContainer, T::TS.TimeStructure)
+    element = getfirst(x -> !isa(x, Resource) && !isnothing(x), get_selection(selection))
+    return period_partitions(element, T)
 end
 
 """
@@ -252,6 +274,11 @@ end
 function get_periods(T::TS.TimeStructure, ::Type{<:TS.ScenarioPeriod})
     return collect(TS.opscenarios(T))
 end
+function get_periods(::TS.TimeStructure, ::Type{<:TS.PeriodPartition})
+    # Partitions may differ between elements and are instead extracted from the variable
+    # itself (see `get_var_periods`)
+    return TS.PeriodPartition[]
+end
 function get_periods(T::TS.TimeStructure, ::Type{<:Any})
     return collect(T)
 end
@@ -278,7 +305,11 @@ function get_time_axis(
 )
     types::Vector{Type} = collect(get_jump_axis_types(data))
     i_T::Union{Int64,Nothing} = findfirst(
-        x -> x <: TS.TimePeriod || x <: TS.TimeStructure{T} where {T}, types,
+        x ->
+            x <: TS.TimePeriod ||
+            x<:(TS.TimeStructure{T} where {T}) ||
+            x <: TS.PeriodPartition,
+        types,
     )
     if isnothing(i_T)
         return i_T, nothing
@@ -405,8 +436,12 @@ function update_plot!(gui::GUI, element)
             else
                 label *= " for strategic period $sp"
             end
-        elseif time_axis == :results_op
-            xlabel *= " (OperationalPeriods)"
+        elseif time_axis == :results_op || time_axis == :results_pt
+            if time_axis == :results_op
+                xlabel *= " (OperationalPeriods)"
+            else
+                xlabel *= " (PeriodPartitions)"
+            end
 
             if eltype(T.operational) <: TS.RepresentativePeriods
                 if eltype(T.operational[sp].rep_periods) <: TS.OperationalScenarios
@@ -454,6 +489,9 @@ function update_plot!(gui::GUI, element)
                 if !isempty(scenarios_labels)
                     custom_ticks = (1:no_pts, scenarios_labels[1:no_pts])
                 end
+            elseif time_axis == :results_pt
+                # The partition axis is appended after the base time axes options
+                time_menu.i_selected[] = length(TIME_AXES) + 1
             end
         end
         if time_axis == :results_op
@@ -607,8 +645,15 @@ function update_limits!(ax::Axis)
     yorigin = ax.finallimits[].origin[2]
     ywidth = ax.finallimits[].widths[2]
 
-    # try to avoid legend box overlapping the plots
-    ylims!(ax, yorigin, yorigin + ywidth * 1.1)
+    if iszero(ywidth)
+        # Pad limits without a span (occuring for plots of constant data) to avoid
+        # errors when setting the limits
+        Δy = pad_amount(yorigin)
+        ylims!(ax, yorigin - Δy, yorigin + Δy)
+    else
+        # try to avoid legend box overlapping the plots
+        ylims!(ax, yorigin, yorigin + ywidth * 1.1)
+    end
 end
 
 """
@@ -621,8 +666,29 @@ function update_limits!(ax::Axis, limits::GLMakie.HyperRectangle)
     xmax = limits.origin[1] + limits.widths[1]
     ymin = limits.origin[2]
     ymax = limits.origin[2] + limits.widths[2]
+
+    # Pad limits without a span (occuring for, e.g., stored limits of plots of constant
+    # data where the widths vanish in Float32 precision) to avoid errors when setting
+    # the limits
+    if xmax ≤ xmin
+        Δx = pad_amount(xmin)
+        xmin -= Δx
+        xmax += Δx
+    end
+    if ymax ≤ ymin
+        Δy = pad_amount(ymin)
+        ymin -= Δy
+        ymax += Δy
+    end
     limits!(ax, xmin, xmax, ymin, ymax)
 end
+
+"""
+    pad_amount(val::Real)
+
+Return the amount with which degenerate axis limits around `val` are padded.
+"""
+pad_amount(val::Real) = max(abs(val) / 10, oftype(float(val), 0.1))
 
 """
     update_barplot_dodge!(gui::GUI)

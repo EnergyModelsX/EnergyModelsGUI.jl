@@ -50,6 +50,65 @@ function get_op(tp::TS.TimePeriod)
 end
 
 """
+    period_partitions(element, T::TS.TimeStructure)
+
+Return the vector of `TS.PeriodPartition`s partitioning the operational periods of `T` for
+`element`.
+
+By default, the partitions are constructed from the field `period_duration` of `element`
+(the convention introduced by, *e.g.*, `PeriodDemandSink` in `EnergyModelsFlex`). Elements
+that store the partition duration differently require a specialized method of this
+function. If the partitions cannot be determined, a warning highlighting `element` is
+issued and an empty vector is returned.
+"""
+function period_partitions(element, T::TS.TimeStructure)
+    if hasproperty(element, :period_duration)
+        return collect(partition_duration(T, element.period_duration))
+    end
+    @warn "The `PeriodPartition`s of element `$element` (of type `$(typeof(element))`) " *
+          "cannot be determined as it has no field `period_duration`. Provide a method " *
+          "`EnergyModelsGUI.period_partitions(element::$(nameof(typeof(element))), T)` " *
+          "to visualize its data indexed over `PeriodPartition`s." _id =
+        (:period_partitions, element) maxlog = 1
+    return TS.PeriodPartition[]
+end
+period_partitions(::Nothing, ::TS.TimeStructure) = TS.PeriodPartition[]
+
+"""
+    partition_sort_key(pd::TS.PeriodPartition)
+
+Return a sort key for the `TS.PeriodPartition` `pd` given by the tuple of its strategic
+period, representative period, scenario, and partition indices (indices not present in
+`pd` are set to zero).
+"""
+function partition_sort_key(pd::TS.PeriodPartition)
+    return (
+        hasproperty(pd, :sp) ? pd.sp : 0,
+        hasproperty(pd, :rp) ? pd.rp : 0,
+        hasproperty(pd, :scen) ? pd.scen : 0,
+        pd.part,
+    )
+end
+
+"""
+    filter_partitions(
+        pds::Vector{<:TS.PeriodPartition}, sp::Int64, rp::Int64, sc::Int64,
+    )
+
+Filter the `TS.PeriodPartition`s `pds` to the strategic period `sp`, representative period
+`rp`, and scenario `sc` (indices not present in the partitions are ignored).
+"""
+function filter_partitions(
+    pds::Vector{<:TS.PeriodPartition}, sp::Int64, rp::Int64, sc::Int64,
+)
+    return [
+        pd for pd ∈ pds if (!hasproperty(pd, :sp) || pd.sp == sp) &&
+            (!hasproperty(pd, :rp) || pd.rp == rp) &&
+            (!hasproperty(pd, :scen) || pd.scen == sc)
+    ]
+end
+
+"""
     get_supertypes(x::Any)
 
 Return the vector of the supertypes of `x`.
@@ -217,6 +276,7 @@ end
     _type_to_header(::Type{<:TS.AbstractOperationalScenario})
     _type_to_header(::Type{<:TS.TimePeriod})
     _type_to_header(::Type{<:TS.TimeStructure})
+    _type_to_header(::Type{<:TS.PeriodPartition})
     _type_to_header(::Type{<:Resource})
     _type_to_header(::Type{<:AbstractElement})
 
@@ -227,6 +287,7 @@ _type_to_header(::Type{<:TS.AbstractRepresentativePeriod}) = :rp
 _type_to_header(::Type{<:TS.AbstractOperationalScenario}) = :osc
 _type_to_header(::Type{<:TS.TimePeriod}) = :t
 _type_to_header(::Type{<:TS.TimeStructure}) = :t
+_type_to_header(::Type{<:TS.PeriodPartition}) = :pd
 _type_to_header(::Type{<:Resource}) = :res
 _type_to_header(::Type{<:AbstractElement}) = :element
 _type_to_header(::Type{<:Int}) = :segment

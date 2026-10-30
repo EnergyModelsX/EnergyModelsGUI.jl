@@ -149,6 +149,16 @@ structures:
       cap_price:              "Price of capacity usage"
       cap_price_periods:      "The number of sub periods in an investment period"
 
+    ## sink/datastructures.jl
+    AbstractPeriodDemandSink:
+      period_duration:        "Duration of each demand period"
+      period_demand:          "Demand within each demand period"
+
+    StratPeriodDemandSink:
+      strat_demand:           "Demand within each strategic period"
+      period_min:             "Minimum fraction of the strategic demand satisfied in each demand period"
+      period_max:             "Maximum fraction of the strategic demand satisfied in each demand period"
+
 
 variables:
   # EnergyModelsBase
@@ -268,6 +278,10 @@ variables:
   solar_cap_use:            "Absolute capacity utilization"
 
   # EnergyModelsFlex
+  demand_sink_surplus:      "Surplus in demand within a demand period"
+  demand_sink_deficit:      "Deficit in demand within a demand period"
+  demand_sink_strat_surplus: "Surplus in demand within a strategic period"
+  demand_sink_strat_deficit: "Deficit in demand within a strategic period"
   input_frac_strat:         "Input resource fraction"
   load_shift_from:          "Load shift from"
   load_shift_to:            "Load shift to"

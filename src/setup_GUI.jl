@@ -166,12 +166,14 @@ function GUI(
         :alpha => Observable(Float32(alpha)),
         :autolimits => Dict(
             :results_op => true,
+            :results_pt => true,
             :results_sc => true,
             :results_rp => true,
             :results_sp => true,
         ),       # Automatically adjust limits of the axis
         :finallimits => Dict(
             :results_op => GLMakie.HyperRectangle(Vec2f(0, 0), Vec2f(1, 1)),
+            :results_pt => GLMakie.HyperRectangle(Vec2f(0, 0), Vec2f(1, 1)),
             :results_sc => GLMakie.HyperRectangle(Vec2f(0, 0), Vec2f(1, 1)),
             :results_rp => GLMakie.HyperRectangle(Vec2f(0, 0), Vec2f(1, 1)),
             :results_sp => GLMakie.HyperRectangle(Vec2f(0, 0), Vec2f(1, 1)),
@@ -589,10 +591,7 @@ function create_makie_objects(vars::Dict, design::EnergySystemDesign)
     )
     time_menu = Makie.Menu(
         gridlayout_results_taskbar1[1, 2];
-        options = zip(
-            ["Strategic", "Representative", "Scenario", "Operational"],
-            [:results_sp, :results_rp, :results_sc, :results_op],
-        ),
+        options = zip(TIME_AXES_LABELS, TIME_AXES),
         halign = :left,
         width = 110 * vars[:fontsize] / 12,
         fontsize = vars[:fontsize],

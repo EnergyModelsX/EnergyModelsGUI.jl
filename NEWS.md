@@ -2,9 +2,21 @@
 
 ## Unversioned
 
-### Bugfix
+### Bugfixes
 
 * Fixed a bug in the functionality `get_all_periods` when using `RepresentativePeriods` or `OperationalScenarios`.
+* Fix crash when reapplying the stored axis limits of plots of constant data (*e.g.*, a flat demand profile), as the stored limits can degenerate in Float32 precision.
+* Fix crash in `save_results` for models with variables indexed over `PeriodPartition`s.
+
+### Enhancements
+
+* Added support for visualizing data indexed over `PeriodPartition`s (introduced in *[`TimeStruct` v0.9.12](https://github.com/sintefore/TimeStruct.jl/releases/tag/v0.9.12)*), resolving [Issue #55](https://github.com/EnergyModelsX/EnergyModelsGUI.jl/issues/55):
+  * Both JuMP variables indexed over `PeriodPartition`s and `PartitionProfile` fields of elements (*e.g.*, `PeriodDemandSink` from `EnergyModelsFlex`) are available for plotting through the new *Partition* time axis.
+  * The *Partition* option in the time menu is only available for elements with data indexed over `PeriodPartition`s.
+  * The partitions of an element are by default deduced from its `period_duration` field; the function `period_partitions` can be specialized by packages using a different convention.
+    If the partitions of an element cannot be determined, a warning naming the element and the required method is issued and its data indexed over `PeriodPartition`s is not available for plotting.
+  * Variables indexed over `PeriodPartition`s are also supported when reading model results from CSV-files.
+    As the partition labels in the files are not unique across elements, the partitions are rebuilt per element through `period_partitions`.
 
 ## Version 0.7.2 (2026-08-04)
 
