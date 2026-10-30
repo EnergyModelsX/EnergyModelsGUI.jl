@@ -8,6 +8,10 @@
 * Fix crash when reapplying the stored axis limits of plots of constant data (*e.g.*, a flat demand profile), as the stored limits can degenerate in Float32 precision.
 * Fix crash in `save_results` for models with variables indexed over `PeriodPartition`s.
 
+### Documentation
+
+* Fixed typos, grammar, and stale content in the documentation, docstrings, and warnings.
+
 ### Enhancements
 
 * Added support for visualizing data indexed over `PeriodPartition`s (introduced in *[`TimeStruct` v0.9.12](https://github.com/sintefore/TimeStruct.jl/releases/tag/v0.9.12)*), resolving [Issue #55](https://github.com/EnergyModelsX/EnergyModelsGUI.jl/issues/55):
