@@ -4,7 +4,7 @@ function get_case(file)
     if file == "EMB_network.jl"
         case, model = generate_example_network()
     elseif file == "EMI_geography.jl"
-        case, model = generate_example_data_geo()
+        case, model = generate_example_geo_investment()
     elseif file == "EMR_hydro_power.jl"
         case, model = generate_example_hp()
     end

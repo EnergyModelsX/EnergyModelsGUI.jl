@@ -295,3 +295,188 @@ function run_case_EMI_geography_2()
 
     return case, model, m, gui
 end
+
+# Subsystem of an area with investments in the nodes; the demand is scaled by `d_scale`
+function get_sub_system_data_inv(
+    i,
+    products;
+    gen_scale::Float64 = 1.0,
+    mc_scale::Float64 = 1.0,
+    d_scale::Float64 = 1.0,
+    demand = false,
+)
+    NG, Coal, Power, CO2 = products
+
+    if demand == false
+        d_file = joinpath(@__DIR__, "inputfiles", "standard demand.dat")
+        d_standard = OperationalProfile(parse.(Float64, readlines(d_file))) # In MW
+        demand = fill(d_standard, 4) * d_scale
+    end
+
+    j = (i - 1) * 100
+    nodes = [
+        GeoAvailability(j + 1, products),
+        RefSink(
+            j + 2,
+            StrategicProfile(demand),
+            Dict(:surplus => FixedProfile(0), :deficit => FixedProfile(1e6)),
+            Dict(Power => 1),
+        ),
+        RefSource(
+            j + 3,
+            FixedProfile(30),
+            FixedProfile(30 * mc_scale),
+            FixedProfile(100),
+            Dict(NG => 1),
+            [
+                SingleInvData(
+                    FixedProfile(1000), # capex [€/kW]
+                    FixedProfile(200),  # max installed capacity [kW]
+                    ContinuousInvestment(FixedProfile(10), FixedProfile(200)), # investment mode
+                ),
+            ],
+        ),
+        RefSource(
+            j + 4,
+            FixedProfile(9),
+            FixedProfile(9 * mc_scale),
+            FixedProfile(100),
+            Dict(Coal => 1),
+            [
+                SingleInvData(
+                    FixedProfile(1000), # capex [€/kW]
+                    FixedProfile(200),  # max installed capacity [kW]
+                    FixedProfile(0),
+                    ContinuousInvestment(FixedProfile(10), FixedProfile(200)), # investment mode
+                ),
+            ],
+        ),
+        RefNetworkNode(
+            j + 5,
+            FixedProfile(0),
+            FixedProfile(5.5 * mc_scale),
+            FixedProfile(100),
+            Dict(NG => 2),
+            Dict(Power => 1, CO2 => 0),
+            [
+                SingleInvData(
+                    FixedProfile(600),  # capex [€/kW]
+                    FixedProfile(25),   # max installed capacity [kW]
+                    ContinuousInvestment(FixedProfile(0), FixedProfile(25)), # investment mode
+                ),
+                CaptureEnergyEmissions(0.9),
+            ],
+        ),
+        RefNetworkNode(
+            j + 6,
+            FixedProfile(0),
+            FixedProfile(6 * mc_scale),
+            FixedProfile(100),
+            Dict(Coal => 2.5),
+            Dict(Power => 1),
+            [
+                SingleInvData(
+                    FixedProfile(800),  # capex [€/kW]
+                    FixedProfile(25),   # max installed capacity [kW]
+                    ContinuousInvestment(FixedProfile(0), FixedProfile(25)), # investment mode
+                ),
+                EmissionsEnergy(),
+            ],
+        ),
+        RefStorage{AccumulatingEmissions}(
+            j + 7,
+            StorCapOpex(FixedProfile(0), FixedProfile(9.1 * mc_scale), FixedProfile(100)),
+            StorCap(FixedProfile(0)),
+            CO2,
+            Dict(CO2 => 1, Power => 0.02),
+            Dict(CO2 => 1),
+            [
+                StorageInvData(
+                    charge = NoStartInvData(
+                        FixedProfile(500),
+                        FixedProfile(600),
+                        ContinuousInvestment(FixedProfile(0), FixedProfile(600)),
+                    ),
+                    level = NoStartInvData(
+                        FixedProfile(500),
+                        FixedProfile(600),
+                        ContinuousInvestment(FixedProfile(0), FixedProfile(600)),
+                    ),
+                ),
+            ],
+        ),
+        RefNetworkNode(
+            j + 8,
+            FixedProfile(0),
+            FixedProfile(0 * mc_scale),
+            FixedProfile(0),
+            Dict(Coal => 2.5),
+            Dict(Power => 1),
+            [
+                SingleInvData(
+                    FixedProfile(10000),    # capex [€/kW]
+                    FixedProfile(25),       # max installed capacity [kW]
+                    ContinuousInvestment(FixedProfile(0), FixedProfile(2)), # investment mode
+                ),
+                EmissionsEnergy(),
+            ],
+        ),
+        RefStorage{AccumulatingEmissions}(
+            j + 9,
+            StorCapOpex(FixedProfile(3), FixedProfile(0 * mc_scale), FixedProfile(0)),
+            StorCap(FixedProfile(5)),
+            CO2,
+            Dict(CO2 => 1, Power => 0.02),
+            Dict(CO2 => 1),
+            [
+                StorageInvData(
+                    charge = NoStartInvData(
+                        FixedProfile(500),
+                        FixedProfile(30),
+                        ContinuousInvestment(FixedProfile(0), FixedProfile(3)),
+                    ),
+                    level = NoStartInvData(
+                        FixedProfile(500),
+                        FixedProfile(50),
+                        ContinuousInvestment(FixedProfile(0), FixedProfile(2)),
+                    ),
+                ),
+            ],
+        ),
+        RefNetworkNode(
+            j + 10,
+            FixedProfile(0),
+            FixedProfile(0 * mc_scale),
+            FixedProfile(0),
+            Dict(Coal => 2.5),
+            Dict(Power => 1),
+            [
+                SingleInvData(
+                    FixedProfile(10000),    # capex [€/kW]
+                    FixedProfile(10000),    # max installed capacity [kW]
+                    ContinuousInvestment(FixedProfile(0), FixedProfile(10000)), # investment mode
+                ),
+                EmissionsEnergy(),
+            ],
+        ),
+    ]
+
+    links = [
+        Direct(j * 10 + 15, nodes[1], nodes[5], Linear())
+        Direct(j * 10 + 16, nodes[1], nodes[6], Linear())
+        Direct(j * 10 + 17, nodes[1], nodes[7], Linear())
+        Direct(j * 10 + 18, nodes[1], nodes[8], Linear())
+        Direct(j * 10 + 19, nodes[1], nodes[9], Linear())
+        Direct(j * 10 + 110, nodes[1], nodes[10], Linear())
+        Direct(j * 10 + 12, nodes[1], nodes[2], Linear())
+        Direct(j * 10 + 31, nodes[3], nodes[1], Linear())
+        Direct(j * 10 + 41, nodes[4], nodes[1], Linear())
+        Direct(j * 10 + 51, nodes[5], nodes[1], Linear())
+        Direct(j * 10 + 61, nodes[6], nodes[1], Linear())
+        Direct(j * 10 + 71, nodes[7], nodes[1], Linear())
+        Direct(j * 10 + 81, nodes[8], nodes[1], Linear())
+        Direct(j * 10 + 91, nodes[9], nodes[1], Linear())
+        Direct(j * 10 + 101, nodes[10], nodes[1], Linear())
+    ]
+    return nodes, links
+end
