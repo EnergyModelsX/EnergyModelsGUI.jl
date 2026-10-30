@@ -14,7 +14,7 @@ function get_case(file)
     return case, model
 end
 
-@testset "Test reading model results from files" verbose = true begin
+@testset "Test reading model results from files" begin
     for file ∈ ["EMB_network.jl", "EMI_geography.jl", "EMR_hydro_power.jl"]
         directory = joinpath(tmpdir, splitext(file)[1])
         if !ispath(directory)
@@ -48,7 +48,7 @@ end
     end
 end
 
-@testset "Test reading additional plot data from files" verbose = true begin
+@testset "Test reading additional plot data from files" begin
     # Save the results of the case to a separate folder
     file = "EMB_network.jl"
     directory = joinpath(tmpdir, "additional_plots_" * splitext(file)[1])
@@ -121,7 +121,7 @@ end
     EMGUI.close(gui)
 end
 
-@testset "Test reading PeriodPartition results from files" verbose = true begin
+@testset "Test reading PeriodPartition results from files" begin
     directory = joinpath(tmpdir, "case7")
     if !ispath(directory)
         mkdir(directory)

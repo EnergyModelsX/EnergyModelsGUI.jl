@@ -1,5 +1,5 @@
 # Test specific miscellaneous functionalities
-@testset "Test functionality" verbose = true begin
+@testset "Test functionality" begin
     case, _ = generate_example_ss()
     gui = GUI(case)
 

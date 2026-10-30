@@ -15,7 +15,7 @@ include(joinpath(testdir, "cases", "case_all.jl"))
 case, model, m, gui = run_case7()
 
 # Test specific miscellaneous descriptive names
-@testset "Test descriptive names" verbose = true begin
+@testset "Test descriptive names" begin
     @testset "Test customizing descriptive names" begin
         path_to_descriptive_names = joinpath(pkgdir(EMGUI), "src", "descriptive_names.yml")
         str1 = "<a test description 1>"

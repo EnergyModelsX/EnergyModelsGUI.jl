@@ -9,7 +9,7 @@ include(joinpath(exdir, "generate_examples.jl"))
 using EnergyModelsGUI
 const EMGUI = EnergyModelsGUI
 
-@testset "Run examples" verbose = true begin
+@testset "Run examples" begin
     files = first(walkdir(exdir))[3]
     for file ∈ files
         if splitext(file)[2] == ".jl" && splitext(file)[1] != "generate_examples"

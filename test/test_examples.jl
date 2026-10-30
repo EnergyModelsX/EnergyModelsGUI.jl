@@ -1,4 +1,4 @@
-@testset "Run examples" verbose = true begin
+@testset "Run examples" begin
     # Run the examples in a separate process using the environment of the examples folder
     exdir = joinpath(pkg_dir, "examples")
     cmd = addenv(

@@ -29,7 +29,7 @@ simplified_toggle = get_toggle(gui, :simplified)
 alpha_slider = get_slider(gui, :alpha)
 
 # Test specific GUI functionalities
-@testset "Test interactivity" verbose = true begin
+@testset "Test interactivity" begin
     op_cost = [3262470.0, 5272890.0, 2010420.0]
     inv_cost = [0.0, 0.0, 29536224.881975]
     @testset "Compare with Integrate results" begin
@@ -636,7 +636,7 @@ alpha_slider = get_slider(gui, :alpha)
     end
 
     ## Test the PeriodDemandSink of case7 (data indexed over PeriodPartitions)
-    @testset "PeriodPartition support" verbose = true begin
+    @testset "PeriodPartition support" begin
         clear_selection!(gui, :topo)
         hot_water_design = get_component(area1, "Hot water 1")
         hot_water = get_element(hot_water_design)
