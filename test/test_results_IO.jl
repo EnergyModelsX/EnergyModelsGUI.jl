@@ -128,7 +128,7 @@ end
     end
 
     # Save the results of case7 (including variables indexed over `PeriodPartition`s)
-    case, model, m, gui_jump = run_case()
+    case, model, m, gui_jump = run_case7()
     EMGUI.save_results(m; directory)
     df_csv = CSV.read(joinpath(directory, "demand_sink_deficit.csv"), DataFrame)
     @test "pd" ∈ names(df_csv)

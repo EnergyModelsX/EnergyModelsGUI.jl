@@ -10,9 +10,9 @@ const EMH2 = EnergyModelsHydrogen
 const EMCO2 = EnergyModelsCO2
 const EMHeat = EnergyModelsHeat
 
-include(joinpath(testdir, "example_all_structures.jl"))
+include(joinpath(testdir, "cases", "case_all.jl"))
 
-case, model, m, gui = run_case()
+case, model, m, gui = run_case7()
 
 # Test specific miscellaneous descriptive names
 @testset "Test descriptive names" verbose = true begin
@@ -95,7 +95,7 @@ case, model, m, gui = run_case()
         @test !any(any(isempty.(values(a))) for a ∈ values(types_map))
 
         # Check that no warnings are logged when running a full case
-        @test_logs min_level=Logging.Error case, _, m, gui = run_all_in_one_case()
+        @test_logs min_level=Logging.Error case, _, m, gui = run_case_all()
 
         # Check that no descriptive names are empty for variables
         variables_map = get_descriptive_names(m, descriptive_names)

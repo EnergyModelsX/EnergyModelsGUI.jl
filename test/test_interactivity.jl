@@ -1,5 +1,9 @@
+# Load the cases used in this test file
+include(joinpath(testdir, "cases", "case_geography.jl"))
+include(joinpath(testdir, "cases", "case_time_structures.jl"))
+
 # Load case 7 for testing
-case, model, m, gui = run_case()
+case, model, m, gui = run_case7()
 
 root_design = get_root_design(gui)
 components = get_components(root_design)
@@ -112,7 +116,7 @@ alpha_slider = get_slider(gui, :alpha)
         end
     end
 
-    _, _, _, gui_2 = run_case_EMI_geography_2()
+    _, _, _, gui_2 = run_case_geography()
     design_2 = get_root_design(gui_2)
     components_2 = get_components(design_2)
     connections_2 = get_connections(design_2)
@@ -515,7 +519,7 @@ alpha_slider = get_slider(gui, :alpha)
 
     ## Run a case with no representative periods nor scenarios
     @testset "Test SP(OP)" begin
-        _, _, _, gui3 = run_test_case(; use_rp = false, use_sc = false)
+        _, _, _, gui3 = run_case_time_structures(; use_rp = false, use_sc = false)
         available_data_menu = get_menu(gui3, :available_data)
 
         # Test plotting over operational periods
@@ -530,7 +534,7 @@ alpha_slider = get_slider(gui, :alpha)
 
     ## Run a case with scenarios but no representative periods
     @testset "Test SP(SC(OP))" begin
-        case, model, m, gui3 = run_test_case(; use_rp = false, use_sc = true)
+        case, model, m, gui3 = run_case_time_structures(; use_rp = false, use_sc = true)
         available_data_menu = get_menu(gui3, :available_data)
 
         # Test plotting over operational periods
@@ -553,7 +557,7 @@ alpha_slider = get_slider(gui, :alpha)
 
     ## Run a case with representative periods but no scenarios
     @testset "Test SP(RP(OP))" begin
-        _, _, _, gui3 = run_test_case(; use_rp = true, use_sc = false)
+        _, _, _, gui3 = run_case_time_structures(; use_rp = true, use_sc = false)
         available_data_menu = get_menu(gui3, :available_data)
         ax_results = get_ax(gui3, :results)
 
@@ -577,7 +581,7 @@ alpha_slider = get_slider(gui, :alpha)
 
     ## Run a case with representative periods and scenarios
     @testset "Test SP(RP(SC(OP)))" begin
-        _, _, _, gui3 = run_test_case(; use_rp = true, use_sc = true)
+        _, _, _, gui3 = run_case_time_structures(; use_rp = true, use_sc = true)
         available_data_menu = get_menu(gui3, :available_data)
         ax_results = get_ax(gui3, :results)
         period_menu = get_menu(gui3, :period)

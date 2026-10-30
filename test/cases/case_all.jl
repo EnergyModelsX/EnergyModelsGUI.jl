@@ -21,7 +21,7 @@ All subsystems are connected through the global multi-carrier hub, demonstrating
 - EnergyModelsInvestments v0.8.1
 - EnergyModelsRenewableProducers v0.6.7
 """
-function generate_all_in_one_case()
+function generate_case_all()
     # -----------------------------
     # 1) Resources (unified naming)
     # -----------------------------
@@ -688,8 +688,8 @@ function generate_all_in_one_case()
     return case, model
 end
 
-function run_all_in_one_case()
-    case, model = generate_all_in_one_case()
+function run_case_all()
+    case, model = generate_case_all()
 
     optimizer = optimizer_with_attributes(
         SCIP.Optimizer,

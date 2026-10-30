@@ -19,13 +19,12 @@ pkg_dir = pkgdir(EnergyModelsGUI)
 testdir = joinpath(pkg_dir, "test")
 
 # Include function that can loop through all components and plot its data
-include(joinpath(testdir, "utils.jl"))
+include(joinpath(testdir, "utils_test.jl"))
 
 # Include the code that generates the cases
-include(joinpath(testdir, "case7.jl"))
-include(joinpath(testdir, "EMI_geography_2.jl"))
-include(joinpath(testdir, "example_test.jl"))
-include(joinpath(testdir, "example_cases.jl"))
+include(joinpath(testdir, "cases", "utils_case.jl"))
+include(joinpath(testdir, "cases", "case7.jl"))
+include(joinpath(testdir, "cases", "case_examples.jl"))
 
 logger_org = global_logger()
 logger_new = ConsoleLogger(stderr, Logging.Warn)

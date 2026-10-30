@@ -1,18 +1,4 @@
-# Read a daily profile from the input files
-case7_profile(file) = parse.(Float64, readlines(joinpath(@__DIR__, "inputfiles", file)))
-
-# Penalties for surplus and deficit of the sinks
-case7_penalty() = Dict(:surplus => FixedProfile(0), :deficit => FixedProfile(1e5))
-
-# Binary investment data with a lifetime of 30 years
-case7_binary_inv(capex, cap) = SingleInvData(
-    FixedProfile(capex),            # Capex [NOK/MW]
-    FixedProfile(cap),              # Max installed capacity [MW]
-    BinaryInvestment(FixedProfile(cap)), # Investment mode
-    RollingLife(FixedProfile(30)),  # Lifetime mode
-)
-
-function read_data()
+function generate_case7()
     @info "Setting up case7"
 
     # Define the different resources and their emission intensity in tCO2/MWh
@@ -99,7 +85,7 @@ function case7_area1(products, El_change_factor)
     Power, Heat, WarmWater = products[1:3]
 
     # Electricity demand, scaled for the strategic periods
-    El_1_demand_day = case7_profile("el load.dat") # In MWh/h
+    El_1_demand_day = read_profile("el load.dat") # In MWh/h
     El_1_demand =
         [OperationalProfile(El_1_demand_day * factor) for factor ∈ El_change_factor]
 
@@ -125,7 +111,7 @@ function case7_area1(products, El_change_factor)
     el_1 = RefSink(
         "El 1",                           # Node id
         StrategicProfile(El_1_demand),    # cap: the demand
-        case7_penalty(),                  # penalty: penalties for surplus or deficits
+        penalty(),                        # penalty: penalties for surplus or deficits
         Dict(Power => 1),                 # input `Resource`s with conversion value `Real`
     )
     heat_generator = RefNetworkNode(
@@ -147,7 +133,7 @@ function case7_area1(products, El_change_factor)
     heating_1 = RefSink(
         "Heating 1",                        # Node id
         RepresentativeProfile(Heat_demand), # cap: the demand
-        case7_penalty(),                    # penalty: penalties for surplus or deficits
+        penalty(),                          # penalty: penalties for surplus or deficits
         Dict(Heat => 1),                    # input `Resource`s with conversion value `Real`
     )
     hot_water_1 = PeriodDemandSink(
@@ -155,7 +141,7 @@ function case7_area1(products, El_change_factor)
         FixedProfile(0.5),                  # cap: maximum demand satisfaction per operational period
         12,                                 # period_duration: 2 demand periods per representative period
         PartitionProfile([3, 1.8]),         # period_demand: the demand within each demand period
-        case7_penalty(),                    # penalty: penalties for surplus or deficits
+        penalty(),                          # penalty: penalties for surplus or deficits
         Dict(WarmWater => 1),               # input `Resource`s with conversion value `Real`
     )
     heat_pump = RefNetworkNode(
@@ -165,7 +151,7 @@ function case7_area1(products, El_change_factor)
         FixedProfile(0),                        # opex_fixed: is the fixed operational costs
         Dict(Power => 1, Heat => conversion - 1), # input: input `Resource`s with conversion value `Real`
         Dict(Heat => conversion),               # output: generated `Resource`s with conversion value `Real`
-        [case7_binary_inv(1e7 / cap, cap)],
+        [binary_inv(1e7 / cap, cap)],
     )
     waste_heat_data_center = RefSource(
         "Waste heat data center",   # Node id
@@ -173,7 +159,7 @@ function case7_area1(products, El_change_factor)
         FixedProfile(0),            # Variable operational cost per unit produced
         FixedProfile(0),            # Fixed operational cost per unit produced
         Dict(Heat => 1),            # The generated resources with conversion value 1
-        [case7_binary_inv(0, 1)],
+        [binary_inv(0, 1)],
     )
     nodes = [
         el_busbar_11125,
@@ -218,7 +204,7 @@ function case7_area2(products)
     Power = products[1]
 
     # Construct nodes
-    El_cost = case7_profile("el cost.dat") # In NOK/MWh
+    El_cost = read_profile("el cost.dat") # In NOK/MWh
     el_busbar_11124 = GeoAvailability("El busbar_11124", products[1:1])
     power_supply = RefSource(
         "Power supply",                     # Node id
@@ -243,7 +229,7 @@ function case7_area3(products, El_change_factor)
 
     # Since the EV charger is introduced in 2030, the El_change_factor is shifted such that the
     # initial profile is not scaled (starting at the second strategic period)
-    EV_charger_demand_day = case7_profile("charging.dat") # In MWh/h
+    EV_charger_demand_day = read_profile("charging.dat") # In MWh/h
     EV_charger_change_factors = [1, El_change_factor[3] / El_change_factor[2]]
     EV_charger_demand = [
         FixedProfile(0.0),
@@ -257,7 +243,7 @@ function case7_area3(products, El_change_factor)
     ev_charger = RefSink(
         "EV charger",                           # Node id
         StrategicProfile(EV_charger_demand),    # cap: the demand
-        case7_penalty(),                        # penalty: penalties for surplus or deficits
+        penalty(),                              # penalty: penalties for surplus or deficits
         Dict(Power => 1),                       # input `Resource`s with conversion value `Real`
     )
     nodes = [el_busbar_11137, ev_charger]
@@ -275,7 +261,7 @@ function case7_area4(products)
     Power = products[1]
 
     # Solar profile relative to its maximum
-    max_outtake_day = case7_profile("solar.dat") # In MW
+    max_outtake_day = read_profile("solar.dat") # In MW
     max_max_outtake = maximum(max_outtake_day)
     profile = max_outtake_day / max_max_outtake
 
@@ -288,7 +274,7 @@ function case7_area4(products)
         FixedProfile(0),                # opex_var: Variable operational cost per unit produced
         FixedProfile(0),                # opex_fixed: Fixed operational cost per unit produced
         Dict(Power => 1),               # output: The generated resources with conversion value 1
-        [case7_binary_inv(5e8 / max_max_outtake, max_max_outtake)],
+        [binary_inv(5e8 / max_max_outtake, max_max_outtake)],
     )
     battery = RefStorage{CyclicStrategic}(
         "Battery",               # Node id
@@ -326,9 +312,9 @@ function case7_area4(products)
     return area, nodes, links
 end
 
-function run_case()
+function run_case7()
     # Get case and model data
-    case, model = read_data()
+    case, model = generate_case7()
 
     # Construct JuMP model for optimization
     m = create_model(case, model)
