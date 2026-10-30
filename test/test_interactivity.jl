@@ -241,7 +241,7 @@ alpha_slider = get_slider(gui, :alpha)
 
     # Test the save button functionality
     @testset "get_button(gui,:save).clicks" begin
-        design_folder = joinpath(pkgdir(EMGUI), "examples", "design", "case7")
+        design_folder = mktempdir()
         root_design.file = joinpath(design_folder, "test_top_level.yml")
         for (i_area, area_design) ∈ enumerate(components)
             area_design.file = joinpath(design_folder, "test_Area $i_area.yml")
