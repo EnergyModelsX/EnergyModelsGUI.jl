@@ -39,8 +39,10 @@ Type for storing processed system data from EnergyModelsBase.
   that should be included in the analysis.
 - **`children::Vector{<:EMB.Node}`** are the children of the system.
 - **`connections::Vector{<:Link}`** are the connections between system parts.
-- **`parent::AbstractElement`** is the parent of the system (e.g., the `Area` node of the reference `GeoAvailability` node).
-- **`ref_element::AbstractElement`** is the reference element of the system (first `Availability` node).
+- **`parent::AbstractElement`** is the parent of the system (a `NothingElement` for the
+  top level system, otherwise the element, *e.g.*, an `Area`, that the system belongs to).
+- **`ref_element::AbstractElement`** is the reference element of the system (first
+  `Availability` node, or `NothingElement` if there is none).
 """
 struct System <: AbstractSystem
     T::TimeStructure
@@ -77,10 +79,11 @@ Type for storing processed system data from EnergyModelsGeography.
   model.
 - **`elements::Vector{Vector}`** are the vectors of `AbstractElement`
   that should be included in the analysis.
-- **`children::Vector{<:EMB.Node}`** are the children of the system.
-- **`connections::Vector{<:Link}`** are the connections between system parts.
+- **`children::Vector{<:AbstractElement}`** are the children of the system (the `Area`s).
+- **`connections::Vector{<:AbstractElement}`** are the connections between system parts
+  (the `Transmission`s).
 - **`parent::AbstractElement`** is the parent of the system.
-- **`ref_element::AbstractElement`** is the reference element of the system.
+- **`ref_element::AbstractElement`** is the reference element of the system (the first `Area`).
 """
 struct SystemGeo <: AbstractSystem
     T::TimeStructure
@@ -99,7 +102,7 @@ Type for storing processed investment data.
 
 # Fields
 
-- **`id::String`** is the identifier for structures that have `TransmissionModes` 
+- **`id::String`** is the identifier for structures that have `TransmissionMode`s
   (default is thus an empty string).
 - **`inv_times::Vector{String}`** is a vector of formatted strings for added investments.
 - **`capex::Vector{Float64}`** contains the capex of all times with added investments.
@@ -118,9 +121,10 @@ end
 """
     instantiate_inv_data(element::AbstractElement)
 
-Instantiate the `inv_data` field for an `AbstractElement` by creating a vector of `ProcInvData`.
-This function can be specialized for different types of `AbstractElement` to handle specific cases, 
-such as `Transmission` where multiple modes may require separate `ProcInvData` instances.
+Instantiate the `inv_data` field for an `AbstractElement` by creating a vector of
+`ProcInvData`. This function can be specialized for different types of `AbstractElement`
+to handle specific cases, such as `Transmission` where multiple modes may require separate
+`ProcInvData` instances.
 """
 function instantiate_inv_data(element::AbstractElement)
     return [ProcInvData(element)]
@@ -142,21 +146,22 @@ energy system designs in Julia.
 - **`connections::Vector{Connection}`** are the connections between system parts.
 - **`parent::AbstractGUIObj`** is the parent of the system.
 - **`xy::Observable{<:Point2f}`** is the coordinate of the system, observed for changes.
-- **`icon::String`** is the optional (path to) icons associated with the system, stored as
+- **`icon::String`** is the optional (path to) icon(s) associated with the system, stored as
   a string.
-- **`color::Observable{RGBA{Float32}}`** is the color of the system, observed for changes. 
+- **`color::Observable{RGBA{Float32}}`** is the color of the system, observed for changes.
   The color is toggled to highlight system activation.
 - **`wall::Observable{Symbol}`** represents an aspect of the system's state, observed
   for changes and represented as a Symbol.
 - **`file::String`** is the filename or path associated with the `EnergySystemDesign`.
 - **`visible::Observable{Bool}`** indicates whether the system is visible, observed for changes.
 - **`inv_data::Vector{ProcInvData}`** stores processed investment data.
-- **`plots::Vector{Makie.AbstractPlot}`** is a vector with all Makie object associated with 
-  this object.
-- **`simplified::Observable{Bool}`** indicates whether the system uses a simplified 
+- **`plots::Vector{Makie.AbstractPlot}`** is a vector with all Makie objects associated
+  with this object.
+- **`simplified::Observable{Bool}`** indicates whether the system uses a simplified
   representation of its plotted connections, observed for changes.
-- **`alpha::Observable{Float32}`** is the alpha value for the system's connections, observed for changes. 
-  The alpha value is used to toggle the visibility of the nodes when investments have occurred.
+- **`alpha::Observable{Float32}`** is the alpha value for the system's connections,
+  observed for changes. The alpha value is used to toggle the visibility of the nodes when
+  investments have occurred.
 """
 mutable struct EnergySystemDesign <: AbstractGUIObj
     system::AbstractSystem
@@ -213,26 +218,25 @@ end
 """
     Connection <: AbstractGUIObj
 
-Mutable type for providing a flexible data structure for connections between
-`EnergySystemDesign`s.
+Mutable type for providing a flexible data structure for connections between `EnergySystemDesign`s.
 
 # Fields
 
 - **`from::EnergySystemDesign`** is the `EnergySystemDesign` from which the connection
   originates.
 - **`to::EnergySystemDesign`** is the `EnergySystemDesign` to which the connection is
-  linked to.
+  linked.
 - **`connection::AbstractElement`** is the EMX connection structure.
 - **`parent::EnergySystemDesign`** is the parent EnergySystemDesign of the connection.
-- **`colors::Vector{RGBA{Float32}}`** is the associated colors of the connection.
+- **`colors::Vector{RGBA{Float32}}`** are the associated colors of the connection.
 - **`inv_data::Vector{ProcInvData}`** stores processed investment data.
-- **`regular_plots::Vector{Makie.AbstractPlot}`** is a vector with 
+- **`regular_plots::Vector{Makie.AbstractPlot}`** is a vector with
   all regular plots associated with the connection.
-- **`simplified_plots::Vector{Makie.AbstractPlot}`** is a vector with 
+- **`simplified_plots::Vector{Makie.AbstractPlot}`** is a vector with
   all simplified plots associated with the connection.
-- **`alpha::Vector{Observable{Float32}}`** is the alpha value of the connection, observed for changes.
-  For each line it controls the alpha value, which is used to toggle the visibility of the line when 
-  the connection has not been invested in.
+- **`alpha::Vector{Observable{Float32}}`** is the alpha value of the connection, observed
+  for changes. For each line it controls the alpha value, which is used to toggle the
+  visibility of the line when the connection has not been invested in.
 """
 mutable struct Connection <: AbstractGUIObj
     from::EnergySystemDesign
@@ -292,11 +296,12 @@ The main type for the realization of the GUI.
 
 - **`fig::Figure`** is the figure handle to the main figure (window).
 - **`screen::GLMakie.Screen`** is the screen handle for displaying the figure.
-- **`axes::Dict{Symbol,Axis}`** is a collection of axes: :topo (axis for visualizing
-  the topology), :results (axis for plotting results), and :info (axis for
-  displaying information).
-- **`legends::Dict{Symbol,Legend}`** is a collection of legends: :topo (legend for
-  the topology), :results (legend for plotting results).
+- **`axes::Dict{Symbol,Makie.Block}`** is a collection of axes: :topo (axis for visualizing
+  the topology), :results (axis for plotting results), :info (axis for displaying
+  information), and :summary (axis for displaying a summary of the model results).
+- **`legends::Dict{Symbol,Union{Makie.Legend,Nothing}}`** is a collection of legends:
+  :topo (legend for the topology), :results (legend for plotting results, `nothing` until
+  results are plotted).
 - **`buttons::Dict{Symbol,Makie.Button}`** is a dictionary of the GLMakie buttons linked
   to the gui.axes[:topo] object.
 - **`menus::Dict{Symbol,Makie.Menu}`** is a dictionary of the GLMakie menus linked to the
@@ -307,7 +312,8 @@ The main type for the realization of the GUI.
   to the gui.axes[:results] object.
 - **`root_design::EnergySystemDesign`** is the data structure used for the root topology.
 - **`design::EnergySystemDesign`** is the data structure used for visualizing the topology.
-- **`model::Union{Model, Dict}`** contains the optimization results.
+- **`model::Union{Model, Dict}`** contains the optimization results (a `Dict` of
+  `DataFrame`s if the results are read from CSV files).
 - **`vars::Dict{Symbol,Any}`** is a dictionary of miscellaneous variables and parameters.
 """
 mutable struct GUI
@@ -392,10 +398,12 @@ function _get_components(design::EnergySystemDesign, vector)
 end
 
 """
-    iterate(itr::EnergySystemIterator)
+    iterate(itr::EnergySystemIterator, state = nothing)
 
-Initialize the iteration over an `EnergySystemIterator`, returning the first `EnergySystemDesign` object
-in the stack and the iterator itself. If the stack is empty, return `nothing`.
+Iterate over an `EnergySystemIterator`, returning the next object of the stack (an
+`EnergySystemDesign` or a `Connection`) and the index of that object as the new state.
+Without `state`, the first object is returned. If the end of the stack is reached,
+return `nothing`.
 """
 function Base.iterate(itr::EnergySystemIterator, state = nothing)
     idx = isnothing(state) ? 1 : state + 1
@@ -436,7 +444,7 @@ EMB.get_elements_vec(system::AbstractSystem) = system.elements
 """
     get_children(system::AbstractSystem)
 
-Returns the `parent` field of a `AbstractSystem` `system`.
+Returns the `children` field of an `AbstractSystem` `system`.
 """
 get_children(system::AbstractSystem) = system.children
 
@@ -478,7 +486,7 @@ EMB.get_nodes(system::AbstractSystem) = get_children(system)
 """
     get_element(system::AbstractSystem)
 
-Returns the `element` assosiated of a `AbstractSystem` `system`.
+Returns the element associated with an `AbstractSystem` `system` (its `parent` field).
 """
 get_element(system::AbstractSystem) = get_parent(system)
 
@@ -514,7 +522,7 @@ get_components(design::EnergySystemDesign) = design.components
     get_component(designs::Vector{EnergySystemDesign}, id)
     get_component(designs::EnergySystemDesign, id)
 
-Extract the component from a vector of `EnergySystemDesign`(s) that has a `parent` with 
+Extract the component from a vector of `EnergySystemDesign`(s) that has a `parent` with
 the given `id`.
 """
 function get_component(designs::Vector{EnergySystemDesign}, id)
@@ -613,7 +621,7 @@ get_to(conn::Connection) = conn.to
 """
     get_element(conn::Connection)
 
-Returns the assosiated `Transmission`/`Link` of conn
+Returns the associated `Transmission`/`Link` of `conn`.
 """
 get_element(conn::Connection) = conn.connection
 
@@ -679,7 +687,7 @@ get_capex(data::ProcInvData) = data.capex
     has_invested(data::ProcInvData)
     has_invested(data::EnergySystemDesign)
 
-Returns an observable of the boolean indicator for if investment has occured.
+Returns an observable of the boolean indicator for if investment has occurred.
 """
 has_invested(data::ProcInvData) = data.invested
 has_invested(design::EnergySystemDesign) = has_invested(get_inv_data(design)[1])
@@ -741,7 +749,7 @@ Returns the `axes` field of a `GUI` `gui`.
 get_axes(gui::GUI) = gui.axes
 
 """
-    get_ax(gui::GUI, ax_name::Symbol)
+    get_ax(gui::GUI, ax_name)
 
 Returns the `ax` object with name `ax_name` of a `GUI` `gui`.
 """
@@ -776,7 +784,7 @@ Returns the `menu` with name `menu_name` of a `GUI` `gui`.
 get_menu(gui::GUI, menu_name::Symbol) = gui.menus[menu_name]
 
 """
-    get_toggles(gui::GUI, toggle_name::Symbol)
+    get_toggle(gui::GUI, toggle_name::Symbol)
 
 Returns the `toggle` with name `toggle_name` of a `GUI` `gui`.
 """

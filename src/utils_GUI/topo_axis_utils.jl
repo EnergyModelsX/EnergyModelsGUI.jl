@@ -58,7 +58,7 @@ end
     new_global_delta_h(gui::GUI)
 
 Recalculate the sizes of the boxes in `get_axes(gui)[:topo]` such that their size is independent
-of zooming an resizing the window.
+of zooming and resizing the window.
 """
 function new_global_delta_h(gui::GUI)
     vars = get_vars(gui)
@@ -129,8 +129,7 @@ end
 """
     initialize_plot!(gui::GUI, design::EnergySystemDesign)
 
-Initialize the plot of the topology of design object `gui` given an EnergySystemDesign
-`design`.
+Initialize the plot of the topology of design object `gui` given an EnergySystemDesign `design`.
 """
 function initialize_plot!(gui::GUI, design::EnergySystemDesign)
     simplified = get_var(gui, :simplified_connection_plotting)
@@ -150,8 +149,8 @@ end
         gui::GUI, design::EnergySystemDesign; visible::Bool=true, expand_all::Bool=true
     )
 
-Plot the topology of get_design(gui) (only if not already available), and toggle visibility
-based on the optional argument `visible`.
+Set the visibility of `design` to `visible` and recursively of its components. If
+`expand_all` is `false`, only the component equal to `get_design(gui)` is visible.
 """
 function plot_design!(
     gui::GUI, design::EnergySystemDesign; visible::Bool = true, expand_all::Bool = true,
@@ -213,7 +212,8 @@ end
 """
     connect!(gui::GUI, connection::Connection, two_way::Bool)
 
-When a boolean argument `two_way` is specified, draw the lines in both directions.
+Draw the lines and the arrows of `connection`. If `two_way` is `true`, a connection in the
+opposite direction exists and the lines are shifted to separate the two.
 """
 function connect!(gui::GUI, connection::Connection, two_way::Bool)
     linestyles = get_linestyle(gui, connection)
@@ -371,8 +371,7 @@ end
 """
     add_component!(gui::GUI, component::EnergySystemDesign)
 
-Draw a box containing the icon and add a label with the id of the EnergySystemDesign
-`component` with its type in parantheses.
+Draw a box containing the icon and add a label with the id of the EnergySystemDesign `component`.
 """
 function add_component!(gui::GUI, component::EnergySystemDesign)
     draw_box!(gui, component)
@@ -397,7 +396,7 @@ end
 """
     get_linestyle(gui::GUI, connection::Connection)
 
-Get the line style for an Connection `connection` based on its properties.
+Get the line style for a Connection `connection` based on its properties.
 """
 function get_linestyle(gui::GUI, connection::Connection)
     # Check if connection is a transmission
@@ -431,7 +430,7 @@ end
 """
     draw_box!(gui::GUI, design::EnergySystemDesign)
 
-Draw a box for EnergySystemDesign `design` and it's appearance, including style, color, size.
+Draw a box for EnergySystemDesign `design` and its appearance, including style, color, size.
 """
 function draw_box!(gui::GUI, design::EnergySystemDesign)
     linestyle::Union{Symbol,Makie.Linestyle} = get_linestyle(gui, design)
@@ -707,7 +706,8 @@ end
     get_element_label(element)
 
 Get the label of the element based on its `id` field. If the `id` is a number it returns the
-built in Base.display() functionality of node, otherwise, the `id` field is converted to a string.
+built in Base.display() functionality of node, otherwise, the `id` field is converted to a
+string. For a `Link`, the labels of `from` and `to` are joined by `-`.
 """
 function get_element_label(element::AbstractGUIObj)
     return get_element_label(get_element(element))
@@ -778,7 +778,7 @@ end
 """
     get_hover_string(obj::AbstractGUIObj)
 
-Return the string for a EMB.Node/Area/Link/Transmission to be shown on hovering.
+Return the string for an EMB.Node/Area/Link/Transmission to be shown on hovering.
 """
 function get_hover_string(obj::AbstractGUIObj)
     element = get_element(obj)

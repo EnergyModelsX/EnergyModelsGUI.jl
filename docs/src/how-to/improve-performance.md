@@ -3,8 +3,8 @@
 Due to the just-in-time (JIT) compilation of Julia, the instantiation of the `EnergyModelsGUI` window takes some time (but reopening the window will take less time). 
 This also includes interactive features in the GUI (creating the first plot is a lot slower than creating subsequent plots).
 
-That being said, it is possible to boost startup time by turning of redundant features. 
-One can for example plot sub-areas only on demand (which for large system significantly reduces setup of the `GUI`) through 
+That being said, it is possible to boost startup time by turning off redundant features. 
+One can for example plot sub-areas only on demand (which for large systems significantly reduces setup of the `GUI`) through 
 
 ```julia
 gui = GUI(case; pre_plot_sub_components = false)
@@ -16,7 +16,7 @@ If there is no need to use the background map when using `EnergyModelsGeography`
 gui = GUI(case; use_geomakie = false)
 ```
 
-If the user do not see any usage of the `DataInspector` tool provided by `Makie` (which enables information of plot objects upon hovering with the mouse) one could use the `enable_data_inspector` toogle to further improve performance
+If the user does not see any usage of the `DataInspector` tool provided by `Makie` (which enables information of plot objects upon hovering with the mouse) one could use the `enable_data_inspector` toggle to further improve performance
 
 ```julia
 gui = GUI(case; enable_data_inspector = false)

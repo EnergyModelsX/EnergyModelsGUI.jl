@@ -14,7 +14,7 @@ const EMI = EnergyModelsInvestments
 const EMGUI = EnergyModelsGUI
 
 """
-    EMG.get_areas(system::SystemGeo)
+    EMG.get_areas(system::EMGUI.SystemGeo)
 
 Returns the `Area`s of a `SystemGeo` `system`.
 """
@@ -37,9 +37,9 @@ EMG.modes(conn::EMGUI.Connection) = EMG.modes(EMGUI.get_element(conn))
 ############################################################################################
 ## From datastructures.jl
 """
-    EMB.get_links(system::EMGUI.SystemGeo)
+    EMG.get_links(system::EMGUI.SystemGeo)
 
-Returns the `Links`s of a `SystemGeo` `system`.
+Returns the `Link`s of a `SystemGeo` `system`.
 """
 EMG.get_links(system::EMGUI.SystemGeo) =
     filter(el -> isa(el, Vector{<:Link}), get_elements_vec(system))[1]
@@ -73,7 +73,8 @@ end
 """
     EMGUI.get_plotables(system::EMGUI.SystemGeo)
 
-Get all plotable elements of a `SystemGeo` `system`, which includes nodes, links, areas, and modes.
+Get all plotable elements of a `SystemGeo` `system`, which includes nodes, links, areas,
+and modes.
 """
 function EMGUI.get_plotables(system::EMGUI.SystemGeo)
     return vcat(
@@ -87,7 +88,7 @@ end
 """
     EMGUI.ProcInvData(element::TransmissionMode)
 
-Constructor for an `ProcInvData` object on a `TransmissionMode` `element`. 
+Constructor for a `ProcInvData` object on a `TransmissionMode` `element`.
 """
 function EMGUI.ProcInvData(element::TransmissionMode)
     return EMGUI.ProcInvData(
@@ -99,9 +100,9 @@ function EMGUI.ProcInvData(element::TransmissionMode)
 end
 
 """
-    instantiate_inv_data(element::Transmission)
+    EMGUI.instantiate_inv_data(element::Transmission)
 
-Instantiate the `inv_data` field for a `Transmission` by creating a vector 
+Instantiate the `inv_data` field for a `Transmission` by creating a vector
 of `ProcInvData` for each mode.
 """
 function EMGUI.instantiate_inv_data(element::Transmission)
@@ -111,10 +112,10 @@ end
 ############################################################################################
 ## From structure_utils.jl
 """
-    EMGUI.get_resource_colors(l::Vector{Transmission}, id_to_color_map::Dict{Any,Any})
+    EMGUI.get_resource_colors(l::Transmission, id_to_color_map::Dict{Any,Any})
 
-Get the colors linked to the resources in the transmission `l` (from modes(Transmission))
-based on the mapping `id_to_color_map`.
+Get the colors linked to the resources of the modes of the transmission `l` based on the
+mapping `id_to_color_map`.
 """
 function EMGUI.get_resource_colors(l::Transmission, id_to_color_map::Dict{Any,Any})
     resources::Vector{Resource} = [map_trans_resource(mode) for mode ∈ l.modes]
@@ -126,7 +127,7 @@ end
 """
     EMGUI.get_max_installed(m::TransmissionMode, t::Vector{<:TS.TimeStructure})
 
-Get the maximum capacity installable by an investemnt.
+Get the maximum capacity installable by an investment.
 """
 function EMGUI.get_max_installed(m::TransmissionMode, t::Vector{<:TS.TimeStructure})
     if EMI.has_investment(m)
@@ -145,7 +146,8 @@ end
 """
     EMGUI.sub_system(system::EMGUI.SystemGeo, element::AbstractElement)
 
-Create a sub-system of `system` with the `element` as the availability node.
+Create a sub-system of `system` with the `element` (an `Area`) as the parent and its
+availability node as the reference node.
 """
 function EMGUI.sub_system(system::EMGUI.SystemGeo, element::AbstractElement)
     # Get all nodes and links in the area directly or indirectly connected by `Link`s to `element`.
@@ -181,7 +183,7 @@ end
 """
     EMGUI.get_linestyle(gui::GUI, transmission::Transmission)
 
-Get the line style for an Transmission `transmission` based on its properties.
+Get the line style for a Transmission `transmission` based on its properties.
 """
 function EMGUI.get_linestyle(gui::GUI, transmission::Transmission)
     return [
@@ -208,7 +210,7 @@ function EMGUI.get_mode_to_transmission_map(system::EMGUI.SystemGeo)
 end
 
 """
-    _type_to_header(::Type{<:TransmissionMode})
+    EMGUI._type_to_header(::Type{<:TransmissionMode})
 
 Map types to header symbols for saving results.
 """
@@ -217,14 +219,14 @@ EMGUI._type_to_header(::Type{<:TransmissionMode}) = :element
 """
     EMGUI.get_inv_objs(obj::Transmission)
 
-Get the objects for which investment information should be stored for a given `Transmission`. 
+Get the objects for which investment information should be stored for a given `Transmission`.
 """
 EMGUI.get_inv_objs(obj::Transmission) = modes(obj)
 
 ############################################################################################
 ## From info_axis_utils.jl
 """
-    print_nested_structure!(
+    EMGUI.print_nested_structure!(
         element::Vector{<:TransmissionMode},
         io::IOBuffer,
         indent::Int64,
@@ -232,9 +234,10 @@ EMGUI.get_inv_objs(obj::Transmission) = modes(obj)
         show_the_n_last_elements::Int64,
     )
 
-Appends the nested structure of element in a nice format to the `io` buffer for `element`. 
-The parameter `indent` tracks the indentation level, the parameter `vector_limit` is used 
-to truncate large vectors and `show_the_n_last_elements` specifies how many of the last elements to show.
+Appends the nested structure of the vector of transmission modes `element` in a nice
+format to the `io` buffer. The parameter `indent` tracks the indentation level, the
+parameter `vector_limit` is used to truncate large vectors and `show_the_n_last_elements`
+specifies how many of the last elements to show.
 """
 function EMGUI.print_nested_structure!(
     element::Vector{<:TransmissionMode},

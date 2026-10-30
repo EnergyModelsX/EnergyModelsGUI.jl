@@ -13,7 +13,7 @@ function create_description(gui::GUI, key_str::String; pre_desc::String = "")
         description *= String(get_nested_value(get_var(gui, :descriptive_names), key_str))
     catch
         description = key_str[(findfirst('.', key_str)+1):end]
-        @warn "Could't find a description for $description. \
+        @warn "Couldn't find a description for $description. \
             Using the string $description instead. \
             You can customize the descriptions as explained here: \
             https://energymodelsx.github.io/EnergyModelsGUI.jl/stable/how-to/customize-descriptive_names/"
@@ -64,7 +64,7 @@ end
     )
 
 Loop through all `dictnames` for a `field` of type `Dict` (*e.g.* for the field `penalty`
-having the keys :deficit and surplus) and update `available_data` with an added description.
+having the keys `:deficit` and `:surplus`) and update `available_data` with an added description.
 """
 function add_description!(
     field::Dict,
@@ -103,7 +103,7 @@ end
         gui::GUI,
     )
 
-Loop through all elements of `field` of type `Vector` (*i.e.*,for the field `data`)
+Loop through all elements of `field` of type `Vector` (*i.e.*, for the field `data`)
 and update `available_data` with an added description.
 """
 function add_description!(
@@ -133,15 +133,15 @@ end
     add_description!(
         field::Any,
         name::String,
-        ::String,
+        key_str::String,
         pre_desc::String,
-        element,
+        selection::Vector,
         available_data::Vector{PlotContainer},
         gui::GUI,
     )
 
-Loop through all struct fieldnames of `field` (*i.e.*,for the field `level` of type `NoStartInvData`)
-and update `available_data` with an added description.
+Loop through all struct fieldnames of `field` (*i.e.*, for the field `level` of type
+`NoStartInvData`) and update `available_data` with an added description.
 """
 function add_description!(
     field::Any,
@@ -180,8 +180,10 @@ end
         sc::Int64,
     )
 
-Get the values from the JuMP `model`, or the input data, at `selection` for all periods in `T`
-restricted to strategic period `sp`, representative period `rp`, and scenario `sc`.
+Get the values from the JuMP `model`, or the input data, at `selection` for all periods in
+`T` restricted to strategic period `sp`, representative period `rp`, and scenario `sc`.
+
+Return the periods, the corresponding values, and the time axis (*e.g.*, `:results_op`).
 """
 function get_data(
     model::Union{JuMP.Model,Dict}, selection::PlotContainer, T::TS.TimeStructure, sp::Int64,
@@ -289,11 +291,13 @@ end
             JuMP.Containers.DenseAxisArray,
             JuMP.Containers.SparseAxisArray,
             SparseVariables.IndexedVarArray,
+            DataFrames.DataFrame,
         },
     )
 
-Get the index of the axis/column of `data` (*i.e.*,from a JuMP variable) corresponding to
-TS.TimePeriod and return this index (`i_T`) alongside its TimeStruct type.
+Get the index of the axis/column of `data` (*i.e.*, from a JuMP variable) corresponding to
+a `TS.TimePeriod`, `TS.TimeStructure`, or `TS.PeriodPartition` and return this index
+(`i_T`) alongside its TimeStruct type (both `nothing` if there is no such axis).
 """
 function get_time_axis(
     data::Union{
@@ -374,7 +378,7 @@ function update_plot!(gui)
 end
 
 """
-    update_plot!(gui::GUI, design::EnergySystemDesign)
+    update_plot!(gui::GUI, connection::Connection)
 
 Based on `connection` update plots.
 """
@@ -586,7 +590,7 @@ function update_plot!(gui::GUI, element)
 end
 
 """
-    update_axislabels!(gui::GUI, time_axis::Symbol)
+    update_axis!(gui::GUI, time_axis::Symbol)
 
 Update the xlabel, ylabel and ticks of the :results axis
 """
@@ -605,7 +609,7 @@ end
 """
     update_legend!(gui::GUI)
 
-Update the legend based on the visible plots of type `time_axis`.
+Update the legend based on the visible plots of the time axis selected in the time menu.
 """
 function update_legend!(gui::GUI)
     time_axis = get_menu(gui, :time).selection[]
@@ -659,7 +663,7 @@ end
 """
     update_limits!(ax::Axis, limits::GLMakie.HyperRectangle)
 
-Set the limits based on limits.
+Set the limits of `ax` to `limits`, padding limits without a span.
 """
 function update_limits!(ax::Axis, limits::GLMakie.HyperRectangle)
     xmin = limits.origin[1]
@@ -667,7 +671,7 @@ function update_limits!(ax::Axis, limits::GLMakie.HyperRectangle)
     ymin = limits.origin[2]
     ymax = limits.origin[2] + limits.widths[2]
 
-    # Pad limits without a span (occuring for, e.g., stored limits of plots of constant
+    # Pad limits without a span (occurring for, e.g., stored limits of plots of constant
     # data where the widths vanish in Float32 precision) to avoid errors when setting
     # the limits
     if xmax ≤ xmin

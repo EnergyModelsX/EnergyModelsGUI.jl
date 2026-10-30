@@ -6,8 +6,8 @@ EnergyModelsGUI
 
 **EnergyModelsX** is an operational, multi nodal energy system framework, written in Julia.
 The model is based on the [`JuMP`](https://jump.dev/JuMP.jl/stable/) optimization framework.
-It is a multi carrier energy model, where the definition of the resources are fully up to the user of the model.
-One of the primary design goals was to develop a model that can eaily be extended with new functionality without the need to understand and remember every variable and constraint in the model.
+It is a multi carrier energy model, where the definition of the resources is fully up to the user of the model.
+One of the primary design goals was to develop a model that can easily be extended with new functionality without the need to understand and remember every variable and constraint in the model.
 
 For running and visualizing a basic energy system model, only the base technology package
 [`EnergyModelsBase.jl`](https://github.com/EnergyModelsX/EnergyModelsBase.jl.git),
@@ -24,7 +24,7 @@ The EnergyModelsGUI package also provides visualization utilities for the follow
    resources between the different areas.
 - [`EnergyModelsInvestments.jl`](https://github.com/EnergyModelsX/EnergyModelsInvestments.jl):
    this package implements functionality for investments, where the length of the
-   investment periods are fully flexible and is decided by setting the time
+   investment periods is fully flexible and is decided by setting the time
    structure.
 
 ## Manual outline
@@ -48,6 +48,9 @@ Pages = [
     "how-to/customize-colors.md",
     "how-to/customize-icons.md",
     "how-to/customize-descriptive_names.md",
+    "how-to/improve-performance.md",
+    "how-to/use-custom-background-map.md",
+    "how-to/add_additional_plots.md",
 ]
 Depth = 1
 ```

@@ -25,7 +25,7 @@ to the old EnergyModelsX `case` dictionary.
   representative periods.
 - **`scenarios_labels::Vector=[]`** are descriptive labels for scenarios.
 - **`path_to_results::String=""`** is the path to where exported files are stored.
-- **`path_to_descriptive_names::String=""`** is the Path to a .yml file where variables
+- **`path_to_descriptive_names::String=""`** is the path to a .yml file where variables
   are described.
 - **`descriptive_names_dict::Dict=Dict()`** is a dictionary where variables are described.
 - **`coarse_coast_lines::Bool=true`** is a toggle for coarse or fine resolution coastlines.
@@ -33,11 +33,13 @@ to the old EnergyModelsX `case` dictionary.
   main window.
 - **`fontsize::Int64=12`** is the general fontsize.
 - **`plot_widths::Tuple{Int64,Int64}=(1920, 1080)`** is the resolution of the window.
-- **`case_name::String = ""`** provides a tag for the window title.
-- **`scale_tot_opex::Bool=false`** multiplies total OPEX quantities with the duration of the strategic period.
-- **`scale_tot_capex::Bool=false`** divides total CAPEX quantities with the duration of the strategic period.
+- **`case_name::String=""`** provides a tag for the window title.
+- **`scale_tot_opex::Bool=false`** multiplies total OPEX quantities with the duration of
+  the strategic period.
+- **`scale_tot_capex::Bool=false`** divides total CAPEX quantities by the duration of the
+  strategic period.
 - **`colormap::Vector=Makie.wong_colors()`** is the colormap used for plotting results.
-- **`tol::Float64=1e-12`** the tolerance for numbers close to machine epsilon precision.
+- **`tol::Float64=1e-8`** is the tolerance for numbers close to machine epsilon precision.
 - **`enable_data_inspector::Bool=true`** toggles the DataInspector functionality for
   hovering objects to show information.
 - **`use_geomakie::Bool=true`** toggles the use of GeoMakie for plotting geographical
@@ -49,16 +51,17 @@ to the old EnergyModelsX `case` dictionary.
 - **`simplified_connection_plotting::Bool=false`** toggles whether or not to use a
   simplified representation of the connections with a single line for each connection
   (instead of multiple lines for multiple transmission modes) in the topology design.
-- **`simplify_all_levels::Bool=false`** toggles whether or not to use simplified connection 
+- **`simplify_all_levels::Bool=false`** toggles whether or not to use simplified connection
   plotting for all hierarchical levels.
 - **`map_boundary_file::String=""`** is the path to a .geojson file containing
   geographical boundary data for plotting to be used instead of the default coastlines.
 - **`alpha::Number=1.0`** is the alpha value for non-invested connections 
   and nodes in the topology design.
-- **`additional_plots::Vector{<:Dict}=Dict[]`** is a vector of dictionaries containing the information
-  for additional plots to be added to the GUI. Each dictionary should contain the following
-  keys: `data::Union{String, DataFrame}` (where providing string signalizes a path to a CSV file), 
-  and optionally `normalize::Bool` (whether to normalize the data, defaults to `false`).
+- **`additional_plots::Vector{<:Dict}=Dict[]`** is a vector of dictionaries containing the
+  information for additional plots to be added to the GUI. Each dictionary should contain
+  the following keys: `data::Union{String, DataFrame}` (where providing a string signifies
+  a path to a CSV file), and optionally `normalize::Bool` (whether to normalize the data,
+  defaults to `false`).
 
 !!! warning "Reading model results from CSV-files"
     Reading model results from a directory (*i.e.*, `model::String` implying that the results
@@ -124,7 +127,7 @@ function GUI(
     )
 
     @info raw"Setting up the GUI"
-    design::EnergySystemDesign = root_design # variable to store current system (inkluding sub systems)
+    design::EnergySystemDesign = root_design # variable to store current system (including sub systems)
 
     if expand_all && !pre_plot_sub_components
         expand_all = false
@@ -313,8 +316,9 @@ end
 """
     create_makie_objects(vars::Dict, design::EnergySystemDesign)
 
-Create Makie figure and all its objects (buttons, menus, toggles and axes) for
-EnergySystemDesign `design` and the options `vars`.
+Create Makie figure and all its objects (buttons, menus, toggles, sliders, legends and
+axes) for EnergySystemDesign `design` and the options `vars`. Returns the tuple
+`(fig, buttons, menus, toggles, sliders, axes, legends)`.
 """
 function create_makie_objects(vars::Dict, design::EnergySystemDesign)
     # Create a figure (the main window)

@@ -11,7 +11,7 @@ using EnergyModelsGUI
 # Get the path of the examples directory
 exdir = joinpath(pkgdir(EnergyModelsGUI), "examples")
 
-# Install required packages (use the project.toml file in the test folder of the repository)
+# Install required packages (use the Project.toml file in the examples folder of the repository)
 using Pkg
 Pkg.activate(exdir)
 Pkg.instantiate()

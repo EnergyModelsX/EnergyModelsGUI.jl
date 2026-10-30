@@ -126,7 +126,8 @@ end
 """
     find_type_field(dict::Dict, x::Any)
 
-Return closest supertype of a key being of same type as `x`.
+Return the closest supertype of `x` (including its own type) that is a key of `dict`, or
+`Nothing` if there is none.
 """
 function find_type_field(dict::Dict, x::Any)
     for supertype ∈ get_supertypes(x)
@@ -140,7 +141,7 @@ end
 """
     get_nested_value(dict::Dict, keys_str::String)
 
-Get value of a `nested` dict based on keys in the string `key_str` separated by periods.
+Get the value of a nested dict based on the keys in the string `keys_str` separated by periods.
 """
 function get_nested_value(dict::Dict, keys_str::String)
     keys = split(keys_str, ".")
@@ -158,7 +159,8 @@ end
 """
     get_nth_field(s::String, delimiter::Char, n::Int)
 
-Get `n`'th value of a string `s` separated by the character `delimiter`.
+Get the `n`'th value of a string `s` separated by the character `delimiter` (an empty
+string if `s` has fewer than `n` values).
 """
 function get_nth_field(s::String, delimiter::Char, n::Int)
     fields = split(s, delimiter)
@@ -189,7 +191,7 @@ end
 """
     nested_eltype(x::TimeProfile)
 
-Return the type of the lowest TimeProfile, of a nested TimeProfile `x`, not being a FixedProfile.
+Return the type of the lowest TimeProfile, of a nested TimeProfile `x`, not being a `FixedProfile`.
 """
 function nested_eltype(x::TimeProfile)
     y = typeof(x)
@@ -202,7 +204,7 @@ end
 """
     format_number(x::Number)
 
-Format number `x` to two decimals and add thousands seperators (comma).
+Format number `x` to two decimals and add thousands separators (comma).
 """
 function format_number(x::Number)
     # Format the number with two decimal places using @sprintf
@@ -215,7 +217,9 @@ end
 """
     get_max_installed(n, t::Vector{<:TS.TimeStructure})
 
-Get the maximum capacity installable by an investemnt.
+Get the maximum capacity installable by an investment in the node `n` over the time
+periods `t` (zero if `n` has no investments). For a `Storage`, the maximum over the charge,
+level, and discharge capacities is returned.
 """
 function get_max_installed(n::EMB.Node, t::Vector{<:TS.TimeStructure})
     if EMI.has_investment(n)
@@ -259,7 +263,8 @@ end
 """
     scroll_ylim(ax::Makie.AbstractAxis, val::Float64)
 
-Shift the ylim with `val` units to mimic scrolling feature of an axis `ax`.
+Shift the ylim with `val` units to mimic scrolling feature of an axis `ax` (the limits are
+reset to (0, 1) if the upper limit would exceed 1).
 """
 function scroll_ylim(ax::Makie.AbstractAxis, val::Float64)
     ylim = collect(ax.yaxis.attributes.limits[])
@@ -279,6 +284,7 @@ end
     _type_to_header(::Type{<:TS.PeriodPartition})
     _type_to_header(::Type{<:Resource})
     _type_to_header(::Type{<:AbstractElement})
+    _type_to_header(::Type{<:Int})
 
 Map types to header symbols for saving results.
 """
@@ -295,7 +301,8 @@ _type_to_header(::Type{<:Int}) = :segment
 """
     save_results(model::Model; directory=joinpath(pwd(),"csv_files"))
 
-Saves the model results of all variables as CSV files and metadata as a yml-file.
+Saves the model results of all variables as CSV files and metadata as the yaml-file
+`metadata.yaml`.
 If no directory is specified, it will create, if necessary, a new directory "csv_files" in
 the current working directory and save the files in said directory.
 """
@@ -339,7 +346,7 @@ end
 """
     get_types(input) -> Vector{Symbol}
 
-Retrieves the names of all defined types from modules or packages.
+Retrieves the names of all defined types from modules or packages (exported names only).
 
 # Method Overloads
 
@@ -347,22 +354,23 @@ Retrieves the names of all defined types from modules or packages.
   Returns a vector of type names defined in the given module.
 
 - `get_types(moduls::Vector{Module})`:
-  Returns a combined vector of type names from multiple modules.
+  Returns a vector containing one vector of type names per module.
 
 - `get_types(pkg::Union{String, Symbol})`:
   Converts the package name to a module (via `Main`) and returns its defined types.
 
 - `get_types(pkgs::Union{Vector{<:Union{String, Symbol}}, Set{<:Union{String, Symbol}}})`:
-  Returns a combined vector of type names from multiple packages.
+  Returns a vector containing one vector of type names per package.
 
 # Arguments
 - `input`: Can be a single module, a vector of modules, a single package name (as `String` or `Symbol`), or a collection of package names.
 
 # Returns
-- `Vector{Symbol}`: A list of names corresponding to types defined in the given module(s) or package(s).
+- `Vector{Symbol}` for a single module or package: A list of names corresponding to types
+  defined in it. A vector of such vectors for a collection of modules or packages.
 
 # Description
-This set of functions helps extract type definitions from Julia modules or packages. It filters out non-type bindings and collects only those that are instances of `DataType`.
+This set of functions helps extract type definitions from Julia modules or packages. It filters out non-type bindings and collects only those that are (possibly parametric) `DataType`s.
 
 # Example
 ```julia
@@ -405,13 +413,13 @@ Retrieves the supertypes of all defined types from modules or packages.
   Merges and returns supertypes from multiple modules.
 
 # Arguments
-- `input`: Can be a single module, a vector of modules, a single package name (as `String` or `Symbol`), or a collection of package names.
+- `input`: Can be a single module or a vector of modules.
 
 # Returns
-- `Dict{Symbol, Vector{Type}}`: A dictionary where each key is a type name and the value is a vector of its supertypes.
+- `Dict`: A dictionary where each key is a type name and the value is a vector of its supertypes.
 
 # Description
-This set of functions helps extract the inheritance hierarchy of types defined in Julia modules or packages. It filters out non-type bindings and collects supertypes using `supertypes`.
+This set of functions helps extract the inheritance hierarchy of types defined in Julia modules or packages. It filters out non-type bindings and collects supertypes using `supertypes`. The supertypes are ordered starting with the type itself.
 
 """
 function get_supertypes(modul::Module)
@@ -435,16 +443,18 @@ get_supertypes(moduls::Vector{Module}) =
 """
     has_fields(type::Type) -> Bool
 
-Checks whether a given type is a concrete struct with at least one field.
+Checks whether a given type is a struct type with at least one field.
 
 # Arguments
-- `type::Type`: The type to be inspected.
+- `type`: The type to be inspected (a `UnionAll` is unwrapped first).
 
 # Returns
-- `Bool`: Returns `true` if the type is a concrete struct and has one or more fields; otherwise, returns `false`.
+- `Bool`: Returns `true` if the type is a struct type and has one or more fields;
+  otherwise, returns `false`.
 
 # Description
 This function combines three checks:
+- `type isa DataType`: Ensures the type is a `DataType`.
 - `isstructtype(type)`: Ensures the type is a struct.
 - `nfields(type) > 0`: Ensures the struct has at least one field.
 
@@ -478,7 +488,7 @@ Ensures that a given type exists as a key in the current level of a nested type 
 If `tmp_type` is not already a key in `current_lvl`, it adds it with an empty dictionary as its value, preparing for further nesting.
 
 # Returns
-- `Nothing`: This function modifies `current_lvl` in-place and does not return a value.
+- This function modifies `current_lvl` in-place; its return value should not be used.
 
 """
 function update_tree!(current_lvl, tmp_type::Type)
@@ -493,14 +503,13 @@ end
 Constructs a nested dictionary representing type dependencies from a dictionary of supertypes.
 
 # Arguments
-- `emx_supertypes_dict::Dict{Any, Vector{Type}}`: A dictionary where each key corresponds to a type identifier, and the value is a vector of supertypes ordered from the most general to the most specific.
+- `emx_supertypes_dict::Dict{Any, Vector{Type}}`: A dictionary where each key corresponds to a type identifier, and the value is a vector of supertypes ordered from the most specific (the type itself) to the most general.
 
 # Returns
-- `Dict{Type, Union{Dict, Nothing}}`: A nested dictionary structure where each type is a key pointing to its subtype hierarchy. Leaf nodes point to `nothing`.
+- `Dict{Type, Union{Dict, Nothing}}`: A nested dictionary structure where each type is a key pointing to its subtype hierarchy. Leaf nodes point to an empty `Dict`.
 
 # Description
 This function builds a tree-like structure of type dependencies by iterating through each type's supertypes and nesting them accordingly. It uses the helper function `update_tree!` to insert types into the correct level of the hierarchy.
-```
 """
 function get_types_structure(emx_supertypes_dict)
     # make a visualization of the type dependencies by building a nested dictionary of types

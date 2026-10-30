@@ -3,9 +3,9 @@
     EnergySystemDesign(case::Case; kwargs...)
 
 Create and initialize an instance of the `EnergySystemDesign` struct, representing energy
-system designs. If the argument is a `Case` instance, the function converts the case to a
-dictionary, and initializes the `EnergySystemDesign`. If the argument is a `AbstractSystem`,
-the function initializes the `EnergySystemDesign`.
+system designs. If the argument is a `Case` instance, the function converts the case to an
+`AbstractSystem` (through `parse_case`), and initializes the `EnergySystemDesign`. If the
+argument is an `AbstractSystem`, the function initializes the `EnergySystemDesign`.
 
 # Keyword arguments:
 
@@ -17,8 +17,10 @@ the function initializes the `EnergySystemDesign`.
   a string.
 - **`parent::AbstractGUIObj=NothingDesign()`** is a parent EnergySystemDesign object.
 - **`level::Int64=0`** indicates the hierarchical level of the design in the system.
+- **`radius::Float32=0.1f0`** is the radius of the circle in which the components are
+  placed if no coordinates are available (recomputed for a `SystemGeo`).
 
-The function reads system configuration data from a TOML file specified by `design_path`
+The function reads system configuration data from a YAML file in the folder `design_path`
 (if it exists), initializes various internal fields, and processes connections and wall values.
 
 It constructs and returns an `EnergySystemDesign` instance.
@@ -202,9 +204,9 @@ function EnergySystemDesign(case::Case; kwargs...)
 end
 
 """
-    sub_system(system::SystemGeo, element::AbstractElement)
+    sub_system(system::System, element::AbstractElement)
 
-Create a sub-system of `system` with the `element` as the reference node.
+Create a sub-system of `system` with the `element` as the parent and reference node.
 """
 function sub_system(system::System, element::AbstractElement)
     return System(
@@ -237,7 +239,8 @@ end
 """
     parse_case(case::Case)
 
-Parse the case and return a `AbstractSystem` instance.
+Parse the case and return an `AbstractSystem` instance (`SystemGeo` if the case includes
+elements from the EnergyModelsGeography package, otherwise `System`).
 """
 function parse_case(case::Case)
     return includes_area(case) ? SystemGeo(case) : System(case)
