@@ -411,6 +411,9 @@ function run_case()
     # Solve the optimization problem
     optimize!(m)
 
+    # Check that the case is unchanged (relative MIP gap of HiGHS)
+    @test isapprox(objective_value(m), -1.7918992874812832e8; rtol = 1e-4)
+
     # Print solution summary
     solution_summary(m)
 

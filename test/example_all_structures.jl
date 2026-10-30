@@ -722,6 +722,9 @@ function run_all_in_one_case()
 
     m = run_model(case, model, optimizer)
 
+    # Check that the case is unchanged (relative gap `limits/gap` of SCIP)
+    @test isapprox(objective_value(m), 2.6045227172156078e8; rtol = 0.02)
+
     # The case can be visualized with
     gui = GUI(
         case;

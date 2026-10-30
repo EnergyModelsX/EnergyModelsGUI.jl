@@ -274,6 +274,9 @@ function run_case_EMI_geography_2()
     # Solve the optimization problem
     optimize!(m)
 
+    # Check that the case is unchanged (relative MIP gap of HiGHS)
+    @test isapprox(objective_value(m), -1.5246627469650488e6; rtol = 1e-4)
+
     # Print solution summary
     solution_summary(m)
 

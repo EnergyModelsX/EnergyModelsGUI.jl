@@ -152,6 +152,16 @@ function run_test_case(; use_rp::Bool = true, use_sc::Bool = true)
     case, model = generate_example_test(; use_rp, use_sc)
     optimizer = optimizer_with_attributes(HiGHS.Optimizer, MOI.Silent() => true)
     m = run_model(case, model, optimizer)
+
+    # Check that the case is unchanged
+    obj = Dict(
+        (false, false) => -9.20895e7,
+        (false, true) => -5.7279669e7,
+        (true, false) => -1.368162e8,
+        (true, true) => -9.865944e7,
+    )
+    @test isapprox(objective_value(m), obj[(use_rp, use_sc)]; rtol = 1e-6)
+
     gui = GUI(
         case;
         model = m,
