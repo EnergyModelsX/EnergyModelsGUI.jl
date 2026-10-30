@@ -1,32 +1,30 @@
-using EnergyModelsGUI
 using Test
-using YAML
 using Logging
-using CSV
-using DataFrames
+using YAML
+using JuMP
+using HiGHS
+using TimeStruct
+using EnergyModelsBase
+using EnergyModelsInvestments
+using EnergyModelsGeography
+using EnergyModelsRenewableProducers
+using EnergyModelsFlex
+using EnergyModelsGUI
 
 const TEST_ATOL = 1e-6
 const EMGUI = EnergyModelsGUI
+const EMB = EnergyModelsBase
 
 pkg_dir = pkgdir(EnergyModelsGUI)
-exdir = joinpath(pkg_dir, "examples")
 testdir = joinpath(pkg_dir, "test")
 
 # Include function that can loop through all components and plot its data
-include(joinpath(testdir, "utils.jl"))
+include(joinpath(testdir, "utils_test.jl"))
 
-# Include the code that generates example data
-env = Base.active_project()
-ENV["EMX_TEST"] = true # Set flag for example scripts to check if they are run as part of the tests
-include(joinpath(exdir, "generate_examples.jl"))
-Pkg.activate(env)
-include(joinpath(testdir, "case7.jl"))
-include(joinpath(testdir, "EMI_geography_2.jl"))
-include(joinpath(testdir, "example_test.jl"))
-include(joinpath(testdir, "example_all_structures.jl"))
-
-# Add utilities needed for examples
-include(joinpath(exdir, "utils.jl"))
+# Include the code that generates the cases
+include(joinpath(testdir, "cases", "utils_case.jl"))
+include(joinpath(testdir, "cases", "case7.jl"))
+include(joinpath(testdir, "cases", "case_examples.jl"))
 
 logger_org = global_logger()
 logger_new = ConsoleLogger(stderr, Logging.Warn)

@@ -1,15 +1,21 @@
-const EMB = EnergyModelsBase
+using SCIP
+using EnergyModelsHydrogen
+using EnergyModelsCO2
+using EnergyModelsHeat
+
 const EMI = EnergyModelsInvestments
 const EMG = EnergyModelsGeography
 const EMRP = EnergyModelsRenewableProducers
 const EMH2 = EnergyModelsHydrogen
-const EMH = EnergyModelsHeat
-const EMC = EnergyModelsCO2
+const EMCO2 = EnergyModelsCO2
+const EMHeat = EnergyModelsHeat
 
-case, model, m, gui = run_case()
+include(joinpath(testdir, "cases", "case_all.jl"))
+
+case, model, m, gui = run_case7()
 
 # Test specific miscellaneous descriptive names
-@testset "Test descriptive names" verbose = true begin
+@testset "Test descriptive names" begin
     @testset "Test customizing descriptive names" begin
         path_to_descriptive_names = joinpath(pkgdir(EMGUI), "src", "descriptive_names.yml")
         str1 = "<a test description 1>"
@@ -82,11 +88,14 @@ case, model, m, gui = run_case()
         # Check that no descriptive names are empty for types
         descriptive_names = create_descriptive_names()
         types_map =
-            get_descriptive_names([EMB, EMI, EMG, EMRP, EMH2, EMH, EMC], descriptive_names)
+            get_descriptive_names(
+                [EMB, EMI, EMG, EMRP, EMH2, EMHeat, EMCO2],
+                descriptive_names,
+            )
         @test !any(any(isempty.(values(a))) for a ∈ values(types_map))
 
         # Check that no warnings are logged when running a full case
-        @test_logs min_level=Logging.Error case, _, m, gui = run_all_in_one_case()
+        @test_logs min_level=Logging.Error case, _, m, gui = run_case_all()
 
         # Check that no descriptive names are empty for variables
         variables_map = get_descriptive_names(m, descriptive_names)

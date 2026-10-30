@@ -1,17 +1,20 @@
+using CSV
+using DataFrames
+
 tmpdir = mktempdir(testdir; prefix = "exported_files_")
 
 function get_case(file)
     if file == "EMB_network.jl"
         case, model = generate_example_network()
     elseif file == "EMI_geography.jl"
-        case, model = generate_example_data_geo()
+        case, model = generate_example_geo_investment()
     elseif file == "EMR_hydro_power.jl"
         case, model = generate_example_hp()
     end
     return case, model
 end
 
-@testset "Test reading model results from files" verbose = true begin
+@testset "Test reading model results from files" begin
     for file ∈ ["EMB_network.jl", "EMI_geography.jl", "EMR_hydro_power.jl"]
         directory = joinpath(tmpdir, splitext(file)[1])
         if !ispath(directory)
@@ -45,11 +48,17 @@ end
     end
 end
 
-@testset "Test reading additional plot data from files" verbose = true begin
-    # Read the case and model data from previous test
+@testset "Test reading additional plot data from files" begin
+    # Save the results of the case to a separate folder
     file = "EMB_network.jl"
-    directory = joinpath(tmpdir, splitext(file)[1])
+    directory = joinpath(tmpdir, "additional_plots_" * splitext(file)[1])
+    if !ispath(directory)
+        mkdir(directory)
+    end
     case, model = get_case(file)
+    optimizer = optimizer_with_attributes(HiGHS.Optimizer, MOI.Silent() => true)
+    m = run_model(case, model, optimizer)
+    EMGUI.save_results(m; directory)
 
     # Create additional plot data and save it to a CSV file
     test_additional_plots_dir = joinpath(tmpdir, "test_additional_plots")
@@ -112,14 +121,14 @@ end
     EMGUI.close(gui)
 end
 
-@testset "Test reading PeriodPartition results from files" verbose = true begin
+@testset "Test reading PeriodPartition results from files" begin
     directory = joinpath(tmpdir, "case7")
     if !ispath(directory)
         mkdir(directory)
     end
 
     # Save the results of case7 (including variables indexed over `PeriodPartition`s)
-    case, model, m, gui_jump = run_case()
+    case, model, m, gui_jump = run_case7()
     EMGUI.save_results(m; directory)
     df_csv = CSV.read(joinpath(directory, "demand_sink_deficit.csv"), DataFrame)
     @test "pd" ∈ names(df_csv)

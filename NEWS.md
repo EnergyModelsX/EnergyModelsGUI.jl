@@ -1,6 +1,6 @@
 # Release notes
 
-## Unversioned
+## Version 0.7.3 (2026-10-30)
 
 ### Bugfixes
 
@@ -21,6 +21,10 @@
     If the partitions of an element cannot be determined, a warning naming the element and the required method is issued and its data indexed over `PeriodPartition`s is not available for plotting.
   * Variables indexed over `PeriodPartition`s are also supported when reading model results from CSV-files.
     As the partition labels in the files are not unique across elements, the partitions are rebuilt per element through `period_partitions`.
+* Reworked the test set:
+  * Moved the test cases into the folder `test/cases` and renamed their functions consistently (`generate_case_X` and `run_case_X`).
+  * Replaced the geography test case taken from the `examples` folder by the investment example of `EnergyModelsGeography`.
+  * Made the test files independent of each other and of the `examples` folder (except `test_examples.jl`, which runs the examples in their own environment).
 
 ## Version 0.7.2 (2026-08-04)
 
