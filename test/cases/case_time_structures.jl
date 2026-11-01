@@ -1,18 +1,10 @@
-# Import the required packages
-using EnergyModelsGUI
-using EnergyModelsBase
-using JuMP
-using HiGHS
-using PrettyTables
-using TimeStruct
-
 """
-    generate_example_test(; use_rp::Bool=true, use_sc::Bool=true)
+    generate_case_time_structures(; use_rp::Bool=true, use_sc::Bool=true)
 
 Generate the data based on the EMB_sink_source.jl example with posibilities for different
 time structures.
 """
-function generate_example_test(; use_rp::Bool = true, use_sc::Bool = true)
+function generate_case_time_structures(; use_rp::Bool = true, use_sc::Bool = true)
     @info "Generate case data - Sink-source example with non-tensorial time structure"
 
     # Define the different resources and their emission intensity in tCO2/MWh
@@ -144,14 +136,24 @@ function generate_example_test(; use_rp::Bool = true, use_sc::Bool = true)
 end
 
 """
-    run_test_case(; use_rp::Bool=true, use_sc::Bool=true)
+    run_case_time_structures(; use_rp::Bool=true, use_sc::Bool=true)
 
 Generate the case and model data, run the model and show results in GUI
 """
-function run_test_case(; use_rp::Bool = true, use_sc::Bool = true)
-    case, model = generate_example_test(; use_rp, use_sc)
+function run_case_time_structures(; use_rp::Bool = true, use_sc::Bool = true)
+    case, model = generate_case_time_structures(; use_rp, use_sc)
     optimizer = optimizer_with_attributes(HiGHS.Optimizer, MOI.Silent() => true)
     m = run_model(case, model, optimizer)
+
+    # Check that the case is unchanged
+    obj = Dict(
+        (false, false) => -9.20895e7,
+        (false, true) => -5.7279669e7,
+        (true, false) => -1.368162e8,
+        (true, true) => -9.865944e7,
+    )
+    @test isapprox(objective_value(m), obj[(use_rp, use_sc)]; rtol = 1e-6)
+
     gui = GUI(
         case;
         model = m,

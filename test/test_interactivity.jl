@@ -1,5 +1,9 @@
+# Load the cases used in this test file
+include(joinpath(testdir, "cases", "case_geography.jl"))
+include(joinpath(testdir, "cases", "case_time_structures.jl"))
+
 # Load case 7 for testing
-case, model, m, gui = run_case()
+case, model, m, gui = run_case7()
 
 root_design = get_root_design(gui)
 components = get_components(root_design)
@@ -25,7 +29,7 @@ simplified_toggle = get_toggle(gui, :simplified)
 alpha_slider = get_slider(gui, :alpha)
 
 # Test specific GUI functionalities
-@testset "Test interactivity" verbose = true begin
+@testset "Test interactivity" begin
     op_cost = [3262470.0, 5272890.0, 2010420.0]
     inv_cost = [0.0, 0.0, 29536224.881975]
     @testset "Compare with Integrate results" begin
@@ -112,7 +116,7 @@ alpha_slider = get_slider(gui, :alpha)
         end
     end
 
-    _, _, _, gui_2 = run_case_EMI_geography_2()
+    _, _, _, gui_2 = run_case_geography()
     design_2 = get_root_design(gui_2)
     components_2 = get_components(design_2)
     connections_2 = get_connections(design_2)
@@ -241,7 +245,7 @@ alpha_slider = get_slider(gui, :alpha)
 
     # Test the save button functionality
     @testset "get_button(gui,:save).clicks" begin
-        design_folder = joinpath(pkgdir(EMGUI), "examples", "design", "case7")
+        design_folder = mktempdir()
         root_design.file = joinpath(design_folder, "test_top_level.yml")
         for (i_area, area_design) ∈ enumerate(components)
             area_design.file = joinpath(design_folder, "test_Area $i_area.yml")
@@ -515,7 +519,7 @@ alpha_slider = get_slider(gui, :alpha)
 
     ## Run a case with no representative periods nor scenarios
     @testset "Test SP(OP)" begin
-        _, _, _, gui3 = run_test_case(; use_rp = false, use_sc = false)
+        _, _, _, gui3 = run_case_time_structures(; use_rp = false, use_sc = false)
         available_data_menu = get_menu(gui3, :available_data)
 
         # Test plotting over operational periods
@@ -530,7 +534,7 @@ alpha_slider = get_slider(gui, :alpha)
 
     ## Run a case with scenarios but no representative periods
     @testset "Test SP(SC(OP))" begin
-        case, model, m, gui3 = run_test_case(; use_rp = false, use_sc = true)
+        case, model, m, gui3 = run_case_time_structures(; use_rp = false, use_sc = true)
         available_data_menu = get_menu(gui3, :available_data)
 
         # Test plotting over operational periods
@@ -553,7 +557,7 @@ alpha_slider = get_slider(gui, :alpha)
 
     ## Run a case with representative periods but no scenarios
     @testset "Test SP(RP(OP))" begin
-        _, _, _, gui3 = run_test_case(; use_rp = true, use_sc = false)
+        _, _, _, gui3 = run_case_time_structures(; use_rp = true, use_sc = false)
         available_data_menu = get_menu(gui3, :available_data)
         ax_results = get_ax(gui3, :results)
 
@@ -577,7 +581,7 @@ alpha_slider = get_slider(gui, :alpha)
 
     ## Run a case with representative periods and scenarios
     @testset "Test SP(RP(SC(OP)))" begin
-        _, _, _, gui3 = run_test_case(; use_rp = true, use_sc = true)
+        _, _, _, gui3 = run_case_time_structures(; use_rp = true, use_sc = true)
         available_data_menu = get_menu(gui3, :available_data)
         ax_results = get_ax(gui3, :results)
         period_menu = get_menu(gui3, :period)
@@ -632,7 +636,7 @@ alpha_slider = get_slider(gui, :alpha)
     end
 
     ## Test the PeriodDemandSink of case7 (data indexed over PeriodPartitions)
-    @testset "PeriodPartition support" verbose = true begin
+    @testset "PeriodPartition support" begin
         clear_selection!(gui, :topo)
         hot_water_design = get_component(area1, "Hot water 1")
         hot_water = get_element(hot_water_design)

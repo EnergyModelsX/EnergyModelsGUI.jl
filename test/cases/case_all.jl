@@ -1,24 +1,3 @@
-using JuMP
-using SCIP
-using TimeStruct
-
-using EnergyModelsBase
-using EnergyModelsGeography
-using EnergyModelsHydrogen
-using EnergyModelsCO2
-using EnergyModelsRenewableProducers
-using EnergyModelsHeat
-using EnergyModelsInvestments
-
-const EMB    = EnergyModelsBase
-const EMG    = EnergyModelsGeography
-const EMH2   = EnergyModelsHydrogen
-const EMCO2  = EnergyModelsCO2
-const EMR    = EnergyModelsRenewableProducers
-const EMHeat = EnergyModelsHeat
-const EMI    = EnergyModelsInvestments
-const TS     = TimeStruct
-
 """
 All-in-one-case: combines all nodes from the main EMX packages.
 
@@ -42,7 +21,7 @@ All subsystems are connected through the global multi-carrier hub, demonstrating
 - EnergyModelsInvestments v0.8.1
 - EnergyModelsRenewableProducers v0.6.7
 """
-function generate_all_in_one_case()
+function generate_case_all()
     # -----------------------------
     # 1) Resources (unified naming)
     # -----------------------------
@@ -709,8 +688,8 @@ function generate_all_in_one_case()
     return case, model
 end
 
-function run_all_in_one_case()
-    case, model = generate_all_in_one_case()
+function run_case_all()
+    case, model = generate_case_all()
 
     optimizer = optimizer_with_attributes(
         SCIP.Optimizer,
@@ -721,6 +700,9 @@ function run_all_in_one_case()
     )
 
     m = run_model(case, model, optimizer)
+
+    # Check that the case is unchanged (relative gap `limits/gap` of SCIP)
+    @test isapprox(objective_value(m), 2.6045227172156078e8; rtol = 0.02)
 
     # The case can be visualized with
     gui = GUI(
